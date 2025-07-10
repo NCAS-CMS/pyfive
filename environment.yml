@@ -7,3 +7,6 @@ channels:
 dependencies:
   - numpy
   - python >=3.10
+  # testing
+  - pytest
+  - pytest-cov

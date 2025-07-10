@@ -57,4 +57,5 @@ jobs:
         run: |
           # pytest tries to split test_threadsafe_data_access.py
           # and that can not be run with eg pytest -n N
-          pytest
+          pytest --cov --cov-branch --cov-report=xml
+      - uses: codecov/codecov-action@v5
