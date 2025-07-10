@@ -68,3 +68,10 @@ Codecov
 =======
 
 Test coverage assessement is done using [codecov](https://app.codecov.io/gh/NCAS-CMS/pyfive/)
+
+Documentation
+=============
+
+Build locally with Sphinx::
+
+    sphinx-build -Ea doc doc/build
