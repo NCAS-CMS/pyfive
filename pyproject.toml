@@ -11,6 +11,7 @@ authors = [
     {name = "Valeriu Predoi", email = "valeriu.predoi@ncas.ac.uk"},
     {name = "David Hassell", email = "david.hassell@ncas.ac.uk"},
     {name = "Bryan Lawrence", email = "bryan.lawrence@ncas.ac.uk"},
+    {name = "Jonathan Helmus", email = "jjhelmus@gmail.com"},
 ]
 classifiers = [
     "Development Status :: 5 - Production/Stable",
