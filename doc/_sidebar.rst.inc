@@ -3,7 +3,7 @@
 
 .. toctree::
    :maxdepth: 2
-   :caption: PyActiveStorage
+   :caption: Pyfive
 
     Introduction <introduction>
     Getting started <quickstart/index>

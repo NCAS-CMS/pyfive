@@ -1,7 +1,7 @@
 """Generates sidebar/toctree.
 
 Generates the common sidebar/toctree for the sphinx/ReadTheDocs
-documentation of the PyActiveStorage and its subprojects.
+documentation of the Pyfive and its subprojects.
 """
 
 import os
@@ -56,7 +56,7 @@ def generate_sidebar(conf, conf_api):
     # Specify the sidebar contents here
     #
 
-    _header("pyfive", "PyActiveStorage")
+    _header("pyfive", "Pyfive")
     _write("pyfive", "Introduction", "introduction")
     _write("pyfive", "Getting started", "quickstart/index")
     # _write("pyfive", "Examples", "examples")
