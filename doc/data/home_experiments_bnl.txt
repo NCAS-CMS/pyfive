@@ -1,0 +1,250 @@
+pyfive branch
+default_fill_cache : False
+default_cache_type : readahead
+default_block_size : 1048576
+
+r[0:3, 4:6, 7:9]
+r[0:3, 400:600, 7:9]
+r[0:3, 400:600, 800:1100]
+r[5,:,800]
+r[:,300:500,800:1000]
+r[1,:,:]
+
+bnl/ch330a.pc19790301-def.nc, 64 chunk entries
+
+Reduction over 1 chunks took 0.4s
+Overall time (version 1) - 5e+00s
+6.5275819301605225 : Regular
+6.11167573928833 : Active Regular
+4.966563940048218 : Active Remote
+5.777529239654541 : Regular
+5.894297122955322 : Active Regular
+4.513840913772583 : Active Remote
+5.653490781784058 : Regular
+5.954509019851685 : Active Regular
+4.394351005554199 : Active Remote
+5.651051044464111 : Regular
+5.728168964385986 : Active Regular
+4.569552898406982 : Active Remote
+5.659423112869263 : Regular
+5.652827024459839 : Active Regular
+5.071002960205078 : Active Remote
+
+Reduction over 2 chunks took 0.4s
+Overall time (version 1) - 4e+00s
+7.908946990966797 : Regular
+7.5908496379852295 : Active Regular
+4.481859922409058 : Active Remote
+8.732571840286255 : Regular
+8.1283700466156 : Active Regular
+4.558679103851318 : Active Remote
+7.707890033721924 : Regular
+7.721914052963257 : Active Regular
+4.404280185699463 : Active Remote
+7.809189796447754 : Regular
+7.916913986206055 : Active Regular
+4.436033010482788 : Active Remote
+7.775968790054321 : Regular
+7.735078811645508 : Active Regular
+4.649733781814575 : Active Remote
+
+Reduction over 2 chunks took 0.5s
+Overall time (version 1) - 5e+00s
+7.754213809967041 : Regular
+9.058350801467896 : Active Regular
+4.2825469970703125 : Active Remote
+7.6808648109436035 : Regular
+7.936631202697754 : Active Regular
+4.475581884384155 : Active Remote
+7.986822843551636 : Regular
+7.767880916595459 : Active Regular
+5.64799165725708 : Active Remote
+8.05326509475708 : Regular
+8.558978080749512 : Active Regular
+4.387536287307739 : Active Remote
+8.05326509475708 : Regular
+8.558978080749512 : Active Regular
+4.387536287307739 : Active Remote
+
+Reduction over 4 chunks took 1e+00s
+Overall time (version 1) - 5e+00s
+11.737549781799316 : Regular
+11.829929113388062 : Active Regular
+5.3570029735565186 : Active Remote
+12.96435260772705 : Regular
+11.708273887634277 : Active Regular
+4.427199125289917 : Active Remote
+12.082044124603271 : Regular
+11.663249969482422 : Active Regular
+4.448379039764404 : Active Remote
+12.160427808761597 : Regular
+12.381748914718628 : Active Regular
+4.864629030227661 : Active Remote
+11.940709114074707 : Regular
+12.424716234207153 : Active Regular
+4.6097517013549805 : Active Remote
+
+Reduction over 8 chunks took 0.7s
+Overall time (version 1) - 5e+00s
+20.35632634162903 : Regular
+18.701595783233643 : Active Regular
+4.780594825744629 : Active Remote
+18.91178870201111 : Regular
+20.01336669921875 : Active Regular
+4.806182861328125 : Active Remote
+19.31538200378418 : Regular
+19.239036321640015 : Active Regular
+4.886173963546753 : Active Remote
+18.862577199935913 : Regular
+18.919509172439575 : Active Regular
+4.527647972106934 : Active Remote
+19.1742422580719 : Regular
+19.013291835784912 : Active Regular
+4.555526971817017 : Active Remote
+
+Reduction over 16 chunks took 1e+00s
+Overall time (version 1) - 5e+00s
+33.903298139572144 : Regular
+33.95520091056824 : Active Regular
+5.479094982147217 : Active Remote
+33.47618818283081 : Regular
+33.14509582519531 : Active Regular
+4.9755659103393555 : Active Remote
+34.320921182632446 : Regular
+33.631829023361206 : Active Regular
+4.777320861816406 : Active Remote
+33.07414221763611 : Regular
+33.10297989845276 : Active Regular
+4.985634803771973 : Active Remote
+33.271361112594604 : Regular
+33.41872477531433 : Active Regular
+5.1617209911346436 : Active Remote
+
+Reduction over 64 chunks took 3e+00s
+Overall time (version 1) - 7e+00s
+135.66737484931946 : Regular
+125.51056480407715 : Active Regular
+6.838850021362305 : Active Remote
+125.06190586090088 : Regular
+123.48610496520996 : Active Regular
+7.4687440395355225 : Active Remote
+124.92097496986389 : Regular
+123.4994330406189 : Active Regular
+6.4895899295806885 : Active Remote
+127.3746292591095 : Regular
+129.92956972122192 : Active Regular
+7.572640895843506 : Active Remote
+123.77195906639099 : Regular
+124.58749127388 : Active Regular
+7.2448132038116455 : Active Remote
+
+
+bnl/ch330a.pc19790301-bnl.nc, 3400 chunk entries
+
+Reduction over 1 chunks took 0.4s
+Overall time (version 1) - 4e+01s
+54.81114602088928 : Regular
+40.206737995147705 : Active Regular
+39.09910821914673 : Active Remote
+39.46443700790405 : Regular
+39.027403116226196 : Active Regular
+37.75058889389038 : Active Remote
+37.9528648853302 : Regular
+41.495553731918335 : Active Regular
+38.07294011116028 : Active Remote
+37.73332500457764 : Regular
+40.39740324020386 : Active Regular
+38.49332809448242 : Active Remote
+39.069754123687744 : Regular
+40.393052101135254 : Active Regular
+39.88633894920349 : Active Remote
+
+Reduction over 3 chunks took 0.4s
+Overall time (version 1) - 4e+01s
+40.984943151474 : Regular
+39.61718392372131 : Active Regular
+39.1941978931427 : Active Remote
+39.66099715232849 : Regular
+39.43976306915283 : Active Regular
+38.039302825927734 : Active Remote
+39.62373924255371 : Regular
+39.98037099838257 : Active Regular
+38.41215372085571 : Active Remote
+39.09483599662781 : Regular
+39.73953199386597 : Active Regular
+41.10827708244324 : Active Remote
+40.30459427833557 : Regular
+39.665311098098755 : Active Regular
+39.48872089385986 : Active Remote
+
+Reduction over 9 chunks took 0.5s
+Overall time (version 1) - 4e+01s
+45.93427586555481 : Regular
+51.21455001831055 : Active Regular
+42.55308794975281 : Active Remote
+43.54172086715698 : Regular
+43.66517210006714 : Active Regular
+38.02682185173035 : Active Remote
+43.521965980529785 : Regular
+46.44435095787048 : Active Regular
+38.40240478515625 : Active Remote
+43.9306001663208 : Regular
+43.83222007751465 : Active Regular
+38.353585958480835 : Active Remote
+43.72931981086731 : Regular
+45.22025394439697 : Active Regular
+39.67265009880066 : Active Remote
+
+Reduction over 17 chunks took 0.9s
+Overall time (version 1) - 4e+01s
+47.17348670959473 : Regular
+48.371257066726685 : Active Regular
+39.67051911354065 : Active Remote
+46.177210092544556 : Regular
+48.33781385421753 : Active Regular
+38.0770800113678 : Active Remote
+48.514657974243164 : Regular
+49.18296504020691 : Active Regular
+39.39418125152588 : Active Remote
+50.68878698348999 : Regular
+45.65637493133545 : Active Regular
+38.83580207824707 : Active Remote
+47.00814175605774 : Regular
+46.89705014228821 : Active Regular
+38.41860294342041 : Active Remote
+
+Reduction over 60 chunks took 2e+00s
+Overall time (version 1) - 4e+01s
+71.09002494812012 : Regular
+72.1630642414093 : Active Regular
+39.93671202659607 : Active Remote
+71.39048480987549 : Regular
+69.36404490470886 : Active Regular
+40.83954119682312 : Active Remote
+73.05522775650024 : Regular
+70.12043809890747 : Active Regular
+42.23869585990906 : Active Remote
+71.30378913879395 : Regular
+71.10070180892944 : Active Regular
+43.04809808731079 : Active Remote
+72.75630617141724 : Regular
+71.60838198661804 : Active Regular
+40.027408838272095 : Active Remote
+
+Reduction over 340 chunks took 8e+00s
+Overall time (version 1) - 5e+01s
+216.78450202941895 : Regular
+208.11211395263672 : Active Regular
+45.26900100708008 : Active Remote
+222.73459100723267 : Regular
+208.41155195236206 : Active Regular
+48.21009302139282 : Active Remote
+207.01012992858887 : Regular
+212.10812401771545 : Active Regular
+47.88032793998718 : Active Remote
+209.2855679988861 : Regular
+208.8525538444519 : Active Regular
+46.665223836898804 : Active Remote
+203.70479106903076 : Regular
+213.17324495315552 : Active Regular
+49.18446397781372 : Active Remote

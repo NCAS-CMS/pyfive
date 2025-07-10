@@ -1,0 +1,266 @@
+pyfive branch
+default_fill_cache : False
+default_cache_type : readahead
+default_block_size : 1048576
+
+r[0:3, 4:6, 7:9]
+r[0:3, 400:600, 7:9]
+r[0:3, 400:600, 800:1100]
+r[5,:,800]
+r[:,300:500,800:1000]
+r[1,:,:]
+
+bnl/ch330a.pc19790301-def.nc, 64 chunk entries
+
+Reduction over 1 chunks took 0.6s
+Overall time (version 1) - 3e+00s
+8.344115972518921 : Regular
+4.220659971237183 : Active Regular
+3.1975197792053223 : Active Remote
+3.014167070388794 : Regular
+3.355847120285034 : Active Regular
+2.804471015930176 : Active Remote
+2.9698619842529297 : Regular
+2.705400228500366 : Active Regular
+3.429996967315674 : Active Remote
+2.8196191787719727 : Regular
+2.7991769313812256 : Active Regular
+2.6798598766326904 : Active Remote
+2.8660669326782227 : Regular
+3.903325080871582 : Active Regular
+2.599932909011841 : Active Remote
+
+Reduction over 2 chunks took 0.3s
+Overall time (version 1) - 3e+00s
+2.8660669326782227 : Regular
+3.903325080871582 : Active Regular
+2.599932909011841 : Active Remote
+3.29656720161438 : Regular
+3.525721788406372 : Active Regular
+2.75189471244812 : Active Remote
+3.4454238414764404 : Regular
+3.665536880493164 : Active Regular
+2.571530818939209 : Active Remote
+3.538390874862671 : Regular
+4.367408990859985 : Active Regular
+2.61018705368042 : Active Remote
+3.660421848297119 : Regular
+3.500704050064087 : Active Regular
+2.6997482776641846 : Active Remote
+
+Reduction over 2 chunks took 0.4s
+Overall time (version 1) - 3e+00s
+4.397391080856323 : Regular
+3.7289319038391113 : Active Regular
+2.8331010341644287 : Active Remote
+3.8689942359924316 : Regular
+3.6623740196228027 : Active Regular
+2.6047868728637695 : Active Remote
+3.592682123184204 : Regular
+3.7491321563720703 : Active Regular
+2.693451166152954 : Active Remote
+3.557407855987549 : Regular
+4.505606174468994 : Active Regular
+3.362746000289917 : Active Remote
+4.008091926574707 : Regular
+3.4869918823242188 : Active Regular
+2.7830257415771484 : Active Remote
+
+Reduction over 4 chunks took 0.5s
+Overall time (version 1) - 3e+00s
+4.989245176315308 : Regular
+5.01286506652832 : Active Regular
+2.7912440299987793 : Active Remote
+5.019068002700806 : Regular
+5.267661094665527 : Active Regular
+2.693160057067871 : Active Remote
+5.072666883468628 : Regular
+4.841257095336914 : Active Regular
+3.7721190452575684 : Active Remote
+4.9821202754974365 : Regular
+5.039299726486206 : Active Regular
+3.1108968257904053 : Active Remote
+5.485536098480225 : Regular
+4.931081295013428 : Active Regular
+2.8403587341308594 : Active Remote
+
+Reduction over 8 chunks took 0.6s
+Overall time (version 1) - 3e+00s
+8.201773881912231 : Regular
+8.027722120285034 : Active Regular
+3.062329053878784 : Active Remote
+8.066512107849121 : Regular
+7.513127326965332 : Active Regular
+2.738662004470825 : Active Remote
+7.728527069091797 : Regular
+8.574406147003174 : Active Regular
+3.0061259269714355 : Active Remote
+8.332377195358276 : Regular
+7.553836107254028 : Active Regular
+2.7933387756347656 : Active Remote
+9.098789930343628 : Regular
+8.0898118019104 : Active Regular
+2.934377908706665 : Active Remote
+
+Reduction over 16 chunks took 0.9s
+Overall time (version 1) - 3e+00s
+13.034955978393555 : Regular
+12.481261968612671 : Active Regular
+3.220118999481201 : Active Remote
+12.732249736785889 : Regular
+14.228748798370361 : Active Regular
+3.1314401626586914 : Active Remote
+13.192391157150269 : Regular
+12.807947874069214 : Active Regular
+2.9496419429779053 : Active Remote
+13.663172721862793 : Regular
+12.501967191696167 : Active Regular
+3.0187788009643555 : Active Remote
+13.663172721862793 : Regular
+12.501967191696167 : Active Regular
+3.0187788009643555 : Active Remote
+
+Reduction over 64 chunks took 4e+00s
+Overall time (version 1) - 7e+00s
+48.40218806266785 : Regular
+46.85928988456726 : Active Regular
+6.921466827392578 : Active Remote
+48.40218806266785 : Regular
+46.85928988456726 : Active Regular
+6.921466827392578 : Active Remote
+46.171929121017456 : Regular
+47.95656108856201 : Active Regular
+5.700792074203491 : Active Remote
+46.47747492790222 : Regular
+46.345592975616455 : Active Regular
+5.459475040435791 : Active Remote
+51.872729778289795 : Regular
+68.54537105560303 : Active Regular
+8.05989122390747 : Active Remote
+
+
+bnl/ch330a.pc19790301-bnl.nc, 3400 chunk entries
+
+Reduction over 1 chunks took 0.4s
+Overall time (version 1) - 2e+01s
+45.14613080024719 : Regular
+27.162260055541992 : Active Regular
+23.115849256515503 : Active Remote
+23.882447004318237 : Regular
+23.903882026672363 : Active Regular
+21.457104921340942 : Active Remote
+25.383798837661743 : Regular
+24.16863775253296 : Active Regular
+23.5748450756073 : Active Remote
+22.512950897216797 : Regular
+23.25707483291626 : Active Regular
+25.665203094482422 : Active Remote
+26.175257205963135 : Regular
+22.014382123947144 : Active Regular
+20.443835020065308 : Active Remote
+
+Reduction over 3 chunks took 0.6s
+Overall time (version 1) - 2e+01s
+20.11542320251465 : Regular
+20.76677107810974 : Active Regular
+22.79468083381653 : Active Remote
+27.61694622039795 : Regular
+26.036365032196045 : Active Regular
+24.752694129943848 : Active Remote
+24.694957971572876 : Regular
+23.442779064178467 : Active Regular
+25.0538170337677 : Active Remote
+25.87760305404663 : Regular
+25.108362913131714 : Active Regular
+20.546348094940186 : Active Remote
+22.047937870025635 : Regular
+21.188127040863037 : Active Regular
+22.21766209602356 : Active Remote
+
+Reduction over 9 chunks took 0.4s
+Overall time (version 1) - 2e+01s
+25.24668002128601 : Regular
+28.922791957855225 : Active Regular
+22.928779125213623 : Active Remote
+22.633398056030273 : Regular
+23.74671173095703 : Active Regular
+21.821603775024414 : Active Remote
+24.363435983657837 : Regular
+27.717058897018433 : Active Regular
+21.293541193008423 : Active Remote
+25.705342292785645 : Regular
+26.323739051818848 : Active Regular
+25.679578065872192 : Active Remote
+23.84442114830017 : Regular
+33.383033990859985 : Active Regular
+36.04991698265076 : Active Remote
+
+Reduction over 17 chunks took 0.6s
+Overall time (version 1) - 2e+01s
+48.07362198829651 : Regular
+37.93207597732544 : Active Regular
+22.77363395690918 : Active Remote
+28.11515712738037 : Regular
+28.385287046432495 : Active Regular
+22.595709085464478 : Active Remote
+27.156584978103638 : Regular
+27.49553680419922 : Active Regular
+23.837636947631836 : Active Remote
+25.69541597366333 : Regular
+25.940948009490967 : Active Regular
+24.014315128326416 : Active Remote
+27.273848056793213 : Regular
+35.16158103942871 : Active Regular
+23.360612869262695 : Active Remote
+
+Reduction over 60 chunks took 3e+00s
+Overall time (version 1) - 2e+01s
+41.20513677597046 : Regular
+38.56750798225403 : Active Regular
+24.23797583580017 : Active Remote
+40.17050385475159 : Regular
+40.017329931259155 : Active Regular
+26.986143827438354 : Active Remote
+40.651535987854004 : Regular
+42.30823493003845 : Active Regular
+25.00485610961914 : Active Remote
+40.953128814697266 : Regular
+40.59316611289978 : Active Regular
+23.82962989807129 : Active Remote
+39.43385100364685 : Regular
+40.663326263427734 : Active Regular
+23.716075897216797 : Active Remote
+
+Reduction over 340 chunks took 8e+00s
+Overall time (version 1) - 3e+01s
+116.074697971344 : Regular
+116.11710214614868 : Active Regular
+30.019917964935303 : Active Remote
+119.91504836082458 : Regular
+116.83721113204956 : Active Regular
+29.05119490623474 : Active Remote
+114.2572910785675 : Regular
+124.5028350353241 : Active Regular
+34.20670700073242 : Active Remote
+118.08085703849792 : Regular
+123.08248209953308 : Active Regular
+28.80124282836914 : Active Remote
+125.51857686042786 : Regular
+143.63352608680725 : Active Regular
+35.165050983428955 : Active Remote
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
