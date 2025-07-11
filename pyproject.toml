@@ -7,7 +7,12 @@ build-backend = "setuptools.build_meta"
 
 [project]
 authors = [
-    {name = "Pyfive Development Team", email = "jjhelmus@gmail.com"}
+    {name = "Pyfive Development Team", email = "valeriu.predoi@ncas.ac.uk"},
+    {name = "Valeriu Predoi", email = "valeriu.predoi@ncas.ac.uk"},
+    {name = "David Hassell", email = "david.hassell@ncas.ac.uk"},
+    {name = "Bryan Lawrence", email = "bryan.lawrence@ncas.ac.uk"},
+    {name = "Jonathan Helmus", email = "jjhelmus@gmail.com"},
+    {name = "Kai Muehlbauer", email = "kai.muehlbauer@uni-bonn.de"},
 ]
 classifiers = [
     "Development Status :: 5 - Production/Stable",
@@ -16,7 +21,7 @@ classifiers = [
     "Intended Audience :: Science/Research",
     "License :: OSI Approved :: BSD License",
     "Natural Language :: English",
-    "Operating System :: POSIX :: OS Independent",
+    "Operating System :: POSIX :: Linux",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
