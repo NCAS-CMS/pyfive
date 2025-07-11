@@ -1,0 +1,52 @@
+@startuml
+
+hide circle
+hide empty methods
+hide empty attributes
+
+class "missing descriptor" <<abstract>>  {
+    +fillvalue
+    +missing
+    +min_valid_value
+    +max_valid_value
+}
+
+enum dtypes <<enum>> {
+    float32
+    float64
+    integer64
+    integer32
+}
+
+class reduce_chunk <<interface>>   {
+    +file: string 
+    +offset: int 
+    +size: int 
+    +compression: int
+    filters: int
+    +missing: missing
+    +dtype: dtypes
+    +shape: tuple
+    +order: character 
+    +chunk_selection: tuple
+    +method: string
+
+    }
+
+    object missing <<tuple>>
+
+    missing ..> "missing descriptor" : "\n\n instance\nof"
+    class "storage\nchunk" as chunk  <<sequence of bytes>>
+    class "missing\nvalues" as MV <<concept>>
+
+    chunk -- reduce_chunk
+
+    
+    missing .> dtypes: has\nimplicit\ndtype\nfrom
+    chunk -> MV: may contain 
+    chunk ..> dtypes: has implicit\ndtype\nfrom 
+   
+    MV -> missing: described by
+
+
+@enduml

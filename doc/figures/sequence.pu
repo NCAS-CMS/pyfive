@@ -1,0 +1,51 @@
+@startuml
+skinparam backgroundColor #EEEBDC
+'skinparam handwritten true
+skinparam notebackgroundcolor white
+
+skinparam sequence {
+    participantBackgroundColor White
+    BackgroundColor White
+}
+
+
+hide footbox
+title Key Actors in Active Storage 
+
+box python #lightblue
+participant Application 
+participant Active
+end box
+box server side #beige
+participant Reductionist
+participant S3
+end box
+Application -> Active: Open File
+activate Active
+Active -> S3: Read file metadata
+S3 -> Active: Metadata blocks
+Application -> Active: Active(getitem)\ne.g. mean(X[1,:])
+Active -> S3: Read B-Tree
+S3 -> Active: Chunk Index
+activate Active
+Active -> Active: Identify Chunks
+loop 
+Active -> Reductionist: Reduce Chunk
+Reductionist -> S3 : Read chunk
+Reductionist -> Active: f(chunk)
+end 
+Active -> Active: f(chunks)
+Active -> Application: return\nresult=\nf(getitem)
+note  left of Application
+Multiple getitems 
+and function calls 
+can reuse index, 
+until:
+end note
+Application -> Active: Close File
+deactivate Active
+
+
+
+
+@enduml
