@@ -12,6 +12,7 @@ authors = [
     {name = "David Hassell", email = "david.hassell@ncas.ac.uk"},
     {name = "Bryan Lawrence", email = "bryan.lawrence@ncas.ac.uk"},
     {name = "Jonathan Helmus", email = "jjhelmus@gmail.com"},
+    {name = "Kai Muehlbauer", email = "kai.muehlbauer@uni-bonn.de"},
 ]
 classifiers = [
     "Development Status :: 5 - Production/Stable",
