@@ -2,6 +2,7 @@
 [![made-with-python](https://img.shields.io/badge/Made%20with-Python-1f425f.svg)](https://www.python.org/)
 [![Test](https://github.com/NCAS-CMS/pyfive/actions/workflows/pytest.yml/badge.svg)](https://github.com/NCAS-CMS/pyfive/actions/workflows/pytest.yml)
 [![codecov](https://codecov.io/gh/NCAS-CMS/pyfive/graph/badge.svg?token=3In5JuzeGK)](https://codecov.io/gh/NCAS-CMS/pyfive)
+[![Anaconda-Server Badge](https://anaconda.org/conda-forge/pyfive/badges/version.svg)](https://anaconda.org/conda-forge/pyfive)
 
 ![pyfive-logo](https://raw.githubusercontent.com/NCAS-CMS/pyfive/main/doc/figures/Pyfive-logo.png)
 
