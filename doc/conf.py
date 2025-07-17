@@ -23,9 +23,9 @@ from pathlib import Path
 root = Path(__file__).absolute().parent.parent
 sys.path.insert(0, str(root))
 
-import activestorage
+import pyfive
 
-__version__ = activestorage.__version__
+__version__ = pyfive.__version__
 
 # -- RTD configuration ------------------------------------------------
 
@@ -263,7 +263,7 @@ latex_elements = {
      \vspace{1cm}
      {\Large \sffamily \MONTH ~ \the\year \par}
      \vspace{0.5cm}
-     http://www.activestorageisawesome.co.uk/ \par
+     http://www.pyfiveisawesome.co.uk/ \par
      \end{center}
      \end{titlepage}
      \clearpage
