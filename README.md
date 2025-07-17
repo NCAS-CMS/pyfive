@@ -1,10 +1,13 @@
 [![Maintenance](https://img.shields.io/badge/Maintained%3F-yes-green.svg)](https://GitHub.com/Naereen/StrapDown.js/graphs/commit-activity)
 [![made-with-python](https://img.shields.io/badge/Made%20with-Python-1f425f.svg)](https://www.python.org/)
+[![Documentation Status](https://app.readthedocs.org/projects/pyfive/badge/?version=latest)](https://pyfive.readthedocs.io/en/latest/?badge=latest)
 [![Test](https://github.com/NCAS-CMS/pyfive/actions/workflows/pytest.yml/badge.svg)](https://github.com/NCAS-CMS/pyfive/actions/workflows/pytest.yml)
 [![codecov](https://codecov.io/gh/NCAS-CMS/pyfive/graph/badge.svg?token=3In5JuzeGK)](https://codecov.io/gh/NCAS-CMS/pyfive)
 [![Anaconda-Server Badge](https://anaconda.org/conda-forge/pyfive/badges/version.svg)](https://anaconda.org/conda-forge/pyfive)
 
 ![pyfive-logo](https://raw.githubusercontent.com/NCAS-CMS/pyfive/main/doc/figures/Pyfive-logo.png)
+
+[Latest doc builds on RTD](https://app.readthedocs.org/projects/pyfive/builds/)
 
 pyfive : A pure Python HDF5 file reader
 =======================================

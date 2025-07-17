@@ -62,8 +62,9 @@ test = [
 
 # needed for doc builds
 doc = [
-    "sphinx>=6.1.3",
-    "pydata_sphinx_theme",
+    "autodocsumm",
+    "sphinx",
+    "sphinx_rtd_theme",
 ]
 # develop = [
 #     "pre-commit",

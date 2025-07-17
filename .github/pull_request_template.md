@@ -30,5 +30,5 @@ Closes #issue_number
 - [ ] This pull request has a minimal description (most was discussed in the issue, but a two-liner description is still desirable)
 - [ ] Unit tests have been added (if codecov test fails)
 - [ ] Any changed dependencies have been added or removed correctly (if need be)
-- [ ] If you are working on the documentation, please ensure the [current build](xxx) passes
+- [ ] If you are working on the documentation, please ensure the [current build](https://app.readthedocs.org/projects/pyfive/builds/) passes
 - [ ] All tests pass
