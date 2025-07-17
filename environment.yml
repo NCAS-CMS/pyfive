@@ -10,3 +10,7 @@ dependencies:
   # testing
   - pytest
   - pytest-cov
+  # documentation
+  - autodocsumm
+  - sphinx
+  - sphinx_rtd_theme
