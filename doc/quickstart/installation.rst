@@ -4,8 +4,27 @@
 Installation
 ************
 
-Conda-mamba environment
------------------------
+Installation from conda-forge
+-----------------------------
+
+``pyfive`` is on conda forge and can be installed with either ``conda`` or ``mamba`` (``mamba`` is now the
+defaut solver for ``conda`` so might as well just use ``conda``):
+
+.. code-block:: bash
+
+    conda install -c conda-forge pyfive
+
+Installation from PyPI
+----------------------
+
+``pyfive`` can be installed from PyPI:
+
+.. code-block:: bash
+
+    pip install pyfive 
+
+Install from source: conda-mamba environment
+--------------------------------------------
 
 Use a Miniconda/Miniforge3 installer to create an environment using
 our conda ``environment.yml`` file; download the latest Miniconda3 for Linux installer from
@@ -16,16 +35,16 @@ install it, then create and activate the Pyfive environment:
 
     wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh
     bash Miniconda3-latest-Linux-x86_64.sh
-    (base) conda env create -n activestorage -f environment.yml
-    (base) conda activate activestorage
+    (base) conda env create -n pyfive -f environment.yml
+    (base) conda activate pyfive
 
 .. note::
 
     Our dependencies are all from ``conda-forge`` so there is no issue related
     to the buggy (and paid-for) Anaconda main/defaults channel!
 
-Installing Pyfive
---------------------------
+Installing Pyfive from source
+-----------------------------
 
 The installation then can proceed: installing with ``pip`` and installing ``all`` (ie
 installing the development and test install):
