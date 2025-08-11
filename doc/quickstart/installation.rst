@@ -40,8 +40,7 @@ install it, then create and activate the Pyfive environment:
 
 .. note::
 
-    Our dependencies are all from ``conda-forge`` so there is no issue related
-    to the buggy (and paid-for) Anaconda main/defaults channel!
+    Our dependencies are all from conda-forge, ensuring a smooth and reliable installation process.
 
 Installing Pyfive from source
 -----------------------------
