@@ -59,6 +59,8 @@ def generate_sidebar(conf, conf_api):
     _header("pyfive", "Pyfive")
     _write("pyfive", "Introduction", "introduction")
     _write("pyfive", "Getting started", "quickstart/index")
+    _write("pyfive", "Additional API Features", "additional")
+    _write("pyfive", "Optimising Data Access Speed", "optimising")
     # _write("pyfive", "Examples", "examples")
     # _write("pyfive", "Contributing to the community", "community/index")
     # _write("pyfive", "Utilities", "utils")
