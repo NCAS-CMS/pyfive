@@ -232,7 +232,7 @@ class DatasetID:
     ##### bypass the iterator methods.
     @property
     def index(self):
-        """ Direct access to the chunk index, if there is one."""
+        """ Direct access to the chunk index, if there is one. This is a ``pyfive`` API extension. """
         if self._index is None:
             raise ValueError('No chunk index available for HDF layout class {self.layout}')
         else:
@@ -240,9 +240,10 @@ class DatasetID:
     #### The following method can be used to set pseudo chunking size after the 
     #### file has been closed and before data transactions. This is pyfive specific
     def set_psuedo_chunk_size(self, newsize_MB):
-        """ Set pseudo chunking size for contiguous variables. The default
-        value is 4 MB which should be suitable for most applications. For
-        arrays smaller than this value, no pseudo chunking is used. 
+        """ Set pseudo chunking size for contiguous variables. 
+        This is a ``pyfive`` API extension. 
+        The default value is 4 MB which should be suitable for most applications. 
+        For arrays smaller than this value, no pseudo chunking is used. 
         Larger arrays will be accessed in in roughly newsize_MB reads. """
         if self.layout_class == 1:
             if not self.posix:
@@ -255,6 +256,7 @@ class DatasetID:
     def get_chunk_info_from_chunk_coord(self, chunk_coords):
         """
         Retrieve storage information about a chunk specified by its index.
+        This is a ``pyfive`` API extension. 
         This index is in chunk space (as used by zarr) and needs to be converted
         to hdf5 coordinate space.  Additionaly, if this file is not chunked, the storeinfo 
         is returned for the contiguous data as if it were one chunk.
