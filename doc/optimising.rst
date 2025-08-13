@@ -29,12 +29,13 @@ If that is possible, then all access will benefit from fewer calls to storage to
 
 
 Avoiding Loading Information You Don't Need
-----------------------------------------
+-------------------------------------------
 
 In general, the more information you load from the file, the slower the access will be. If you know the variables you need, then don't iterate
 over the variables, instantiate them directly.
 
 For example, instead of doing:
+
 .. code-block:: python      
 
     import pyfive
@@ -46,7 +47,8 @@ For example, instead of doing:
 
 You can do:
 
-.. code-block:: python 
+.. code-block:: python
+    
     import pyfive
     with pyfive.File("data.h5", "r") as f:
         temp = f['temp']            
@@ -56,7 +58,7 @@ That avoids a lot of loading of metadata and attributes that you don't need, and
 
 
 Parallel Data Access
-----------------------
+--------------------
 
 Unlike ``h5py``, ``pyfive`` is designed to be thread-safe, and it is possible to access the same file from multiple threads without contention.
 This is particularly useful when working with large datasets, as it allows you to read data in parallel without blocking other threads.
