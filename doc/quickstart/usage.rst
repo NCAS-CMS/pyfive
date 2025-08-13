@@ -64,6 +64,45 @@ In this example:
     a NetCDF4 ``Dataset`` (both are read from an actual file), and the ``HDF5``/``pyfive``/``h5py`` concept of a ``Dataset`` corresponds to a NetCDF ``Variable``.
     (At least the notion of a group is semantically similar in both cases! )
 
+Working with datasets
+=====================
+
+Most of the time, you will access datasets in a similar way to how you would with ``h5py``. You can read data from a dataset using slicing, and you can also
+access attributes associated with the dataset. Here is an example: 
+
+.. code-block:: python
+
+    import pyfive
+
+    with pyfive.File("data.h5", "r") as f:
+        # Access a dataset
+        dset = f["/my_group/my_dataset"]
+
+        # Read a slice of the dataset
+        data_slice = dset[10:20]
+        print("Data slice:", data_slice)
+
+        # Access attributes of the dataset
+        print("Attributes:", dset.attrs)
+
+
+One notable feature of ``pyfive`` is that the variable ``dset`` which we have just created is available outside of the context manager (i.e. after the ``with`` block).
+This means you can close the file and still work with the dataset, as long as you have instantiated it before closing the file. This is particularly useful for
+working with large datasets in a parallel environment where you might want to close the file to free up resources while still needing to access the data. 
+
+.. note::
+
+    This functionality depends on the fact that the attributes and chunk index of the dataset are read when you first access it, so you can continue to use the dataset
+    after closing the file. This is fully lazy (in that no data is read until needed) and thread-safe, and we have tests to ensure that this behavior works correctly 
+    even in multi-threaded scenarios. 
+
+
+
+
+
+
+
+
 
 
 
