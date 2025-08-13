@@ -88,7 +88,7 @@ access attributes associated with the dataset. Here is an example:
 
 One notable feature of ``pyfive`` is that the variable ``dset`` which we have just created is available outside of the context manager (i.e. after the ``with`` block).
 This means you can close the file and still work with the dataset, as long as you have instantiated it before closing the file. This is particularly useful for
-working with large datasets in a parallel environment where you might want to close the file to free up resources while still needing to access the data. 
+working with large datasets in a parallel environment where you might want to close the file to free up resources while still needing to access *some* of the data . 
 
 .. note::
 

@@ -6,6 +6,4 @@ Getting started
 
     Installation <installation>
     Usage <usage>
-    Configuration <configuration>
-    Running <running>
-    Output <output>
+   
