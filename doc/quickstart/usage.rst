@@ -97,6 +97,48 @@ working with large datasets in a parallel environment where you might want to cl
     even in multi-threaded scenarios. 
 
 
+Using S3/Object Storage 
+=======================
+
+``pyfive`` is designed to work seamlessly with both local filesystems and S3-compatible object storage (and probably any remote storage that supports
+the `fsspec <https://filesystem-spec.readthedocs.io/en/latest/>`_ API). However, there are some additional considerations when working with S3, the 
+most important of which is the need to use the `s3fs` library to provide a filesystem interface to S3.
+
+Here is a simple example of how to open an HDF5 file stored in S3 and read its contents using ``pyfive``:
+
+.. code-block:: python
+
+    import pyfive
+    import s3fs
+
+    S3_URL = "https://mys3server.org"
+    
+    blocks_MB = 1  # Set the block size for S3 access
+    s3params = {
+        'endpoint_url': S3_URL,
+        'default_fill_cache':False,
+        'default_cache_type':"readahead",
+        'default_block_size': blocks_MB * 2**20
+    }
+    fs = s3fs.S3FileSystem(anon=True, client_kwargs=s3params)
+
+    # now we can open the file using the S3 filesystem
+    uri = 'mybucket/'+filename
+    with fs.open(uri,'rb') as s3file:
+        with pyfive.File(s3_file, "r") as f:
+            dset = f["/my_group/my_dataset"]
+        data = dset[10:20]
+        print("Data slice from S3:", data)
+
+.. note::
+
+    The best `s3fs` parameters to use (`s3params`) will depend on what you are actually doing with the file, as
+    discussed in the section on "Optimising Access Speed". The parameters above worked well for accessing 
+    small amounts of data from a large file, but you may need to adjust them for your specific use case.
+
+This example also shows that while it is possible to close the file access context manager and still access the datasets,
+you will need to ensure that the S3 filesystem is still available. ** TBD: CHECK IF THAT IS STILL TRUE** 
+
 
 
 
