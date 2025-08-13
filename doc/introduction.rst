@@ -11,6 +11,11 @@ should be reported in our `Issues <https://github.com/NCAS-CMS/pyfive/issues>`_.
 Writing HDF5 is not a goal of pyfive and portions of the ``h5py`` API which apply only to writing will not be
 implemented.
 
+.. note::
+    While ``pyfive`` is designed to be a drop-in replacement for ``h5py``, the reverse may not be possible. It is possible to do things with ``pyfive`` 
+    that will not work with ``h5py``, and ``pyfive`` definitely includes *extensions* to the ``h5py`` API. This documentation makes clear which parts of
+    the API are extensions and where behaviour differs *by design* from ``h5py``.
+
 The motivation for ``pyfive`` development were many, but recent developments prioritised thread-safety, lazy loading, and 
 performance at scale in a cloud environment both standalone, 
 and as a backend for other software such as `cf-python <https://ncas-cms.github.io/cf-python/>`_, `xarray <https://docs.xarray.dev/en/stable/>`_,  and `h5netcdf <https://h5netcdf.org/index.html>`_. 
@@ -30,12 +35,9 @@ once a variable is instantiated (i.e. for an open ``pyfive.File`` instance ``f``
 the attributes and b-tree (chunk index) are read, and it is then possible to close the parent file (``f``), 
 but continue to use (``v``).
 
-
 .. note::
 
     We have test coverage that shows that the usage of ``v`` in this way is thread-safe -  the test which demonstrates this is slow, 
     but it needs to be as shorter tests were did not always exercise expected failure modes. 
 
-The pyfive test harness now includes all the components necessary for testing pyfive accessing data via both Posix and S3.
-
-
+The pyfive test harness includes all the components necessary for testing pyfive accessing data via both Posix and S3.
