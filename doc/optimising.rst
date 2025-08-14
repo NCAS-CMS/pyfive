@@ -48,7 +48,7 @@ For example, instead of doing:
 You can do:
 
 .. code-block:: python
-    
+
     import pyfive
     with pyfive.File("data.h5", "r") as f:
         temp = f['temp']            
@@ -86,6 +86,39 @@ For example, you can use the `concurrent.futures` module to read data from multi
 
 
 You can do the same thing to parallelise manipuations within the variables, by for example using, ``Dask``, but that is beyond the scope of this document.
+
+
+Using pyfive with S3
+--------------------
+
+HDF5 was designed for usage on POSIX file systems where it makes sense to get specific ranges of bytes from files as they are needed.
+For example, the extraction of a specific range of bytes from a variable with a statement like ``x=myvar[10:1]`` would require
+first the calculation of where that selection of data (10:12) sits in storage, and then the extraction (and perhaps decompression) 
+of just the chunks of data needed to get that data.  If the index needed to work that location wasn't in memory, that would need to
+be read first.  In practice with ``pyfive`` we try and preload the index, but the net effect of all these operations are a lot of 
+small reads from storage. Across a network using S3 this would be prohibitive, so the ``s3fs`` middleware (used to make the remote
+file, which for HDF5 will be stored as one object, look like it is on a file system) tries to make fewer reads and cache those in
+memory so repeated reads can be more efficient.  The optimal caching strategy is dependent on the file layout
+and the expected access pattern, so ``s3fs`` provides a lot of flexibility as to how to configure that caching strategy.
+
+For ``pyfive`` the three most important variables to consider altering are the 
+``default_block_size`` number, the ``default_cache_type`` option and the ``default_fill_cache`` boolean.
+
+- **default_block_size**  
+    This is the size (in bytes) of the blocks that ``s3fs`` will read in one transaction.  
+    The bigger this is, the fewer reads that are undertaken, but the more memory and bandwidth that is used.  
+    The default is 50 MB, which is a poor choice for most HDF5 files where the metadata may be scattered across the files.  
+    In practice, a value of a small number of MB could be a good compromise for files which have not been repacked to store the metadata contiguously and/or where the data access pattern will be small random chunks.
+
+- **default_cache_type**  
+    This is the type of caching that ``s3fs`` will use.  
+    Details of the available options for S3 are formally in the `fsspec documentation <https://filesystem-spec.readthedocs.io/en/latest/api.html#read-buffering>`_.  
+    Often the default of ``readahead`` is a good choice.
+
+- **default_fill_cache**  
+    This is a boolean which determines whether ``s3fs`` will persistently cache the data that it reads.  
+    If this is set to ``True``, then the blocks are cached persistently in memory, but if set to ``False``, then it only makes sense in conjunction with ``default_cache_type`` set to ``readahead`` or ``bytes`` to support streaming access to the data.
+
 
 
 
