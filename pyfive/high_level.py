@@ -188,7 +188,7 @@ class File(Group):
 
     def __init__(self, filename, mode='r'):
         """ initalize. """
-        if mode != 'r':
+        if mode not in ['r','rb']:
             raise NotImplementedError('pyfive only provides support for reading and treats all reads as binary')
         self._close = False
         if hasattr(filename, 'read'):
