@@ -173,21 +173,27 @@ class File(Group):
     ----------
     filename : str or file-like
         Name of file (string or unicode) or file like object which has read
-        and seek methods which behaved like a Python file object.
+        and seek methods which behave like a Python file object.
+    mode : str, optional
+        File open mode. Only 'r' or 'rb' are supported. Default is 'rb'.
+        As HDF5 files are all binary files, all reads are treated as binary. 
+        Any attempt to open a file with a mode other than 'r' or 'rb' will raise an error.
 
     Attributes
     ----------
     filename : str
         Name of the file on disk, None if not available.
-    mode : str
-        String indicating that the file is open readonly ("r").
+    mode : str 
+        String indicating that the file is open readonly ("r" or "rb").
     userblock_size : int
         Size of the user block in bytes (currently always 0).
 
     """
 
-    def __init__(self, filename, mode='r'):
-        """ initalize. """
+    def __init__(self, filename, mode='rb'):
+        """ 
+        Initalize. 
+        """
         if mode not in ['r','rb']:
             raise NotImplementedError('pyfive only provides support for reading and treats all reads as binary')
         self._close = False
