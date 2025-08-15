@@ -96,7 +96,7 @@ For example, the extraction of a specific range of bytes from a variable with a 
 first the calculation of where that selection of data (10:12) sits in storage, and then the extraction (and perhaps decompression) 
 of just the chunks of data needed to get that data.  If the index needed to work that location wasn't in memory, that would need to
 be read first.  In practice with ``pyfive`` we try and preload the index, but the net effect of all these operations are a lot of 
-small reads from storage. Across a network using S3 this would be prohibitive, so the ``s3fs`` middleware (used to make the remote
+small reads from storage. Across a network, using S3, this would be prohibitive, so the ``s3fs`` middleware (used to make the remote
 file, which for HDF5 will be stored as one object, look like it is on a file system) tries to make fewer reads and cache those in
 memory so repeated reads can be more efficient.  The optimal caching strategy is dependent on the file layout
 and the expected access pattern, so ``s3fs`` provides a lot of flexibility as to how to configure that caching strategy.
