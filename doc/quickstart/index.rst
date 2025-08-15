@@ -5,6 +5,5 @@ Getting started
    :maxdepth: 1
 
     Installation <installation>
-    Configuration <configuration>
-    Running <running>
-    Output <output>
+    Usage <usage>
+   

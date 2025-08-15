@@ -15,30 +15,32 @@ StoreInfo = namedtuple('StoreInfo',"chunk_offset filter_mask byte_offset size")
 
 class DatasetID:
     """ 
-    Represents an HDF5 dataset identifier.
+    Implements an "HDF5 dataset identifier", which despite the name, actually
+    represents the data of a dataset in a file, and not an identifier. It includes all 
+    the low level methods for working with chunked data, lazily or not. 
     
-    Also, many H5D* functions which take a dataset instance as their first argument 
-    are presented as methods of this class. This is a subset of those supported
-    by H5Py's module H5D, but includes all the low level methods for working with 
-    chunked data, lazily or not. This class has been deliberately implemented in
-    such as way so as to cache all the relevant metadata, so that once you have an 
-    instance, it is completely independent of the parent file, and it can be used 
+    This class has been deliberately implemented in such as way so as to cache all 
+    the relevant metadata, so that once you have an instance, 
+    it is completely independent of the parent file, and it can be used 
     efficiently in distributed threads without thread contention to the b-tree etc.
+    *This behaviour may differ from* ``h5py``, *which cannot isolate the dataset access
+    from the parent file access as both share underlying C-structures.*
+
     """
     def __init__(self, dataobject, pseudo_chunking_size_MB=4):
         """ 
-        Instantiated with the pyfive datasetdataobject, we copy and cache everything 
+        Instantiated with the ``pyfive`` ``datasetdataobject``, we copy and cache everything 
         we want so that the only file operations are now data accesses.
         
-        if pseudo_chunking_size_MB is set to a value greater than zero, and
-        if the storage is not local posix (and hence np.mmap is not available) then 
+        if ``pseudo_chunking_size_MB`` is set to a value greater than zero, and
+        if the storage is not local posix (and hence ``np.mmap``is not available) then 
         when accessing contiguous variables, we attempt to find a suitable
         chunk shape to approximate that volume and read the contigous variable
         as if were chunked. This is to facilitate lazy loading of partial data
         from contiguous storage.
 
         (Currently the only way to change this value is by explicitly using
-        the set_pseudo_chunk_size method. Most users will not need to change 
+        the ``set_pseudo_chunk_size method``. Most users will not need to change 
         it.)
 
         """
@@ -142,7 +144,7 @@ class DatasetID:
     def read_direct_chunk(self, chunk_position, **kwargs):
         """
         Returns a tuple containing the filter_mask and the raw data storing this chunk as bytes.
-        Additional arugments supported by H5Py are not supported here.
+        Additional arguments supported by ``h5py`` are not supported here.
         """
         if not self.index:
             return None
@@ -232,7 +234,7 @@ class DatasetID:
     ##### bypass the iterator methods.
     @property
     def index(self):
-        """ Direct access to the chunk index, if there is one."""
+        """ Direct access to the chunk index, if there is one. This is a ``pyfive`` API extension. """
         if self._index is None:
             raise ValueError('No chunk index available for HDF layout class {self.layout}')
         else:
@@ -240,10 +242,11 @@ class DatasetID:
     #### The following method can be used to set pseudo chunking size after the 
     #### file has been closed and before data transactions. This is pyfive specific
     def set_psuedo_chunk_size(self, newsize_MB):
-        """ Set pseudo chunking size for contiguous variables. The default
-        value is 4 MB which should be suitable for most applications. For
-        arrays smaller than this value, no pseudo chunking is used. 
-        Larger arrays will be accessed in in roughly newsize_MB reads. """
+        """ Set pseudo chunking size for contiguous variables. 
+        This is a ``pyfive`` API extension. 
+        The default value is 4 MB which should be suitable for most applications. 
+        For arrays smaller than this value, no pseudo chunking is used. 
+        Larger arrays will be accessed in in roughly ``newsize_MB`` reads. """
         if self.layout_class == 1:
             if not self.posix:
                 self.pseudo_chunking_size = newsize_MB*1024*1024
@@ -255,8 +258,10 @@ class DatasetID:
     def get_chunk_info_from_chunk_coord(self, chunk_coords):
         """
         Retrieve storage information about a chunk specified by its index.
-        This index is in chunk space (as used by zarr) and needs to be converted
-        to hdf5 coordinate space.  Additionaly, if this file is not chunked, the storeinfo 
+        This is a ``pyfive`` API extension. 
+        This index is in chunk space (as used by ``zarr``) and needs to be converted
+        to HDF5 coordinate space.  
+        Additionally, if this file is not chunked, the storeinfo 
         is returned for the contiguous data as if it were one chunk.
         """
         if not self._index:
@@ -277,8 +282,7 @@ class DatasetID:
         called for chunk data, and only when the variable is accessed.
         That is, it is not called when we an open a file, or when
         we list the variables in a file, but only when we do
-        v = open_file['var_name'] where 'var_name' is chunked.
-
+        ``v = open_file['var_name']`` where ``var_name`` is chunked.
         """
         
         if self._index is not None: 

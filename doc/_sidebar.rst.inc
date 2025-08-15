@@ -7,3 +7,6 @@
 
     Introduction <introduction>
     Getting started <quickstart/index>
+    API Reference <api_reference>
+    Additional API Features <additional>
+    Optimising Data Access Speed <optimising>
