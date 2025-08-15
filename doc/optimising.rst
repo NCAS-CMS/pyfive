@@ -6,7 +6,7 @@ HDF5 files can be large and complicated, with complex internal structures which 
 These complexities (and the overheads they introduce) can be mitigated by optimising how you access the data, but this requires an understanding of 
 how the data is stored in the file and how the data access library (in this case ``pyfive``) works.
 
-The data storage complexities arise from two main factors: the use of chunking, and the way attributes are stored in the files
+The data storage complexities arise from two main factors: the use of chunking, and the way attributes are stored in the files.
 
 **Chunking**: HDF5 files can store data in chunks, which allows for more efficient access to large datasets. 
 However, this also means that the library needs to maintain an index (a "b-tree") which relates the position in coordinate space to where each chunk is stored in the file.
@@ -20,7 +20,7 @@ Optimising the files themselves
 -------------------------------
 
 Optimal access to data occurs when the data is chunked in a way that matches the access patterns of your application, and when the
-b-tree indexes and attributess are stored contiguously in the file.  
+b-tree indexes and attributes are stored contiguously in the file.  
 
 Users of ``pyfive`` will always confront data files which have been  created by other software, but if possible, it is worth exploring whether 
 the `h5repack <https://docs.h5py.org/en/stable/special.html#h5repack>`_ tool can 
@@ -41,7 +41,7 @@ For example, instead of doing:
     import pyfive
 
     with pyfive.File("data.h5", "r") as f:
-        variables = [f for var in f]
+        variables = [var for var in f]
         print("Variables in file:", variables)
         temp = variables['temp']
 
@@ -85,7 +85,7 @@ For example, you can use the `concurrent.futures` module to read data from multi
     print("Results:", results)
 
 
-You can do the same thing to parallelise manipuations within the variables, by for example using, ``Dask``, but that is beyond the scope of this document.
+You can do the same thing to parallelise manipulations within the variables, by for example using, ``Dask``, but that is beyond the scope of this document.
 
 
 Using pyfive with S3
