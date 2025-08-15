@@ -111,22 +111,23 @@ Here is a simple example of how to open an HDF5 file stored in S3 and read its c
     import pyfive
     import s3fs
 
-    S3_URL = "https://mys3server.org"
-    
+
+    S3_URL = "https://my-s3-place.ac.uk"
+    filename = "filename.nc"
     blocks_MB = 1  # Set the block size for S3 access
     s3params = {
         'endpoint_url': S3_URL,
-        'default_fill_cache': False,
-        'default_cache_type': "readahead",
+        'default_fill_cache':False,
+        'default_cache_type':"readahead",
         'default_block_size': blocks_MB * 2**20
     }
     fs = s3fs.S3FileSystem(anon=True, **s3params)
 
     # now we can open the file using the S3 filesystem
-    uri = 'mybucket/' + filename
-    with fs.open(uri,'rb') as s3file:
-        with pyfive.File(s3_file, "r") as f:
-            dset = f["/my_group/my_dataset"]
+    uri = 's3-bucket/' + filename
+    with fs.open(uri, 'rb') as s3file:
+        with pyfive.File(s3file, "r") as f:
+            dset = f['variable']
         data = dset[10:20]
         print("Data slice from S3:", data)
 
