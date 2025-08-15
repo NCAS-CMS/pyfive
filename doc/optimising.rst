@@ -106,7 +106,7 @@ For ``pyfive`` the three most important variables to consider altering are the
 
 - **default_block_size**  
     This is the size (in bytes) of the blocks that ``s3fs`` will read in one transaction.  
-    The bigger this is, the fewer reads that are undertaken, but the more memory and bandwidth that is used.  
+    The bigger this is, the fewer reads that are undertaken, but the more memory and bandwidth are used.  
     The default is 50 MB, which is a poor choice for most HDF5 files where the metadata may be scattered across the files.  
     In practice, a value of a small number of MB could be a good compromise for files which have not been repacked to store the metadata contiguously and/or where the data access pattern will be small random chunks.
 
