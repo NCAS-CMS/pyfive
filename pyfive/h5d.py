@@ -241,7 +241,7 @@ class DatasetID:
             return self._index
     #### The following method can be used to set pseudo chunking size after the 
     #### file has been closed and before data transactions. This is pyfive specific
-    def set_psuedo_chunk_size(self, newsize_MB):
+    def set_pseudo_chunk_size(self, newsize_MB):
         """ Set pseudo chunking size for contiguous variables. 
         This is a ``pyfive`` API extension. 
         The default value is 4 MB which should be suitable for most applications. 
