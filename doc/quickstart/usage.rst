@@ -123,7 +123,7 @@ Here is a simple example of how to open an HDF5 file stored in S3 and read its c
     fs = s3fs.S3FileSystem(anon=True, **s3params)
 
     # now we can open the file using the S3 filesystem
-    uri = 'mybucket/'+filename
+    uri = 'mybucket/' + filename
     with fs.open(uri,'rb') as s3file:
         with pyfive.File(s3_file, "r") as f:
             dset = f["/my_group/my_dataset"]
