@@ -116,7 +116,7 @@ Here is a simple example of how to open an HDF5 file stored in S3 and read its c
     blocks_MB = 1  # Set the block size for S3 access
     s3params = {
         'endpoint_url': S3_URL,
-        'default_fill_cache':False,
+        'default_fill_cache': False,
         'default_cache_type':"readahead",
         'default_block_size': blocks_MB * 2**20
     }
