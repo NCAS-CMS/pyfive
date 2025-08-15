@@ -43,7 +43,7 @@ For example, instead of doing:
     with pyfive.File("data.h5", "r") as f:
         variables = [f for var in f]
         print("Variables in file:", variables)
-        temp=variables['temp']
+        temp = variables['temp']
 
 You can do:
 
