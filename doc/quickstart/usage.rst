@@ -120,7 +120,7 @@ Here is a simple example of how to open an HDF5 file stored in S3 and read its c
         'default_cache_type':"readahead",
         'default_block_size': blocks_MB * 2**20
     }
-    fs = s3fs.S3FileSystem(anon=True, client_kwargs=s3params)
+    fs = s3fs.S3FileSystem(anon=True, **s3params)
 
     # now we can open the file using the S3 filesystem
     uri = 'mybucket/'+filename
