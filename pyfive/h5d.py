@@ -15,15 +15,12 @@ StoreInfo = namedtuple('StoreInfo',"chunk_offset filter_mask byte_offset size")
 
 class DatasetID:
     """ 
-    Represents an HDF5 dataset identifier.
-    
-    Also, many H5D* functions which take a dataset instance as their first argument 
-    are presented as methods of this class. This is a subset of those supported
-    by H5Py's module H5D, but includes all the low level methods for working with 
-    chunked data, lazily or not. 
+    Implements an "HDF5 dataset identifier", which despite the name, actually
+    represents the data of a dataset in a file, and not an identifier. It includes all 
+    the low level methods for working with chunked data, lazily or not. 
     
     This class has been deliberately implemented in such as way so as to cache all 
-    the relevant metadata, so that once you have an  instance, 
+    the relevant metadata, so that once you have an instance, 
     it is completely independent of the parent file, and it can be used 
     efficiently in distributed threads without thread contention to the b-tree etc.
     *This behaviour may differ from* ``h5py``, *which cannot isolate the dataset access
