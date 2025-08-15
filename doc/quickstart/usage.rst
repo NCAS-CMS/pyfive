@@ -117,7 +117,7 @@ Here is a simple example of how to open an HDF5 file stored in S3 and read its c
     s3params = {
         'endpoint_url': S3_URL,
         'default_fill_cache': False,
-        'default_cache_type':"readahead",
+        'default_cache_type': "readahead",
         'default_block_size': blocks_MB * 2**20
     }
     fs = s3fs.S3FileSystem(anon=True, **s3params)
