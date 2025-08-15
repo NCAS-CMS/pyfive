@@ -40,4 +40,4 @@ but continue to use (``v``).
     We have test coverage that shows that the usage of ``v`` in this way is thread-safe -  the test which demonstrates this is slow, 
     but it needs to be, since shorter tests did not always exercise expected failure modes. 
 
-The pyfive test harness includes all the components necessary for testing pyfive accessing data via both Posix and S3.
+The pyfive test suite includes all the components necessary for testing pyfive accessing data via both POSIX and S3.
