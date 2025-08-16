@@ -91,7 +91,11 @@ class Group(Mapping):
         if dataobjs.is_dataset:
             if additional_obj != '.':
                 raise KeyError('%s is a dataset, not a group' % (obj_name))
-            return Dataset(obj_name, DatasetID(dataobjs), self)
+            dataset_id = DatasetID(dataobjs)
+            # just leave out enumerated
+            if isinstance(dataset_id.dtype, tuple) and dataset_id.dtype[0] == "ENUMERATED":
+                return None
+            return Dataset(obj_name, dataset_id, self)
        
         try:
             # if true, this may well raise a NotImplementedError, if so, we need
@@ -142,6 +146,9 @@ class Group(Mapping):
         queue = deque(self.values())
         while queue:
             obj = queue.popleft()
+            # skip, when NotImplemented is detected
+            if obj is None:
+                continue
             name = obj.name[root_name_length:]
             ret = func(name, obj)
             if ret is not None:
