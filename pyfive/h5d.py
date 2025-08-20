@@ -85,6 +85,8 @@ class DatasetID:
         self._unique = (self._filename, self.shape, self._msg_offset)
 
         if isinstance(dataobject.dtype,tuple):
+            if dataobject.dtype[0] == 'ENUMERATION':
+                self._dtype = dataobject.dtype[1]
             # this may not behave the same as h5py, do we care? #FIXME
             self._dtype = dataobject.dtype
         else:

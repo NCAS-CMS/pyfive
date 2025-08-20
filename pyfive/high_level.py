@@ -101,7 +101,8 @@ class Group(Mapping):
             warnings.warn(f'Found datatype {obj_name} but pyfive cannot read this data: {e}')
             is_datatype = True
 
-        if is_datatype: 
+        if is_datatype:
+            #FIXME:ENUM Return something similar to H5py; BNL NEXT STEP 
             pass
         else:
             return Group(obj_name, dataobjs, self)[additional_obj]

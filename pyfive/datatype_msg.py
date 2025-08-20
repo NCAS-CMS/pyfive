@@ -185,7 +185,7 @@ class DatatypeMessage(object):
         version = (datatype_msg['class_and_version'] >> 4) & 0x0F
         for _ in range(num_members):
             null_location = self.buf.index(b'\x00', self.offset)
-            name_size = null_location - self.offset + 1 if version == 3 else _padded_size(null_location - self.offset, 8)
+            name_size = null_location - self.offset + 1 if version == 3 else _padded_size(null_location - self.offset+ 1, 8)
             name = self.buf[self.offset:self.offset+name_size]
             name = name.strip(b'\x00').decode('ascii')
             self.offset += name_size
@@ -194,7 +194,7 @@ class DatatypeMessage(object):
         nbytes = value_size*num_members
         values = np.frombuffer(self.buf[self.offset:], dtype=dtype, count=num_members)
         enum_dict = {k:v for k,v in zip(enum_keys,values)}
-        return dtype, enum_dict
+        return 'ENUMERATION', dtype, enum_dict
 
 
 # IV.A.2.d The Datatype Message

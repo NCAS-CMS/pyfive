@@ -238,6 +238,8 @@ class DataObjects(object):
 
         if shape == ():
             value = value[0]
+        elif isinstance(value,dict):
+            pass
         else:
             value = value.reshape(shape)
 
@@ -267,6 +269,10 @@ class DataObjects(object):
                     vlen, vlen_data = self._vlen_size_and_data(buf, offset)
                     value[i] = self._attr_value(base_dtype, vlen_data, vlen, 0)
                     offset += 16
+                elif dtype_class == 'ENUMERATION':
+                    # h5py doesn't seem to do this right, so we will differ
+                    # is this a concern? FIXME
+                    return dtype[2]
                 else:
                     raise NotImplementedError
         else:
@@ -335,11 +341,12 @@ class DataObjects(object):
 
         if size:
             if isinstance(self.dtype, tuple):
-                try:
-                    assert self.dtype[0] == 'VLEN_STRING'
-                except:
-                    raise ValueError('Unrecognised fill type')
-                fillvalue = self._attr_value(self.dtype, self.msg_data, 1, offset)[0]
+                if self.dtype[0] == 'VLEN_STRING':
+                    fillvalue = self._attr_value(self.dtype, self.msg_data, 1, offset)[0]
+                elif self.dtype[0] in ['ENUMERATION']:
+                    fillvalue = 0
+                else:
+                    raise ValueError(f'Unrecognised dtype [{self.dtype}]')
             else:
                 payload = self.msg_data[offset:offset+size]
                 fillvalue = np.frombuffer(payload, self.dtype, count=1)[0]
