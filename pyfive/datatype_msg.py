@@ -5,6 +5,7 @@ from collections import OrderedDict
 from .core import _padded_size, _structure_size, _unpack_struct_from
 from .core import InvalidHDF5File
 
+import numpy as np
 
 class DatatypeMessage(object):
     """ Representation of a HDF5 Datatype Message. """
@@ -39,10 +40,7 @@ class DatatypeMessage(object):
         elif datatype_class == DATATYPE_REFERENCE:
             return ('REFERENCE', datatype_msg['size'])
         elif datatype_class == DATATYPE_ENUMERATED:
-            return ('ENUMERATED', datatype_msg['size'])
-            #FIXME:ENUM this should return the enum base type and dictionary size
-            # For the moment this will break everything as it will be treaated as a vlen_sequence
-
+            return self._determine_dtype_enum(datatype_msg)
         elif datatype_class == DATATYPE_ARRAY:
             raise NotImplementedError("Array datatype class not supported.")
         elif datatype_class == DATATYPE_VARIABLE_LENGTH:
@@ -98,6 +96,25 @@ class DatatypeMessage(object):
         self.offset += 12
 
         return byte_order_char + dtype_char + str(length_in_bytes)
+
+    @staticmethod
+    def _determine_dtype_integer(fourbytes):
+        # --- Byte 0: type class and version ---
+        type_class = b0 & 0x0F   # low nibble
+        version    = (b0 >> 4) & 0x0F
+        if type_class != 0:  # 0 = INTEGER in HDF5 spec
+            raise ValueError(f"Not an integer type (class={type_class})")
+        # --- Byte 1: bit fields ---
+        byte_order = (b1 >> 0) & 0x01  # 0 = LE, 1 = BE
+        signedness = (b1 >> 3) & 0x01  # 0 = unsigned, 1 = signed
+        # (other bits in b1 encode padding, not usually needed here)
+        # --- Byte 2: size (in bytes) ---
+        size = b2
+        # Map to numpy dtype string
+        endian = "<" if byte_order == 0 else ">"
+        kind   = "i" if signedness else "u"
+        dtype_str = f"{endian}{kind}{size}"
+        return np.dtype(dtype_str)
 
     @staticmethod
     def _determine_dtype_string(datatype_msg):
@@ -169,6 +186,31 @@ class DatatypeMessage(object):
         character_set = datatype_msg['class_bit_field_1'] & 0x01
         return ('VLEN_STRING', padding_type, character_set)
 
+    def _determine_dtype_enum(datatype_msg):
+        """ Return the basetype and the underlying enum dictionary """
+        #FIXME: Consider overlap with the compound code, refactor in some way?
+        # Doing this rather than what is done in compound data type as doing that is opaque and risky
+        datatype_msg = _unpack_struct_From(ENUM_DATATYPE_MSG, self.buf, self.offset)
+        num_members = datatype_msg['number_of_members']
+        value_size = datatype_msg['size']
+        enum_keys = []
+        # first get the base type
+        dtype = self._determine_dtype_integer(self.buf[self.offset:self.offset+4])
+        self.offset+=4
+        # now get the keys
+        for _ in range(num_members):
+            null_location = self.buf.index(b'\x00', self.offset)
+            name_size = _padded_size(null_location - self.offset, 8)
+            name = self.buf[self.offset:self.offset+name_size]
+            name = name.strip(b'\x00').decode('ascii')
+            self.offset += name_size
+            enum_keys.append(name)
+        #now get the values
+        nbytes = value_size*num_members
+        values = np.frombuffer(self.offset:self.offset+nbytes, dtype=dtype, count=num_members)
+        enum_dict = {k:v for k,v in zip(enum_keys,values)}
+        return dtype, enum_dict
+
 
 # IV.A.2.d The Datatype Message
 
@@ -179,7 +221,15 @@ DATATYPE_MSG = OrderedDict((
     ('class_bit_field_2', 'B'),
     ('size', 'I'),
 ))
+
 DATATYPE_MSG_SIZE = _structure_size(DATATYPE_MSG)
+
+ENUM_DATATYPE_MSG = OrderedDict((
+    ('class_and_version', 'B'),
+    ('number_of_members', 'H'),  # 'H' is a 16-bit unsigned integer
+    ('unused', 'B'),
+    ('size', 'I'),
+))
 
 
 COMPOUND_PROP_DESC_V1 = OrderedDict((
