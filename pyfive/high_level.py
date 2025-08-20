@@ -50,7 +50,7 @@ class Group(Mapping):
         return len(self._links)
 
     def _dereference(self, ref):
-        """ Deference a Reference object. """
+        """ Dereference a Reference object. """
         if not ref:
             raise ValueError('cannot deference null reference')
         obj = self.file._get_object_by_address(ref.address_of_reference)
@@ -224,8 +224,21 @@ class File(Group):
         """ Return the object pointed to by a given address. """
         if self._dataobjects.offset == obj_addr:
             return self
-        return self.visititems(
-            lambda x, y: y if y._dataobjects.offset == obj_addr else None)
+        
+        queue = deque([(self.name.rstrip('/'), self)])
+        while queue:
+            base, grp = queue.popleft()
+            for name, link_addr in grp._links.items():
+                full_path = f"{base}/{name}" if base else f"/{name}"
+                # check address without instantiating
+                if link_addr == obj_addr:
+                    # return instantiated object
+                    return grp[name]
+                # descend only if it's a subgroup (need to instantiate minimally)
+                # would be neat to have .is_group
+                dataobjs = DataObjects(self.file._fh, link_addr)
+                if not dataobjs.is_dataset and not dataobjs.is_datatype:
+                    queue.append((full_path, grp[name]))
 
     def close(self):
         """ Close the file. """
