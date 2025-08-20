@@ -58,3 +58,6 @@ def test_file_contents():
             print(h5file[x])
             print(p5file[x])
             raise
+
+    # check dereferencing
+    assert str(p5file["x"][:]) == str(p5file[p5file["foo"].attrs["DIMENSION_LIST"][0][-1]][:])
