@@ -39,9 +39,8 @@ class DatatypeMessage(object):
         elif datatype_class == DATATYPE_REFERENCE:
             return ('REFERENCE', datatype_msg['size'])
         elif datatype_class == DATATYPE_ENUMERATED:
-            return ("ENUMERATED", datatype_msg['size'])
-            # raise NotImplementedError(
-            #     "Enumerated datatype class not supported.")
+            raise NotImplementedError(
+                "Enumerated datatype class not supported.")
         elif datatype_class == DATATYPE_ARRAY:
             raise NotImplementedError("Array datatype class not supported.")
         elif datatype_class == DATATYPE_VARIABLE_LENGTH:

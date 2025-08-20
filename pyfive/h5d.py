@@ -42,17 +42,6 @@ class DatasetID:
         it.)
 
         """
-        not_implemented = False
-        if isinstance(dataobject.dtype, tuple):
-            # this may not behave the same as h5py, do we care? #FIXME
-            self._dtype = dataobject.dtype
-            if self._dtype[0] in ["ENUMERATED"]:
-                not_implemented = True
-        else:
-            self._dtype = np.dtype(dataobject.dtype)
-
-        if not_implemented:
-            return
 
         self._order = dataobject.order
         fh = dataobject.fh
@@ -92,6 +81,12 @@ class DatasetID:
         
         self._msg_offset, self.layout_class,self.property_offset = dataobject.get_id_storage_params()
         self._unique = (self._filename, self.shape, self._msg_offset)
+
+        if isinstance(dataobject.dtype,tuple):
+            # this may not behave the same as h5py, do we care? #FIXME
+            self._dtype = dataobject.dtype
+        else:
+            self._dtype = np.dtype(dataobject.dtype)
 
         self._meta = DatasetMeta(dataobject)
 
@@ -584,6 +579,7 @@ class DatasetMeta:
     """
     def __init__(self, dataobject):
 
+        self.attributes = dataobject.compression
         self.maxshape = dataobject.maxshape
         self.compression = dataobject.compression
         self.compression_opts = dataobject.compression_opts
