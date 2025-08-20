@@ -98,43 +98,6 @@ class DatatypeMessage(object):
 
         return byte_order_char + dtype_char + str(length_in_bytes)
 
-    @staticmethod
-    def _determine_enum_basetype(fourbytes):
-        """ This is currently a dogs breakfast, since we don't
-        really know what this specifier actually is, it could
-        be anything, the HDF5 spec simply says 
-        " Each enumeration type is based on some parent type, usually an integer. 
-        The information for that parent type is described recursively by this field.
-        "
-        What recursively means, and where this is specified is currently not
-        obvious. So for now, we handle two options. A generic integer
-        type using the HDF5 integer spec, which fails to just an integer
-        size, which fails to a warning and a default of 32 bit integer.
-        """
-        # Unpack the first three bytes
-        b0, b1, b2 = fourbytes[:3]
-        try:
-            # --- Byte 0: type class and version ---
-            type_class = b0 & 0x0F   # low nibble
-            version    = (b0 >> 4) & 0x0F
-            if type_class != 0:  # 0 = INTEGER in HDF5 spec
-                raise ValueError(f"Not an integer type (class={type_class})")
-            # --- Byte 1: bit fields ---
-            byte_order = (b1 >> 0) & 0x01  # 0 = LE, 1 = BE
-            signedness = (b1 >> 3) & 0x01  # 0 = unsigned, 1 = signed
-            # (other bits in b1 encode padding, not usually needed here)
-            # --- Byte 2: size (in bytes) ---
-            size = b2
-            if size == 0:
-                size = int(b0)
-        except Exception:
-            warnings.warn(f"Cannot decode enum basetype, using default int32")
-            return np.dtype('<i4')
-        # Map to numpy dtype string
-        endian = "<" if byte_order == 0 else ">"
-        kind   = "i" if signedness else "u"
-        dtype_str = f"{endian}{kind}{int(size/4)}"
-        return np.dtype(dtype_str)
 
     @staticmethod
     def _determine_dtype_string(datatype_msg):
@@ -148,6 +111,8 @@ class DatatypeMessage(object):
         n_comp = bit_field_0 + (bit_field_1 << 4)
 
         # read in the members of the compound datatype
+        # at the moment we need to skip two bytes which I do
+        # 
         members = []
         for _ in range(n_comp):
             null_location = self.buf.index(b'\x00', self.offset)
@@ -210,17 +175,17 @@ class DatatypeMessage(object):
         """ Return the basetype and the underlying enum dictionary """
         #FIXME: Consider overlap with the compound code, refactor in some way?
         # Doing this rather than what is done in compound data type as doing that is opaque and risky
-        datatype_msg = _unpack_struct_from(ENUM_DATATYPE_MSG, self.buf, self.offset)
-        num_members = datatype_msg['number_of_members']
-        value_size = datatype_msg['size']
+        enum_msg = _unpack_struct_from(ENUM_DATATYPE_MSG, self.buf, self.offset-DATATYPE_MSG_SIZE)
+        num_members = enum_msg['number_of_members']
+        value_size = enum_msg['size']
         enum_keys = []
-        # first get the base type
-        dtype = self._determine_enum_basetype(self.buf[self.offset:self.offset+4])
-        self.offset+=4
+        dtype = DatatypeMessage(self.buf,self.offset).dtype
+        self.offset+=12   # An extra 4 bytes are read as part of establishing the data type
         # now get the keys
+        version = (datatype_msg['class_and_version'] >> 4) & 0x0F
         for _ in range(num_members):
             null_location = self.buf.index(b'\x00', self.offset)
-            name_size = _padded_size(null_location - self.offset, 8)
+            name_size = null_location - self.offset + 1 if version == 3 else _padded_size(null_location - self.offset, 8)
             name = self.buf[self.offset:self.offset+name_size]
             name = name.strip(b'\x00').decode('ascii')
             self.offset += name_size
