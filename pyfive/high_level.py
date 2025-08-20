@@ -230,7 +230,7 @@ class File(Group):
                 # descend only if it's a subgroup (need to instantiate minimally)
                 # would be neat to have .is_group
                 dataobjs = DataObjects(self.file._fh, link_addr)
-                if not dataobjs.is_dataset and not dataobjs.is_datatype:
+                if dataobjs.is_group:
                     queue.append((full_path, grp[name]))
 
     def close(self):
