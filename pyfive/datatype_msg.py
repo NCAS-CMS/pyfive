@@ -39,8 +39,10 @@ class DatatypeMessage(object):
         elif datatype_class == DATATYPE_REFERENCE:
             return ('REFERENCE', datatype_msg['size'])
         elif datatype_class == DATATYPE_ENUMERATED:
-            raise NotImplementedError(
-                "Enumerated datatype class not supported.")
+            return ('ENUMERATED', datatype_msg['size'])
+            #FIXME:ENUM this should return the enum base type and dictionary size
+            # For the moment this will break everything as it will be treaated as a vlen_sequence
+
         elif datatype_class == DATATYPE_ARRAY:
             raise NotImplementedError("Array datatype class not supported.")
         elif datatype_class == DATATYPE_VARIABLE_LENGTH:
@@ -155,7 +157,7 @@ class DatatypeMessage(object):
             if names_valid and dtypes_valid and offsets_valid and props_valid:
                 return complex_dtype_map[dtype1]
 
-        raise NotImplementedError("Compond dtype not supported.")
+        raise NotImplementedError("Compound dtype not supported.")
 
     @staticmethod
     def _determine_dtype_vlen(datatype_msg):

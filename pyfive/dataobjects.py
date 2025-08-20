@@ -353,6 +353,7 @@ class DataObjects(object):
         msg = self.find_msg_type(DATATYPE_MSG_TYPE)[0]
         msg_offset = msg['offset_to_message']
         return DatatypeMessage(self.msg_data, msg_offset).dtype
+        #FIXME:ENUM should do something with the enumerated type here
 
     @property
     def chunks(self):

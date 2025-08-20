@@ -571,6 +571,7 @@ class DatasetID:
     def dtype(self):
         if isinstance(self._dtype, tuple) and self._dtype[0] == 'VLEN_STRING':
             return np.dtype("O")
+        #FIXME:ENUM should return the enum base type
 
         return self._dtype
 

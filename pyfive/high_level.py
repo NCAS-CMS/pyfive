@@ -455,6 +455,8 @@ class AstypeContext(object):
     """
     Context manager which allows changing the type read from a dataset.
     """
+    #FIXME:ENUM should this allow a conversion from enum base types to values using dictionary?
+    #Probably not, as it would be additional functionality to the h5py interface???
 
     def __init__(self, dset, dtype):
         self._dset = dset
@@ -466,3 +468,11 @@ class AstypeContext(object):
     def __exit__(self, *args):
         self._dset._astype = None
 
+
+def check_enum_dtype(dtype):
+    """
+    Check if ``dtype`` represents an enumerated type. 
+    Returns the values dict if it is, or None if not
+    """
+    #FIXME:ENUM this needs to inspect the underlying datatype message
+    return None
