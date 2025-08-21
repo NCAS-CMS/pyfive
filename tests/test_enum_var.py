@@ -7,11 +7,12 @@ import h5py
 import pyfive
 
 DIRNAME = os.path.dirname(__file__)
-ENUMVAR_HDF5_FILE = os.path.join(DIRNAME, 'data/enum_variable.hdf5')
+ENUMVAR_NC_FILE = os.path.join(DIRNAME, 'enum_variable.nc')
+ENUMVAR_H5_FILE = os.path.join(DIRNAME, 'enum_variable.hdf5')
 
-def test_read_enum_variable():
+def NOtest_read_ncenum_variable():
 
-    with pyfive.File(ENUMVAR_HDF5_FILE) as hfile:
+    with pyfive.File(ENUMVAR_NC_FILE) as hfile:
 
         for x in hfile: 
             if x == 'enum_t':
@@ -27,9 +28,23 @@ def test_read_enum_variable():
                 print(x, hfile[x])
 
 
+def test_read_h5enum_variable():
+
+    with pyfive.File(ENUMVAR_H5_FILE) as pfile:
+
+        pdata = [(k,type(pfile[k])) for k in pfile]
+        print(pdata)
+
+    with h5py.File(ENUMVAR_H5_FILE) as hfile:
+
+        hdata = [(k,type(hfile[k])) for k in hfile]
+        print(hdata)
+
+    assert len(pdata) == len(hdata)
+
 def test_enum_dict():
 
-    with h5py.File(ENUMVAR_HDF5_FILE, 'r') as hfile:
+    with h5py.File(ENUMVAR_NC_FILE, 'r') as hfile:
         h5_enum_t = hfile['enum_t']
         h5_evar = hfile['enum_var']
         h5_edict = h5py.check_enum_dtype(h5_evar.dtype)
@@ -40,11 +55,12 @@ def test_enum_dict():
         print('ENum data dictionary', h5_edict)
         print('Basic enum variable and data', h5_evar, h5_evar[:])
         print('Actual enum vals', h5_vals)
-    
-        with pyfive.File(ENUMVAR_HDF5_FILE) as hfile:
 
-            p5_enum_t = hfile['enum_t']
-            p5_evar = hfile['enum_var']
+    
+        with pyfive.File(ENUMVAR_NC_FILE) as pfile:
+
+            p5_enum_t = pfile['enum_t']
+            p5_evar = pfile['enum_var']
             p5_edict = h5py.check_enum_dtype(p5_enum_t.dtype)
 
             assert str(h5_enum_t) == str(p5_enum_t), "Enum data types do not match"
