@@ -180,7 +180,11 @@ class DatatypeMessage(object):
         value_size = enum_msg['size']
         enum_keys = []
         dtype = DatatypeMessage(self.buf,self.offset).dtype
-        self.offset+=12   # An extra 4 bytes are read as part of establishing the data type
+        self.offset+=12   
+        # An extra 4 bytes are read as part of establishing the data type
+        # FIXME:ENUM Need to be sure that some other base type in the future
+        # wouldn't silently need more bytes and screw this all up. Should 
+        # probably put some check/error handling around this.
         # now get the keys
         version = (datatype_msg['class_and_version'] >> 4) & 0x0F
         for _ in range(num_members):
