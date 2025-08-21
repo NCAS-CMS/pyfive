@@ -4,15 +4,19 @@
 
 
 from pyfive.datatype_msg import DatatypeMessage
+from pyfive.h5t import TypeNumID
+
 import numpy as np
 
 class Datatype:
     """ 
-    Class provided for compatability with the H5PY API,
-    to allow applications such as h5netcdf to import it,
-    but not use it.
+    Provides a minimal instantiation of a DataType suitable for use with
+    enumerations.
+    #FIXME: Should refactor to use this everywhere we use dtype
     """
     def __init__(self,*args,**kw):
+        self.id = TypeNumID()
+        #FIXME:ENUM
         raise NotImplementedError
 
 class Empty:

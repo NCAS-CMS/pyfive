@@ -469,11 +469,3 @@ class AstypeContext(object):
     def __exit__(self, *args):
         self._dset._astype = None
 
-
-def check_enum_dtype(dtype):
-    """
-    Check if ``dtype`` represents an enumerated type. 
-    Returns the values dict if it is, or None if not
-    """
-    #FIXME:ENUM this needs to inspect the underlying datatype message
-    return None

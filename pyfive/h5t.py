@@ -1,7 +1,7 @@
 #
 # These are provided to support h5netcdf, and are not used
 # by the pyfive package itself. 
-#
+# FIXME:ENUM
 from collections import namedtuple
 
 
@@ -18,6 +18,7 @@ def check_enum_dtype(dt):
     so this will always return None (see datatype_msg), and AFIK, should
     never get called in anger. It is only included so h5netcdf wont
     barf at its absence when pyfive is used as a backend.
+    #FIXME:ENUM
     """
     try:
         return dt.metadata.get('enum', None)
@@ -77,3 +78,17 @@ def check_dtype(**kwds):
         return None
     except KeyError:
         return None
+
+
+class TypeNumID:
+    """ 
+    Used by DataType to expose internal structure.
+    It is not obvious pyfive needs an implementation of this.
+    #FIXME:ENUM consider whether we should use this where we have enum dicts. What does H5py do?
+    # This is low level so we don't have to follow their API this deep, but is there an advantage
+    # in doing so? We could implement this using a souped up dictionary and not call it the same thing.
+    """
+    def __init__(self,*args,**kw):
+        pass
+    def __str__(self):
+        return 'Not implemented'
