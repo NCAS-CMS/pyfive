@@ -195,4 +195,3 @@ Version 0.1.0
 
 * First release by `Jonathan Helmus <https://github.com/jjhelmus>`_
 
-----
