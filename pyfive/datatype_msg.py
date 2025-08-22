@@ -112,7 +112,7 @@ class DatatypeMessage(object):
         members = []
         for _ in range(n_comp):
             null_location = self.buf.index(b'\x00', self.offset)
-            name_size = _padded_size(null_location - self.offset, 8)
+            name_size = _padded_size(null_location - self.offset + 1, 8)
             name = self.buf[self.offset:self.offset+name_size]
             name = name.strip(b'\x00').decode('utf-8')
             self.offset += name_size
