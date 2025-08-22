@@ -62,12 +62,12 @@ def generate_sidebar(conf, conf_api):
     _write("pyfive", "API Reference", "api_reference")
     _write("pyfive", "Additional API Features", "additional")
     _write("pyfive", "Optimising Data Access Speed", "optimising")
+    _write("pyfive", "Change Log", "changelog")
     # _write("pyfive", "Examples", "examples")
     # _write("pyfive", "Contributing to the community", "community/index")
     # _write("pyfive", "Utilities", "utils")
     # _write("pyfive", "API Reference", "api/pyfive")
     # _write("pyfive", "Frequently Asked Questions", "faq")
-    # _write("pyfive", "Changelog", "changelog")
     _endl()
 
     _write_if_changed("_sidebar.rst.inc", "\n".join(lines))
