@@ -1,9 +1,10 @@
 #
-# These are provided to support h5netcdf, and are not used
-# by the pyfive package itself. 
-# FIXME:ENUM
+#  The support for h5t in pyfive is very minimal and may
+#  not fully reflect the h5py.h5t behaviour as pyfive
+#  only commits to the high level API and the minimal
+#  underlying capability. 
+#
 from collections import namedtuple
-
 
 string_info = namedtuple('string_info', ['encoding', 'length'])
 
@@ -13,12 +14,6 @@ def check_enum_dtype(dt):
     If the dtype represents an HDF5 enumerated type, returns the dictionary
     mapping string names to integer values.
     Returns None if the dtype does not represent an HDF5 enumerated type.
-    ---
-    Note that currently pyfive does not support HDF5 enumerated types,
-    so this will always return None (see datatype_msg), and AFIK, should
-    never get called in anger. It is only included so h5netcdf wont
-    barf at its absence when pyfive is used as a backend.
-    #FIXME:ENUM
     """
     try:
         return dt.metadata.get('enum', None)
@@ -69,26 +64,60 @@ def check_dtype(**kwds):
 
     name, dt = kwds.popitem()
 
-    if name not in ('vlen', 'enum', 'ref'):
-        raise TypeError('Unknown special type "%s"' % name)
-
-    try:
-        return dt.metadata[name]
-    except TypeError:
+    if name == 'vlen':
+        return check_string_dtype(dt)
+    elif name == 'enum':
+        return check_enum_dtype(dt)
+    elif name == 'ref':
+        return NotImplementedError
+    else:
         return None
-    except KeyError:
-        return None
 
-
-class TypeNumID:
+class TypeID:
     """ 
-    Used by DataType to expose internal structure.
-    It is not obvious pyfive needs an implementation of this.
-    #FIXME:ENUM consider whether we should use this where we have enum dicts. What does H5py do?
-    # This is low level so we don't have to follow their API this deep, but is there an advantage
-    # in doing so? We could implement this using a souped up dictionary and not call it the same thing.
+    Minimal Mixin Class for the necessary TypdID signature. 
     """
-    def __init__(self,*args,**kw):
-        pass
-    def __str__(self):
-        return 'Not implemented'
+    def dtype(self):
+        raise NotImplementedError
+    def equal(self, other):
+        return self == other
+    def __eq__(self, other):
+        raise NotImplementedError
+
+class TypeNumID(TypeID):
+    """ 
+    Used by DataType to expose internal structure of an enum 
+    datatype.
+    """
+    def __init__(self, raw_dtype):
+        """ 
+        Initialised with the raw_dtype read from the message.
+        This is not the same init signature as h5py!
+        """
+        super().__init__()
+        enum, dtype, enumdict = raw_dtype
+        self.metadata = {'enum':enumdict}
+        self.__reversed = None
+        self.kind = dtype
+    def enum_valueof(self, name):
+        """
+        Get the value associated with an enum name.
+        """
+        if self._reversed == None:
+            # cache for later
+            self.__reversed = {v: k for k, v in self.metadata['enum'].items()}
+        return self.__reversed[name]
+    def get_member_value(self, index):
+        """
+        Determine the name associated with the given value.
+        """
+        return self.metadata['enum'][index]
+    def __eq__(sel, other):
+        if type(self) != type(other):
+            return False
+        return self.metadadta == other.metadata
+    @property
+    def dtype(self):
+        return self.kind.replace('<','|')
+    
+    

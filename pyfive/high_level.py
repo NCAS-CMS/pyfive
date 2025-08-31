@@ -11,6 +11,7 @@ import numpy as np
 from pyfive.core import Reference
 from pyfive.dataobjects import DataObjects, DatasetID
 from pyfive.misc_low_level import SuperBlock
+from pyfive.h5py import Datatype
 
 
 
@@ -102,8 +103,7 @@ class Group(Mapping):
             is_datatype = True
 
         if is_datatype:
-            #FIXME:ENUM Return something similar to H5py; BNL NEXT STEP 
-            pass
+            return Datatype(obj_name, self.file, dataobjs.dtype) 
         else:
             return Group(obj_name, dataobjs, self)[additional_obj]
 

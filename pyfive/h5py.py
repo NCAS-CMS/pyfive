@@ -7,17 +7,26 @@ from pyfive.datatype_msg import DatatypeMessage
 from pyfive.h5t import TypeNumID
 
 import numpy as np
+from pathlib import PurePosixPath
 
 class Datatype:
     """ 
-    Provides a minimal instantiation of a DataType suitable for use with
-    enumerations.
-    #FIXME: Should refactor to use this everywhere we use dtype
+    Provides a minimal instantiation of an h5py DataType 
+    suitable for use with enumerations.
     """
-    def __init__(self,*args,**kw):
-        self.id = TypeNumID()
-        #FIXME:ENUM
-        raise NotImplementedError
+    def __init__(self, name, hfile, raw_dtype):
+        self.id = TypeNumID(raw_dtype)
+        path = PurePosixPath(name)
+        self.name = path.name
+        self.parent = str(path.parent) if str(path.parent) != '' else '/'
+        self.file = hfile
+    @property
+    def dtype(self):
+        return self.id.dtype
+    def __str__(self):
+        return f'<HDF5 named type "{self.name}" (dtype {self.dtype})>'
+    
+    
 
 class Empty:
 
