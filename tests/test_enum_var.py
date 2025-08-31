@@ -3,6 +3,7 @@
 import os
 import pytest
 import h5py
+import numpy as np
 
 import pyfive
 
@@ -61,12 +62,13 @@ def test_enum_dict():
 
             p5_enum_t = pfile['enum_t']
             p5_evar = pfile['enum_var']
-            p5_edict = h5py.check_enum_dtype(p5_enum_t.dtype)
+            p5_edict = pyfive.check_enum_dtype(p5_evar.dtype)
 
             assert str(h5_enum_t) == str(p5_enum_t), "Enum data types do not match"
             assert p5_evar.dtype == h5_evar.dtype, "Enum variable data types do not match"
             assert p5_evar.shape == h5_evar.shape, "Enum shapes do not match"
-            assert h5_evar[:] == p5_evar[:], "Enum stored values do not match"
+            
+            assert np.array_equal(h5_evar[:], p5_evar[:]), "Enum stored values do not match"
             assert p5_edict == h5_edict, "Enum dictionaries do not match"
            
 

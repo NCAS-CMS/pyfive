@@ -270,9 +270,7 @@ class DataObjects(object):
                     value[i] = self._attr_value(base_dtype, vlen_data, vlen, 0)
                     offset += 16
                 elif dtype_class == 'ENUMERATION':
-                    # h5py doesn't seem to do this right, so we will differ
-                    # is this a concern? FIXME
-                    return dtype[2]
+                    return np.dtype(dtype[1],metadata={'enum':dtype[2]})
                 else:
                     raise NotImplementedError
         else:
@@ -359,9 +357,9 @@ class DataObjects(object):
         """ Datatype of the dataset. """
         msg = self.find_msg_type(DATATYPE_MSG_TYPE)[0]
         msg_offset = msg['offset_to_message']
-        return DatatypeMessage(self.msg_data, msg_offset).dtype
-        #FIXME:ENUM should do something with the enumerated type here
-
+        dtype = DatatypeMessage(self.msg_data, msg_offset).dtype
+        return dtype
+       
     @property
     def chunks(self):
         """ Tuple describing the chunk size, None if not chunked. """

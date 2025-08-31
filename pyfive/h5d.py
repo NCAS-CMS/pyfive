@@ -86,9 +86,9 @@ class DatasetID:
 
         if isinstance(dataobject.dtype,tuple):
             if dataobject.dtype[0] == 'ENUMERATION':
-                self._dtype = dataobject.dtype[1]
-            # this may not behave the same as h5py, do we care? #FIXME
-            self._dtype = dataobject.dtype
+                self._dtype = np.dtype(dataobject.dtype[1], metadata=dataobject.dtype[2])
+            else:
+                self._dtype = dataobject.dtype
         else:
             self._dtype = np.dtype(dataobject.dtype)
 
@@ -343,11 +343,9 @@ class DatasetID:
                     fh.close()
 
                 return array.reshape(self.shape, order=self._order)[args]
-            elif dtype_class == 'ENUMERATION':
-                pass
             else:
                 raise NotImplementedError(f'datatype not implemented - {dtype_class}')
-        
+
         if not self.posix:
             # Not posix
             return self._get_direct_from_contiguous(args)
@@ -576,8 +574,6 @@ class DatasetID:
         if isinstance(self._dtype, tuple):
             if  self._dtype[0] == 'VLEN_STRING':
                 return np.dtype("O")
-            elif self._dtype[0] == 'ENUMERATION':
-                return np.dtype(self._dtype[1])
         return self._dtype
 
 

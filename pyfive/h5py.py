@@ -24,7 +24,7 @@ class Datatype:
     def dtype(self):
         return self.id.dtype
     def __str__(self):
-        return f'<HDF5 named type "{self.name}" (dtype {self.dtype})>'
+        return f'<HDF5 named type "{self.name}" (dtype {self.id.kind})>'
     
     
 

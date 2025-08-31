@@ -98,7 +98,7 @@ class TypeNumID(TypeID):
         enum, dtype, enumdict = raw_dtype
         self.metadata = {'enum':enumdict}
         self.__reversed = None
-        self.kind = dtype
+        self.kind = dtype.replace('<','|')
     def enum_valueof(self, name):
         """
         Get the value associated with an enum name.
@@ -118,6 +118,5 @@ class TypeNumID(TypeID):
         return self.metadadta == other.metadata
     @property
     def dtype(self):
-        return self.kind.replace('<','|')
-    
+        return np.metadata(self.kind,metadata=self.metadata)
     
