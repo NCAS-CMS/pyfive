@@ -6,4 +6,5 @@ Getting started
 
     Installation <installation>
     Usage <usage>
+    Enumerations <enums>
    

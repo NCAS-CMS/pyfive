@@ -53,11 +53,12 @@ def check_dtype(**kwds):
         mapping string names to integer values.  Returns None if the dtype does
         not represent an HDF5 enumerated type.
 
-    ref = dtype
-        If the dtype represents an HDF5 reference type, returns the reference
-        class (either Reference or RegionReference).  Returns None if the dtype
-        does not represent an HDF5 reference type.
     """
+    #ref = dtype
+    #    If the dtype represents an HDF5 reference type, returns the reference
+    #    class (either Reference or RegionReference).  Returns None if the dtype
+    #    does not represent an HDF5 reference type.
+    #"""
 
     if len(kwds) != 1:
         raise TypeError("Exactly one keyword may be provided")
@@ -73,21 +74,12 @@ def check_dtype(**kwds):
     else:
         return None
 
-class TypeID:
-    """ 
-    Minimal Mixin Class for the necessary TypdID signature. 
-    """
-    def dtype(self):
-        raise NotImplementedError
-    def equal(self, other):
-        return self == other
-    def __eq__(self, other):
-        raise NotImplementedError
-
-class TypeEnumID(TypeID):
+class TypeEnumID:
     """ 
     Used by DataType to expose internal structure of an enum 
-    datatype.
+    datatype. This is instantiated by pyfive using arcane
+    hdf5 structure information, and should not normally be 
+    needed by any user code.
     """
     def __init__(self, raw_dtype):
         """ 
@@ -119,5 +111,15 @@ class TypeEnumID(TypeID):
         return self.metadata == other.metadata
     @property
     def dtype(self):
+        """ 
+        The numpy dtype. Note that the enumeration dictionary
+        appears as an attribute of the dtype itself, and
+        can be inspected with code similar to this:
+        
+        .. code-block:: python
+
+            x = my_datatype.id.dtype
+            enum_dict = x.metadata
+        """
         return np.dtype(self.kind,metadata=self.metadata)
     

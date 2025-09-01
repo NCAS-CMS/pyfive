@@ -38,6 +38,4 @@ to support enumerations and variable length strings.
 .. autofunction:: pyfive.h5t.check_dtype
 
 .. autoclass:: pyfive.h5t.TypeEnumID
-   :members:
-   :noindex:
-
+   
