@@ -53,7 +53,7 @@ in the following example:
     else:
         # for some reason HDF5 defines these in what seems to be the wrong way around,
         # with the string values as keys to the integer indices.
-        edict_reverse = {k:v for k,v in edict.items()}
+        edict_reverse = {v:k for k,v in edict.items()}
         # assuming evar data is a one dimensional array of integers
         edata = [edict_reverse[k] for k in evar[:]]
 
