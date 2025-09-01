@@ -105,7 +105,7 @@ class TypeEnumID:
         Determine the name associated with the given value.
         """
         return self.__reversed[index]
-    def __eq__(sel, other):
+    def __eq__(self, other):
         if type(self) != type(other):
             return False
         return self.metadata == other.metadata
