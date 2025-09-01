@@ -58,3 +58,20 @@ def test_file_contents():
             print(h5file[x])
             print(p5file[x])
             raise
+
+    # check dereferencing
+    ref1 = p5file["foo"].attrs["DIMENSION_LIST"][0][-1]
+    assert p5file["x"].id == p5file[ref1].id
+    assert str(p5file["x"][:]) == str(p5file[ref1][:])
+
+    ref2 = p5file["subgroup/subvar"].attrs["DIMENSION_LIST"][0][-1]
+    assert p5file["x"].id == p5file[ref2].id
+    assert str(p5file["x"][:]) == str(p5file[ref2][:])
+
+    assert p5file[ref1].id == p5file[ref2].id
+    assert str(p5file[ref1][:]) == str(p5file[ref2][:])
+
+    ref3 = p5file["subgroup/y_var"].attrs["DIMENSION_LIST"][0][-1]
+    assert p5file["subgroup/y"].id == p5file[ref3].id
+    assert str(p5file["subgroup/y"][:]) == str(p5file[ref3][:])
+    assert p5file["y"].id != p5file[ref3].id

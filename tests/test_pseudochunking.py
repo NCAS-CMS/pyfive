@@ -21,7 +21,7 @@ def setup_data():
     with pyfive.File(file_like,'r') as f:
         var1 = f['var1']
         # use 100 KB as the chunk size
-        var1.id.set_psuedo_chunk_size(0.1)
+        var1.id.set_pseudo_chunk_size(0.1)
 
     return var1, data
 

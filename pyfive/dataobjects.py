@@ -684,7 +684,12 @@ class DataObjects(object):
         version, dims, layout_class, property_offset = (
             self._get_data_message_properties(msg_offset))
         return msg_offset, layout_class, property_offset
-    
+
+    @property
+    def is_group(self):
+        """ True when DataObjects points to a group, False for a dataset. """
+        return len(self.find_msg_type(GROUP_INFO_MSG_TYPE)) > 0
+
     @property
     def is_dataset(self):
         """ True when DataObjects points to a dataset, False for a group. """
