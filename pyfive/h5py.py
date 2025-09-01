@@ -4,7 +4,7 @@
 
 
 from pyfive.datatype_msg import DatatypeMessage
-from pyfive.h5t import TypeNumID
+from pyfive.h5t import TypeEnumID
 
 import numpy as np
 from pathlib import PurePosixPath
@@ -15,7 +15,7 @@ class Datatype:
     suitable for use with enumerations.
     """
     def __init__(self, name, hfile, raw_dtype):
-        self.id = TypeNumID(raw_dtype)
+        self.id = TypeEnumID(raw_dtype)
         path = PurePosixPath(name)
         self.name = path.name
         self.parent = str(path.parent) if str(path.parent) != '' else '/'

@@ -5,6 +5,7 @@
 #  underlying capability. 
 #
 from collections import namedtuple
+import numpy as np
 
 string_info = namedtuple('string_info', ['encoding', 'length'])
 
@@ -84,7 +85,7 @@ class TypeID:
     def __eq__(self, other):
         raise NotImplementedError
 
-class TypeNumID(TypeID):
+class TypeEnumID(TypeID):
     """ 
     Used by DataType to expose internal structure of an enum 
     datatype.
@@ -103,20 +104,21 @@ class TypeNumID(TypeID):
         """
         Get the value associated with an enum name.
         """
-        if self._reversed == None:
+        if self.__reversed == None:
             # cache for later
             self.__reversed = {v: k for k, v in self.metadata['enum'].items()}
-        return self.__reversed[name]
-    def get_member_value(self, index):
+        return self.metadata['enum'][name]
+        
+    def enum_nameof(self, index):
         """
         Determine the name associated with the given value.
         """
-        return self.metadata['enum'][index]
+        return self.__reversed[index]
     def __eq__(sel, other):
         if type(self) != type(other):
             return False
-        return self.metadadta == other.metadata
+        return self.metadata == other.metadata
     @property
     def dtype(self):
-        return np.metadata(self.kind,metadata=self.metadata)
+        return np.dtype(self.kind,metadata=self.metadata)
     

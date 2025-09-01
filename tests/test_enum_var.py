@@ -53,7 +53,26 @@ def test_enum_dict():
             
             assert np.array_equal(h5_evar[:], p5_evar[:]), "Enum stored values do not match"
             assert p5_edict == h5_edict, "Enum dictionaries do not match"
-           
+
+def test_enum_datatype():
+
+    with h5py.File(ENUMVAR_NC_FILE, 'r') as hfile:
+        h5_enum_t = hfile['enum_t']
+
+        with pyfive.File(ENUMVAR_NC_FILE) as pfile:
+
+            p5_enum_t = pfile['enum_t']
+            
+            assert str(h5_enum_t) == str(p5_enum_t)
+
+            assert p5_enum_t.id.enum_valueof('stratus') == 1
+            assert p5_enum_t.id.enum_nameof(1) == 'stratus'
+
+            #none of these work as the h5py methods do not follow their documentation AFAIK
+            #assert h5_enum_t.id.enum_valueof('stratus') == p5_enum_t.id.enum_valueof('stratus')
+            #assert h5_enum_t.id.get_member_value(1) == p5_enum_t.id.get_member_value(1)
+            
+            assert h5_enum_t.dtype == p5_enum_t.dtype
 
 
 
