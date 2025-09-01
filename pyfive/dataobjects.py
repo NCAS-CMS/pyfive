@@ -241,7 +241,10 @@ class DataObjects(object):
         elif isinstance(value,dict):
             pass
         else:
-            value = value.reshape(shape)
+            try:
+                value = value.reshape(shape)
+            except AttributeError:
+                pass
 
         return name, value
 

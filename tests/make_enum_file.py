@@ -25,6 +25,6 @@ ncd.close()
 hcd = h5py.File('enum_variable.hdf5','w')
 dt = h5py.enum_dtype(enum_dict,basetype='i')
 assert h5py.check_enum_dtype(dt) == enum_dict
-ds = hcd.create_dataset('enum_var', data, dtype=dt)
+ds = hcd.create_dataset('enum_var', data=data, dtype=dt)
 hcd.close()
 

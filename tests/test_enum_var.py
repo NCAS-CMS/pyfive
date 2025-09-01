@@ -11,37 +11,21 @@ DIRNAME = os.path.dirname(__file__)
 ENUMVAR_NC_FILE = os.path.join(DIRNAME, 'enum_variable.nc')
 ENUMVAR_H5_FILE = os.path.join(DIRNAME, 'enum_variable.hdf5')
 
-def NOtest_read_ncenum_variable():
-
-    with pyfive.File(ENUMVAR_NC_FILE) as hfile:
-
-        for x in hfile: 
-            if x == 'enum_t':
-                #FIXME:ENUM need to work out warnings we want where (in the interim)
-                with pytest.warns(UserWarning,match='^Found '):
-                    print(x, hfile[x])
-            elif x == 'enum_var':
-                print (x, hfile[x].dtype)
-                with pytest.raises(NotImplementedError):
-                    print(x, hfile[x][:])
-                #FIXME:ENUM this should eventually return an array of the basic enum type
-            else: 
-                print(x, hfile[x])
-
-
 def test_read_h5enum_variable():
 
     with pyfive.File(ENUMVAR_H5_FILE) as pfile:
 
-        pdata = [(k,type(pfile[k])) for k in pfile]
-        print(pdata)
+        pvars = [(k,type(pfile[k])) for k in pfile]
+        pdata = pfile['enum_var']
 
     with h5py.File(ENUMVAR_H5_FILE) as hfile:
 
-        hdata = [(k,type(hfile[k])) for k in hfile]
-        print(hdata)
+        hvars = [(k,type(hfile[k])) for k in hfile]
+        hdata = hfile['enum_var']
 
-    assert len(pdata) == len(hdata)
+        assert len(pvars) == len(hvars)
+
+        assert np.array_equal(pdata[:],hdata[:])
 
 def test_enum_dict():
 
@@ -57,7 +41,6 @@ def test_enum_dict():
         print('Basic enum variable and data', h5_evar, h5_evar[:])
         print('Actual enum vals', h5_vals)
 
-    
         with pyfive.File(ENUMVAR_NC_FILE) as pfile:
 
             p5_enum_t = pfile['enum_t']
