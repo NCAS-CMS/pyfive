@@ -22,12 +22,10 @@ def check_enum_dtype(dt):
         return None
     
 def check_string_dtype(dt):
-    """Pyfive version of h5py.h5t.check_string_dtype.
-
+    """
     The returned string_info object holds the encoding and the length.
     The encoding can only be 'utf-8'. The length will be None for a
     variable-length string.
-
     Returns None if the dtype does not represent a pyfive string.
     """
     if dt.kind == 'S':
@@ -41,7 +39,8 @@ def check_string_dtype(dt):
     return None
 
 def check_dtype(**kwds):
-    """ Check a dtype for h5py special type "hint" information.  Only one
+    """ 
+    Check a dtype for h5py special type "hint" information.  Only one
     keyword may be given.
 
     vlen = dtype
