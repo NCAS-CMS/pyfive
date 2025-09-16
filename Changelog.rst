@@ -1,7 +1,7 @@
 Version 0.6.0
 -------------
 
-**2025-09-XY**
+**2025-09-16**
 
 * Enumeration Support (https://github.com/NCAS-CMS/pyfive/issues/85 by 
   `Bryan Lawrence <https://github.com/bnlawrence>`_)
