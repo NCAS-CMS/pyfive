@@ -238,8 +238,13 @@ class DataObjects(object):
 
         if shape == ():
             value = value[0]
+        elif isinstance(value,dict):
+            pass
         else:
-            value = value.reshape(shape)
+            try:
+                value = value.reshape(shape)
+            except AttributeError:
+                pass
 
         return name, value
 
@@ -267,6 +272,8 @@ class DataObjects(object):
                     vlen, vlen_data = self._vlen_size_and_data(buf, offset)
                     value[i] = self._attr_value(base_dtype, vlen_data, vlen, 0)
                     offset += 16
+                elif dtype_class == 'ENUMERATION':
+                    return np.dtype(dtype[1],metadata={'enum':dtype[2]})
                 else:
                     raise NotImplementedError
         else:
@@ -335,11 +342,12 @@ class DataObjects(object):
 
         if size:
             if isinstance(self.dtype, tuple):
-                try:
-                    assert self.dtype[0] == 'VLEN_STRING'
-                except:
-                    raise ValueError('Unrecognised fill type')
-                fillvalue = self._attr_value(self.dtype, self.msg_data, 1, offset)[0]
+                if self.dtype[0] == 'VLEN_STRING':
+                    fillvalue = self._attr_value(self.dtype, self.msg_data, 1, offset)[0]
+                elif self.dtype[0] in ['ENUMERATION']:
+                    fillvalue = 0
+                else:
+                    raise ValueError(f'Unrecognised dtype [{self.dtype}]')
             else:
                 payload = self.msg_data[offset:offset+size]
                 fillvalue = np.frombuffer(payload, self.dtype, count=1)[0]
@@ -352,8 +360,9 @@ class DataObjects(object):
         """ Datatype of the dataset. """
         msg = self.find_msg_type(DATATYPE_MSG_TYPE)[0]
         msg_offset = msg['offset_to_message']
-        return DatatypeMessage(self.msg_data, msg_offset).dtype
-
+        dtype = DatatypeMessage(self.msg_data, msg_offset).dtype
+        return dtype
+       
     @property
     def chunks(self):
         """ Tuple describing the chunk size, None if not chunked. """

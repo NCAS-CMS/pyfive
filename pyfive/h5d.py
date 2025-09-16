@@ -85,8 +85,10 @@ class DatasetID:
         self._unique = (self._filename, self.shape, self._msg_offset)
 
         if isinstance(dataobject.dtype,tuple):
-            # this may not behave the same as h5py, do we care? #FIXME
-            self._dtype = dataobject.dtype
+            if dataobject.dtype[0] == 'ENUMERATION':
+                self._dtype = np.dtype(dataobject.dtype[1], metadata={'enum':dataobject.dtype[2]})
+            else:
+                self._dtype = dataobject.dtype
         else:
             self._dtype = np.dtype(dataobject.dtype)
 
@@ -312,34 +314,7 @@ class DatasetID:
 
     def _get_contiguous_data(self, args):
 
-        if not isinstance(self._dtype, tuple):
-            if not self.posix:
-                # Not posix
-                return self._get_direct_from_contiguous(args)
-            else:
-                # posix
-                try:
-                    # Create a memory-map to the stored array, which
-                    # means that we will end up only copying the
-                    # sub-array into in memory.
-                    fh = self._fh
-                    view = np.memmap(
-                        fh,
-                        dtype=self._dtype,
-                        mode='c',
-                        offset=self.data_offset,
-                        shape=self.shape,
-                        order=self._order
-                    )
-                    # Create the sub-array
-                    result = view[args]
-                    # Copy the data from disk to physical memory
-                    result = result.view(type=np.ndarray)
-                    fh.close()
-                    return result
-                except UnsupportedOperation:
-                    return self._get_direct_from_contiguous(args)
-        else:
+        if isinstance(self._dtype, tuple):
             dtype_class = self._dtype[0]
             if dtype_class == 'REFERENCE':
                 size = self._dtype[1]
@@ -370,6 +345,33 @@ class DatasetID:
                 return array.reshape(self.shape, order=self._order)[args]
             else:
                 raise NotImplementedError(f'datatype not implemented - {dtype_class}')
+
+        if not self.posix:
+            # Not posix
+            return self._get_direct_from_contiguous(args)
+        else:
+            # posix
+            try:
+                # Create a memory-map to the stored array, which
+                # means that we will end up only copying the
+                # sub-array into in memory.
+                fh = self._fh
+                view = np.memmap(
+                    fh,
+                    dtype=self._dtype,
+                    mode='c',
+                    offset=self.data_offset,
+                    shape=self.shape,
+                    order=self._order
+                )
+                # Create the sub-array
+                result = view[args]
+                # Copy the data from disk to physical memory
+                result = result.view(type=np.ndarray)
+                fh.close()
+                return result
+            except UnsupportedOperation:
+                return self._get_direct_from_contiguous(args)
 
 
     def _get_direct_from_contiguous(self, args=None):
@@ -569,9 +571,9 @@ class DatasetID:
 
     @property
     def dtype(self):
-        if isinstance(self._dtype, tuple) and self._dtype[0] == 'VLEN_STRING':
-            return np.dtype("O")
-
+        if isinstance(self._dtype, tuple):
+            if  self._dtype[0] == 'VLEN_STRING':
+                return np.dtype("O")
         return self._dtype
 
 

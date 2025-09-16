@@ -11,6 +11,7 @@ import numpy as np
 from pyfive.core import Reference
 from pyfive.dataobjects import DataObjects, DatasetID
 from pyfive.misc_low_level import SuperBlock
+from pyfive.h5py import Datatype
 
 
 
@@ -101,8 +102,8 @@ class Group(Mapping):
             warnings.warn(f'Found datatype {obj_name} but pyfive cannot read this data: {e}')
             is_datatype = True
 
-        if is_datatype: 
-            pass
+        if is_datatype:
+            return Datatype(obj_name, self.file, dataobjs.dtype) 
         else:
             return Group(obj_name, dataobjs, self)[additional_obj]
 
@@ -466,6 +467,8 @@ class AstypeContext(object):
     """
     Context manager which allows changing the type read from a dataset.
     """
+    #FIXME:ENUM should this allow a conversion from enum base types to values using dictionary?
+    #Probably not, as it would be additional functionality to the h5py interface???
 
     def __init__(self, dset, dtype):
         self._dset = dset

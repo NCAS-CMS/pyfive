@@ -1,3 +1,11 @@
+Version 0.6.0
+-------------
+
+**2025-09-XY**
+
+* Enumeration Support (https://github.com/NCAS-CMS/pyfive/issues/85 by 
+  `Bryan Lawrence <https://github.com/bnlawrence>`_)
+
 Version 0.5.1
 -------------
 
@@ -11,8 +19,8 @@ Version 0.5.1
   iterating (https://github.com/NCAS-CMS/pyfive/pull/83 by `Kai
   Mühlbauer <https://github.com/kmuehlbauer>`_)
 * Add documentation for Pyfive
-  (https://github.com/NCAS-CMS/pyfive/pull/81 by `Valeriu Predoi
-  <https://github.com/valeriupredoi>`_)
+  (https://github.com/NCAS-CMS/pyfive/pull/81 by `Bryan Lawrence
+  <https://github.com/bnlawrence>`_)
 * Setup documentation builds on Readthedocs
   (https://github.com/NCAS-CMS/pyfive/pull/80 by `Valeriu Predoi
   <https://github.com/valeriupredoi>`_)
@@ -46,7 +54,7 @@ Version 0.5.0
   `Valeriu Predoi <https://github.com/valeriupredoi>`_)
 * Functionality enhancements to address lazy loading of chunked data,
   variable length strings, and other minor bug fixes
-  (https://github.com/NCAS-CMS/pyfive/pull/68 by `Brian Lawrence
+  (https://github.com/NCAS-CMS/pyfive/pull/68 by `Bryan Lawrence
   <https://github.com/bnlawrence>`_)
 
 ----

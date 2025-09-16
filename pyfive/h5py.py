@@ -4,16 +4,29 @@
 
 
 from pyfive.datatype_msg import DatatypeMessage
+from pyfive.h5t import TypeEnumID
+
 import numpy as np
+from pathlib import PurePosixPath
 
 class Datatype:
     """ 
-    Class provided for compatability with the H5PY API,
-    to allow applications such as h5netcdf to import it,
-    but not use it.
+    Provides a minimal instantiation of an h5py DataType 
+    suitable for use with enumerations.
     """
-    def __init__(self,*args,**kw):
-        raise NotImplementedError
+    def __init__(self, name, hfile, raw_dtype):
+        self.id = TypeEnumID(raw_dtype)
+        path = PurePosixPath(name)
+        self.name = path.name
+        self.parent = str(path.parent) if str(path.parent) != '' else '/'
+        self.file = hfile
+    @property
+    def dtype(self):
+        return self.id.dtype
+    def __str__(self):
+        return f'<HDF5 named type "{self.name}" (dtype {self.id.kind})>'
+    
+    
 
 class Empty:
 

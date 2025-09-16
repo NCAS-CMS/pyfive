@@ -5,6 +5,8 @@ from collections import OrderedDict
 from .core import _padded_size, _structure_size, _unpack_struct_from
 from .core import InvalidHDF5File
 
+import numpy as np
+import warnings
 
 class DatatypeMessage(object):
     """ Representation of a HDF5 Datatype Message. """
@@ -39,8 +41,7 @@ class DatatypeMessage(object):
         elif datatype_class == DATATYPE_REFERENCE:
             return ('REFERENCE', datatype_msg['size'])
         elif datatype_class == DATATYPE_ENUMERATED:
-            raise NotImplementedError(
-                "Enumerated datatype class not supported.")
+            return self._determine_dtype_enum(datatype_msg)
         elif datatype_class == DATATYPE_ARRAY:
             raise NotImplementedError("Array datatype class not supported.")
         elif datatype_class == DATATYPE_VARIABLE_LENGTH:
@@ -97,6 +98,7 @@ class DatatypeMessage(object):
 
         return byte_order_char + dtype_char + str(length_in_bytes)
 
+
     @staticmethod
     def _determine_dtype_string(datatype_msg):
         """ Return the NumPy dtype for a string class. """
@@ -109,10 +111,12 @@ class DatatypeMessage(object):
         n_comp = bit_field_0 + (bit_field_1 << 4)
 
         # read in the members of the compound datatype
+        # at the moment we need to skip two bytes which I do
+        # 
         members = []
         for _ in range(n_comp):
             null_location = self.buf.index(b'\x00', self.offset)
-            name_size = _padded_size(null_location - self.offset, 8)
+            name_size = _padded_size(null_location - self.offset + 1, 8)
             name = self.buf[self.offset:self.offset+name_size]
             name = name.strip(b'\x00').decode('utf-8')
             self.offset += name_size
@@ -155,7 +159,7 @@ class DatatypeMessage(object):
             if names_valid and dtypes_valid and offsets_valid and props_valid:
                 return complex_dtype_map[dtype1]
 
-        raise NotImplementedError("Compond dtype not supported.")
+        raise NotImplementedError("Compound dtype not supported.")
 
     @staticmethod
     def _determine_dtype_vlen(datatype_msg):
@@ -167,6 +171,35 @@ class DatatypeMessage(object):
         character_set = datatype_msg['class_bit_field_1'] & 0x01
         return ('VLEN_STRING', padding_type, character_set)
 
+    def _determine_dtype_enum(self,datatype_msg):
+        """ Return the basetype and the underlying enum dictionary """
+        #FIXME: Consider overlap with the compound code, refactor in some way?
+        # Doing this rather than what is done in compound data type as doing that is opaque and risky
+        enum_msg = _unpack_struct_from(ENUM_DATATYPE_MSG, self.buf, self.offset-DATATYPE_MSG_SIZE)
+        num_members = enum_msg['number_of_members']
+        value_size = enum_msg['size']
+        enum_keys = []
+        dtype = DatatypeMessage(self.buf,self.offset).dtype
+        self.offset+=12   
+        # An extra 4 bytes are read as part of establishing the data type
+        # FIXME:ENUM Need to be sure that some other base type in the future
+        # wouldn't silently need more bytes and screw this all up. Should 
+        # probably put some check/error handling around this.
+        # now get the keys
+        version = (datatype_msg['class_and_version'] >> 4) & 0x0F
+        for _ in range(num_members):
+            null_location = self.buf.index(b'\x00', self.offset)
+            name_size = null_location - self.offset + 1 if version == 3 else _padded_size(null_location - self.offset+ 1, 8)
+            name = self.buf[self.offset:self.offset+name_size]
+            name = name.strip(b'\x00').decode('ascii')
+            self.offset += name_size
+            enum_keys.append(name)
+        #now get the values
+        nbytes = value_size*num_members
+        values = np.frombuffer(self.buf[self.offset:], dtype=dtype, count=num_members)
+        enum_dict = {k:v for k,v in zip(enum_keys,values)}
+        return 'ENUMERATION', dtype, enum_dict
+
 
 # IV.A.2.d The Datatype Message
 
@@ -177,7 +210,15 @@ DATATYPE_MSG = OrderedDict((
     ('class_bit_field_2', 'B'),
     ('size', 'I'),
 ))
+
 DATATYPE_MSG_SIZE = _structure_size(DATATYPE_MSG)
+
+ENUM_DATATYPE_MSG = OrderedDict((
+    ('class_and_version', 'B'),
+    ('number_of_members', 'H'),  # 'H' is a 16-bit unsigned integer
+    ('unused', 'B'),
+    ('size', 'I'),
+))
 
 
 COMPOUND_PROP_DESC_V1 = OrderedDict((
