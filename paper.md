@@ -1,76 +1,53 @@
 ---
-title: 'Gala: A Python package for galactic dynamics'
+title: 'Pyfive: the mother of all HDF5 battles.'
 tags:
   - Python
-  - astronomy
-  - dynamics
-  - galactic dynamics
-  - milky way
+  - Atmospheric Science
+  - Physics
+  - Climate Model Data
+  - Engineering
 authors:
-  - name: Adrian M. Price-Whelan
+  - name: Bryan Lawrence
     orcid: 0000-0000-0000-0000
     equal-contrib: true
     affiliation: "1, 2" # (Multiple affiliations must be quoted)
-  - name: Author Without ORCID
+  - name: David Hassell
     equal-contrib: true # (This is how you can denote equal contributions between multiple authors)
-    affiliation: 2
-  - name: Author with no affiliation
-    corresponding: true # (This is how to denote the corresponding author)
-    affiliation: 3
-  - given-names: Ludwig
-    dropping-particle: van
-    surname: Beethoven
-    affiliation: 3
+    affiliation: 1
+  - name: Valeriu Predoi
+    equal-contrib: true # (This is how you can denote equal contributions between multiple authors)
+    affiliation: 1
 affiliations:
- - name: Lyman Spitzer, Jr. Fellow, Princeton University, United States
+ - name: NCAS-CMS, Meteorology Department, University of Reading, Reading, UK
    index: 1
    ror: 00hx57361
  - name: Institution Name, Country
    index: 2
- - name: Independent Researcher, Country
-   index: 3
-date: 13 August 2017
+date: 17 September 2025
 bibliography: paper.bib
 
-# Optional fields if submitting to a AAS journal too, see this blog post:
-# https://blog.joss.theoj.org/2018/12/a-new-collaboration-with-aas-publishing
-aas-doi: 10.3847/xxxxx <- update this with the DOI from AAS once you know it.
-aas-journal: Astrophysical Journal <- The name of the AAS journal.
 ---
 
 # Summary
 
-The forces on stars, galaxies, and dark matter under external gravitational
-fields lead to the dynamical evolution of structures in the universe. The orbits
-of these bodies are therefore key to understanding the formation, history, and
-future state of galaxies. The field of "galactic dynamics," which aims to model
-the gravitating components of galaxies to study their structure and evolution,
-is now well-established, commonly taught, and frequently used in astronomy.
-Aside from toy problems and demonstrations, the majority of problems require
-efficient numerical tools, many of which require the same base code (e.g., for
-performing numerical orbit integration).
+Pyfive (<https://pyfive.readthedocs.io/en/latest/>) is an open-source thread-safe pure Python package for reading data stored in HDF5. While it is not a complete implementation of all the capabilities of HDF5, it includes all the core functionality necessary to read gridded datasets, whether stored contiguously or with chunks, and to carry out the necessary decompression for the standard options (INCLUDE OPTIONS).  All data access is fully lazy, the data is only read from storage when the numpy data arrays are manipulated. Originally developed as a prototype some years ago, the package has recently been upgraded to make it more maintainable and fully featured for handling all the environmental data known to the authors, and hence a realistic option for production data access in environmental science and more widely.  The API is based on that of h5py (which is a python shimmy over the HDF5 c-library, and hence is not thread-safe), with some API extensions to help optimise remote access. 
 
 # Statement of need
 
-`Gala` is an Astropy-affiliated Python package for galactic dynamics. Python
-enables wrapping low-level languages (e.g., C) for speed without losing
-flexibility or ease-of-use in the user-interface. The API for `Gala` was
-designed to provide a class-based and user-friendly interface to fast (C or
-Cython-optimized) implementations of common operations such as gravitational
-potential and force evaluation, orbit integration, dynamical transformations,
-and chaos indicators for nonlinear dynamics. `Gala` also relies heavily on and
-interfaces well with the implementations of physical units and astronomical
-coordinate systems in the `Astropy` package [@astropy] (`astropy.units` and
-`astropy.coordinates`).
+HDF5 is probably the most important data format in environmental science, particularly given the fact that NetCDF4 is HDF5 under the hood. From satellite missions, to climate models and radar systems, the default binary format has been HDF5 for decades. While newer formats are starting to get mindshare, there are petabytes, if not exabytes of existing HDF5, and there are still many good use-cases for creating new data in HDF5. However, despite the history, there are few libraries for reading HDF5 file data that do not depend on the official HDF5 library maintained by the HDFGroup, and in particular, there are none that can be used with Python. 
+While  the HDF5 c-library is reliable and performant, and battle-tested over decades, there are some caveats to depending upon it: Firstly, it is not thread-safe, and secondly, the code is large and complex, and should anything happen to the financial stability of The HDF5group, it is not obvious the C-code could be maintained. From a long-term curation perspective this last constraint is a concern.
 
-`Gala` was designed to be used by both astronomical researchers and by
-students in courses on gravitational dynamics or astronomy. It has already been
-used in a number of scientific publications [@Pearson:2017] and has also been
-used in graduate courses on Galactic dynamics to, e.g., provide interactive
-visualizations of textbook material [@Binney:2008]. The combination of speed,
-design, and support for Astropy functionality in `Gala` will enable exciting
-scientific explorations of forthcoming data releases from the *Gaia* mission
-[@gaia] by students and experts alike.
+pyfive was developed with the use-case of performant remote access to curated data as the primary motivation, but with additional motivations of having a lightweight HDF5 reader capable of deploying in resource or operating-system constrained environments (such as mobile), and one that could be maintained long-term as a reference reader for curation purposes. The lightweight deployment consequences of a pure-python HDF5 reader need no further introduction, but as additional motivation we now expand on the issues around remote access and curation.
+
+Taking remote access first, one of the reasons for the rapid adoption of pure-python tools like xarray with zarr has been the ability for thread-safe parallelism using dask. Any python solution based on the HDF5 c-library could not meet this requirement, which led to the development of kerchunk mediated direct access to chunked HDF5 data (https://fsspec.github.io/kerchunk/). However, in practice using kerchunk requires the data provider to generate kerchunk indices to support remote users, and it leads to issues of synchronicity between indices and changing datasets. pyfive was developed in such a way to have all the benefits of using kerchunk, but without the need for provider support. Because pyfive can access and cache (in the client) the b-tree (index) on a variable-by-variable basis, most of the benefits of kerchunk are gained without any of the constraints. The one advantage left to kerchunk is that the kerchunk index is always a contiguous object accessible with one get transaction, this is not necessarily the case with the b-tree, unless the source data has been repacked to ensure contiguous metadata using a tool like h5repack. However, in practice, for many use cases, b-tree extraction with pyfive will be comparable in performance to obtaining a kerchunk index, and completely opaque to the user.
+
+The issues of the dependency on a complex code maintained by one private company in the context of maintaining data access (over decades, and potentially centuries), can only be mitigated by ensuring that the data format is well documented, that data writers use only the documented features, and that public code exists which can be relatively easily maintained. The HDF5group have provided good documentation for the core features of HDF5 which include all those of interest to the weather and climate community who motivated this reboot of pyfive, and while there is a community of developers beyond the HDF5 group (including some at the publicly funded Unidata institution), recent events suggest that given most of those developers and their existing funding are US based, some spreading of risk would be desirable. To that end, a pure-python code, which is relatively small and maintained by an international constituency, alongside the existing c-code, provides some assurance that the community can maintain HDF5 access for the foreseeable future.
+
+# Examples
+
+A notable feature of the recent pyfive upgrade is that it was carried out with thread-safety and remote access using fsspec (filesystem-spec.readthedocs.io) in mind.  We provide two examples of using pyfive to access remote data, one in S3, and one behind a modern http web server:
+
+v.predoi@ncas.ac.uk When we have this is markdown, can you please put two python examples in here as above!
 
 # Mathematics
 
