@@ -4,7 +4,8 @@ Version 0.6.0
 **2025-09-16**
 
 * Enumeration Support (https://github.com/NCAS-CMS/pyfive/issues/85 by 
-  `Bryan Lawrence <https://github.com/bnlawrence>`_)
+  `Bryan Lawrence <https://github.com/bnlawrence>`_
+  and `Kai Mühlbauer <https://github.com/kmuehlbauer>`_)
 
 Version 0.5.1
 -------------
@@ -77,7 +78,7 @@ Version 0.4.0
   (https://github.com/NCAS-CMS/pyfive/issues/50 by `Brian Maranville
   <https://github.com/bmaranville>`_)
 * Minimal change to avoid a numpy deprecation failure
-  (https://github.com/NCAS-CMS/pyfive/pull/55 by `Brian Lawrence
+  (https://github.com/NCAS-CMS/pyfive/pull/55 by `Bryan Lawrence
   <https://github.com/bnlawrence>`_)
 * Use name as key for links if creation order is not specified
   (https://github.com/NCAS-CMS/pyfive/pull/54 by `Brian Maranville
