@@ -8,7 +8,7 @@ name: JOSS Draft PDF
 on:
   push:
     branches:
-      - main  # this will be deactivated after a first (unsuccessful) run
+      #  - main  # this will be deactivated after a first (unsuccessful) run
       - joss_paper
 
 jobs:
