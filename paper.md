@@ -17,11 +17,14 @@ authors:
   - name: Valeriu Predoi
     equal-contrib: true # (This is how you can denote equal contributions between multiple authors)
     affiliation: 1
+  - name: Ezequiel Cimadevilla
+    equal-contrib: true # (This is how you can denote equal contributions between multiple authors)
+    affiliation: 2
 affiliations:
  - name: NCAS-CMS, Meteorology Department, University of Reading, Reading, UK
    index: 1
    ror: 00hx57361
- - name: Institution Name, Country
+ - name: Institution Name, Spain
    index: 2
 date: 17 September 2025
 bibliography: paper.bib
