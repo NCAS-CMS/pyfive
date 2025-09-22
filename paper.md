@@ -23,7 +23,7 @@ authors:
   - name: Kai Mühlbauer
     affiliation: 5
   - name: Valeriu Predoi
-    orcid: 0000-0002-9729-657
+    orcid: 0000-0002-9729-6578
     affiliation: 1
 affiliations:
  - name: NCAS-CMS, Meteorology Department, University of Reading, Reading, UK
