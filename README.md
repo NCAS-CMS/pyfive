@@ -5,7 +5,7 @@
 [![codecov](https://codecov.io/gh/NCAS-CMS/pyfive/graph/badge.svg?token=3In5JuzeGK)](https://codecov.io/gh/NCAS-CMS/pyfive)
 [![Anaconda-Server Badge](https://anaconda.org/conda-forge/pyfive/badges/version.svg)](https://anaconda.org/conda-forge/pyfive)
 
-![pyfive-logo](https://raw.githubusercontent.com/NCAS-CMS/pyfive/main/doc/figures/Pyfive-logo.png)
+![pyfive-logo](https://raw.githubusercontent.com/NCAS-CMS/pyfive/new_logo/doc/figures/Pyfive-logo.png)
 
 [Latest doc builds on RTD](https://app.readthedocs.org/projects/pyfive/builds/)
 
