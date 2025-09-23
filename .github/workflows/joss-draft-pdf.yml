@@ -24,7 +24,13 @@ jobs:
           journal: joss
           # This should be the path to the paper within your repo.
           paper-path: paper.md
-      - name: Upload
+      - name: Commit draft PDF to repository
+        uses: EndBug/add-and-commit@v9
+        with:
+          message: '(auto) Paper PDF Draft'
+          # This should be the path to the paper within your repo.
+          add: 'paper.pdf' # 'paper/*.pdf' to commit all PDFs in the paper directory
+      - name: Upload paper.zip as GHA Artifact
         uses: actions/upload-artifact@v4
         with:
           name: paper
