@@ -250,6 +250,12 @@ class DataObjects(object):
 
     def _attr_value(self, dtype, buf, count, offset):
         """ Retrieve an HDF5 attribute value from a buffer. """
+
+        # first handle ENUMERATION, we just extract the dtype
+        if isinstance(dtype, tuple):
+            if dtype[0] == "ENUMERATION":
+                dtype = np.dtype(dtype[1], metadata={'enum': dtype[2]})
+
         if isinstance(dtype, tuple):
             dtype_class = dtype[0]
             if dtype_class == 'VLEN_STRING':
@@ -272,8 +278,6 @@ class DataObjects(object):
                     vlen, vlen_data = self._vlen_size_and_data(buf, offset)
                     value[i] = self._attr_value(base_dtype, vlen_data, vlen, 0)
                     offset += 16
-                elif dtype_class == 'ENUMERATION':
-                    return np.dtype(dtype[1],metadata={'enum':dtype[2]})
                 else:
                     raise NotImplementedError
         else:

@@ -79,10 +79,14 @@ def test_numeric_array_attr_datatypes():
         assert hfile.attrs['uint64_array'].dtype == np.dtype('>u8')
         assert hfile.attrs['float32_array'].dtype == np.dtype('<f4')
 
-        assert hfile.attrs['vlen_str_array'][0] == b'Hello'
-        assert hfile.attrs['vlen_str_array'][1] == b'World!'
 
-        assert hfile.attrs['vlen_str_array'].dtype == np.dtype('S6')
+def test_string_array_attr_datatypes():
+    with pyfive.File(ATTR_DATATYPES_HDF5_FILE) as hfile:
+        assert hfile.attrs['vlen_str_array'][0] == 'Hello'
+        assert hfile.attrs['vlen_str_array'][1] == 'World!'
+
+        assert hfile.attrs['vlen_str_array'].dtype == np.dtype('O')
+        assert hfile.attrs['vlen_str_array'].dtype.metadata == {'h5py_encoding': 'utf-8'}
 
 
 def test_vlen_sequence_attr_datatypes():
@@ -105,6 +109,17 @@ def test_vlen_sequence_attr_datatypes():
         assert_array_equal(vlen_attr[0], [0])
         assert_array_equal(vlen_attr[1], [1, 2, 3])
         assert_array_equal(vlen_attr[2], [4, 5])
+
+
+def test_enum_attr_datatypes():
+
+    with pyfive.File(ATTR_DATATYPES_HDF5_FILE) as hfile:
+        import h5py
+        enum_attr = hfile.attrs['enum']
+        assert enum_attr == 2
+        assert enum_attr.dtype == h5py.special_dtype(
+            enum=(np.int32, {'one': 1, 'two': 2, 'three': 3})
+        )
 
 
 def test_attributes_2():
