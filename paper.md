@@ -24,6 +24,7 @@ authors:
     orcid: 0000-0002-6105-8789
     affiliation: 4
   - name: Kai Mühlbauer
+    orcid: 0000-0001-6599-1034
     affiliation: 5
   - name: Valeriu Predoi
     orcid: 0000-0002-9729-6578
@@ -38,7 +39,7 @@ affiliations:
    index: 3
  - name: NIST Center for Neutron Research
    index: 4
- - name: Institute for Geophysics, University of Bonn, Germany.
+ - name: Institute of Geosciences, Meteorology Section, University of Bonn, Germany.
    index: 5
  - name:  European Synchrotron Radiation Facility (ESRF), Grenoble, France.
 date: 21 September 2025
