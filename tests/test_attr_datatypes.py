@@ -122,6 +122,14 @@ def test_enum_attr_datatypes():
         )
 
 
+def test_empty_string_datatypes():
+
+    with pyfive.File(ATTR_DATATYPES_HDF5_FILE) as hfile:
+        enum_attr = hfile.attrs['empty_string']
+        assert enum_attr == pyfive.Empty(dtype=np.dtype('|S1'))
+        assert enum_attr.dtype == np.dtype('|S1')
+
+
 def test_attributes_2():
 
     ascii = "ascii"

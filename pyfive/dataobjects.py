@@ -22,6 +22,7 @@ from pyfive.btree import GZIP_DEFLATE_FILTER, SHUFFLE_FILTER, FLETCH32_FILTER
 from pyfive.misc_low_level import Heap, SymbolTable, GlobalHeap, FractalHeap, GLOBAL_HEAP_ID
 from pyfive.h5d import DatasetID
 from pyfive.indexing import OrthogonalIndexer, ZarrArrayStub
+from pyfive.h5py import Empty
 
 # these constants happen to have the same value...
 UNLIMITED_SIZE = UNDEFINED_ADDRESS
@@ -230,11 +231,17 @@ class DataObjects(object):
 
         # Read the dataspace information
         shape, maxshape = determine_data_shape(buffer, offset)
-        items = int(np.prod(shape))
-        offset += _padded_size(attr_dict['dataspace_size'], padding_multiple)
 
-        # Read the value(s)
-        value = self._attr_value(dtype, buffer, items, offset)
+        # detect Empty/NULL dataspace
+        if shape is None:
+            value = Empty(dtype=dtype)
+        else:
+            items = int(np.prod(shape))
+
+            offset += _padded_size(attr_dict['dataspace_size'], padding_multiple)
+
+            # Read the value(s)
+            value = self._attr_value(dtype, buffer, items, offset)
 
         if shape == ():
             value = value[0]
@@ -726,6 +733,11 @@ def determine_data_shape(buf, offset):
         offset += DATASPACE_MSG_HEADER_V2_SIZE
     else:
         raise InvalidHDF5File('unknown dataspace message version')
+    # to detect Empty aka NULL dataspace we need to check for V2 DATASPACE MESSAGE
+    if header["version"] == 2:
+        # check for NULL dataspace and return early
+        if header["type"] == 2:
+            return None, None
 
     ndims = header['dimensionality']
     dim_sizes = struct.unpack_from('<' + 'Q' * ndims, buf, offset)

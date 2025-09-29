@@ -94,4 +94,8 @@ enum_dtype = h5py.special_dtype(
 # Create an attribute with that enum dtype
 attrs.create('enum', 2, dtype=enum_dtype)
 
+# empty string with NULL dataspace
+# see https://github.com/NCAS-CMS/pyfive/issues/100
+attrs.create('empty_string', h5py.Empty(dtype=np.dtype('|S1')))
+
 f.close()
