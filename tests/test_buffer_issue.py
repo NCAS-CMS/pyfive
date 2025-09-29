@@ -12,12 +12,11 @@ def _load_nc_file(ncvar):
     """
     issue_file = "da193a_25_6hr_t_pt_cordex__198807-198807.nc" 
     storage_options = {
-        'key': "f2d55c6dcfc7618b2c34e00b58df3cef",
-        'secret': "$/'#M{0{/4rVhp%n^(XeX$q@y#&(NM3W1->~N.Q6VP.5[@bLpi='nt]AfH)>78pT",
+        'anon': True,
         'client_kwargs': {'endpoint_url': "https://uor-aces-o.s3-ext.jc.rl.ac.uk"},  # final proxy
     }
     test_file_uri = os.path.join(
-        "bnl",
+        "esmvaltool-zarr",
         issue_file
     )
     fs = s3fs.S3FileSystem(**storage_options)
