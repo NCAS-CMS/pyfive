@@ -98,7 +98,21 @@ class DatasetID:
         # throws a flake8 wobbly for Python<3.10; match is Py3.10+ syntax
         match self.layout_class:  # noqa
             case 0:  #compact storage
-                raise NotImplementedError("Compact Storage")
+                self.data = None
+                layout = None
+                for msg in dataobject.msgs:
+                    if msg["type"] == 8:
+                        layout = msg
+                        break
+                if layout is None:
+                    raise ValueError("No layout message in compact dataset?")
+                byts = dataobject.msg_data[msg["offset_to_message"]:msg["offset_to_message"]+msg["size"]]
+                layout_version = byts[0]
+                if layout_version == 1 or layout_version == 2:
+                    raise NotImplementedError("Compact layout v1 and v2.")
+                elif layout_version == 3 or layout_version == 4:
+                    size = int.from_bytes(byts[2:4], "little")
+                    self.data = byts[4:4+size]
             case 1:  # contiguous storage
                 self.data_offset, = struct.unpack_from('<Q', dataobject.msg_data, self.property_offset)
             case 2:  # chunked storage
@@ -161,7 +175,18 @@ class DatasetID:
         # throws a flake8 wobbly for Python<3.10; match is Py3.10+ syntax
         match self.layout_class:  # noqa
             case 0:  #compact storage
-                raise NotImplementedError("Compact Storage")
+                if self.data is None:
+                    if isinstance(dtype, tuple):
+                        dtype = np.array(fillvalue).dtype
+                    return np.full(self.shape, fillvalue, dtype=dtype)[args]
+                else:
+                    view = np.frombuffer(
+                        self.data,
+                        dtype=self._dtype,
+                    ).reshape(self.shape)
+                    # Create the sub-array
+                    result = view[args]
+                    return result
             case 1:  # contiguous storage
                 if self.data_offset == UNDEFINED_ADDRESS:
                     # no storage is backing array, return an array of
