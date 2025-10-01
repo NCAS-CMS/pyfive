@@ -34,7 +34,8 @@ class Empty:
     Proxy object to represent empty/null dataspaces (a.k.a H5S_NULL).
     This can have an associated dtype, but has no shape or data. This is not
     the same as an array with shape (0,). This class provided for compatibility
-    with the H5Py API to support h5netcdf. It is not used by pyfive.
+    with the H5Py API to support h5netcdf. In pyfive this is used to wrap
+    attributes associated with null dataspaces.
     """
     shape = None
     size = None
