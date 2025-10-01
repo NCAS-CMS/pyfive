@@ -262,6 +262,8 @@ class DataObjects(object):
         if isinstance(dtype, tuple):
             if dtype[0] == "ENUMERATION":
                 dtype = np.dtype(dtype[1], metadata={'enum': dtype[2]})
+            elif dtype[0] == "COMPOUND":
+                dtype = np.dtype(dtype[1])
 
         if isinstance(dtype, tuple):
             dtype_class = dtype[0]

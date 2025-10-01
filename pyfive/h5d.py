@@ -87,6 +87,8 @@ class DatasetID:
         if isinstance(dataobject.dtype,tuple):
             if dataobject.dtype[0] == 'ENUMERATION':
                 self._dtype = np.dtype(dataobject.dtype[1], metadata={'enum':dataobject.dtype[2]})
+            elif dataobject.dtype[0] == 'COMPOUND':
+                self._dtype = np.dtype(dataobject.dtype[1])
             else:
                 self._dtype = dataobject.dtype
         else:
