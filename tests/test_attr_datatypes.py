@@ -82,11 +82,19 @@ def test_numeric_array_attr_datatypes():
 
 def test_string_array_attr_datatypes():
     with pyfive.File(ATTR_DATATYPES_HDF5_FILE) as hfile:
-        assert hfile.attrs['vlen_str_array'][0] == 'Hello'
-        assert hfile.attrs['vlen_str_array'][1] == 'World!'
 
-        assert hfile.attrs['vlen_str_array'].dtype == np.dtype('O')
-        assert hfile.attrs['vlen_str_array'].dtype.metadata == {'h5py_encoding': 'utf-8'}
+        # bytes
+        assert hfile.attrs['vlen_str_array'][0] == b'Hello'
+        assert hfile.attrs['vlen_str_array'][1] == b'World!'
+
+        assert hfile.attrs['vlen_str_array'].dtype == np.dtype('S6')
+
+        # strings
+        assert hfile.attrs['vlen_str_array1'][0] == 'Hello'
+        assert hfile.attrs['vlen_str_array1'][1] == 'World!'
+
+        assert hfile.attrs['vlen_str_array1'].dtype == np.dtype('O')
+        assert hfile.attrs['vlen_str_array1'].dtype.metadata == {'h5py_encoding': 'utf-8'}
 
 
 def test_vlen_sequence_attr_datatypes():

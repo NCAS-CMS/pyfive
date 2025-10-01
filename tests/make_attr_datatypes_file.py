@@ -51,8 +51,10 @@ attrs.create('int32_array', [-123, 45], dtype='<i4')
 attrs.create('uint64_array', [12, 34], dtype='>u8')
 attrs.create('float32_array', [123, 456], dtype='<f4')
 
-# arrayed variable length strings
-attrs['vlen_str_array'] = [b'Hello', b'World!']
+# arrayed variable length strings and bytes
+# see https://github.com/NCAS-CMS/pyfive/pull/102#discussion_r2393563713
+attrs['vlen_str_array'] = np.array([b'Hello', b'World!'], dtype="|S")
+attrs['vlen_str_array1'] = [b'Hello', b'World!']
 
 # variables length sequences
 val = np.empty((2, ), dtype=object)
