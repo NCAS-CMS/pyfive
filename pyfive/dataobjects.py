@@ -730,14 +730,12 @@ def determine_data_shape(buf, offset):
     elif version == 2:
         header = _unpack_struct_from(DATASPACE_MSG_HEADER_V2, buf, offset)
         assert header['version'] == 2
+        # check for Empty aka NULL dataspace in V2 and return early
+        if header["type"] == 2:
+            return None, None
         offset += DATASPACE_MSG_HEADER_V2_SIZE
     else:
         raise InvalidHDF5File('unknown dataspace message version')
-    # to detect Empty aka NULL dataspace we need to check for V2 DATASPACE MESSAGE
-    if header["version"] == 2:
-        # check for NULL dataspace and return early
-        if header["type"] == 2:
-            return None, None
 
     ndims = header['dimensionality']
     dim_sizes = struct.unpack_from('<' + 'Q' * ndims, buf, offset)
