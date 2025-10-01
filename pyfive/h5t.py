@@ -74,7 +74,7 @@ def check_dtype(**kwds):
     else:
         return None
 
-
+# todo: refactor the following classes, so TypeEnumID and TypeCompoundID sublass from the base TypeID.
 class TypeID:
     """
     Used by DataType to expose internal structure of a generic
