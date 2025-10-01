@@ -1,14 +1,26 @@
 """ Unit tests for pyfive. """
 import os
+import sys
+import subprocess
 
 import numpy as np
 from numpy.testing import assert_array_equal
+import pytest
 
 import pyfive
 
 DIRNAME = os.path.dirname(__file__)
 ATTR_DATATYPES_HDF5_FILE = os.path.join(DIRNAME, 'attr_datatypes.hdf5')
+MAKE_ATTR_DATATYPES_SCRIPT = os.path.join(DIRNAME, 'make_attr_datatypes_file.py')
 ATTR_DATATYPES_HDF5_FILE_2 = os.path.join(DIRNAME, 'attr_datatypes_2.hdf5')
+
+
+@pytest.fixture(scope="module")
+def attr_datatypes_hdf5(tmp_path_factory):
+    tmp_dir = tmp_path_factory.mktemp("attr_datatypes")
+    path = tmp_dir / "attr_datatypes.hdf5"
+    subprocess.run([sys.executable, MAKE_ATTR_DATATYPES_SCRIPT, str(path)], check=True)
+    return str(path)
 
 
 def test_numeric_scalar_attr_datatypes():
@@ -79,9 +91,15 @@ def test_numeric_array_attr_datatypes():
         assert hfile.attrs['uint64_array'].dtype == np.dtype('>u8')
         assert hfile.attrs['float32_array'].dtype == np.dtype('<f4')
 
+        assert hfile.attrs['vlen_str_array'][0] == b'Hello'
+        assert hfile.attrs['vlen_str_array'][1] == b'World!'
 
-def test_string_array_attr_datatypes():
-    with pyfive.File(ATTR_DATATYPES_HDF5_FILE) as hfile:
+        assert hfile.attrs['vlen_str_array'].dtype == np.dtype('S6')
+
+
+def test_string_array_attr_datatypes(attr_datatypes_hdf5):
+
+    with pyfive.File(attr_datatypes_hdf5) as hfile:
 
         # bytes
         assert hfile.attrs['vlen_str_array'][0] == b'Hello'
@@ -119,9 +137,9 @@ def test_vlen_sequence_attr_datatypes():
         assert_array_equal(vlen_attr[2], [4, 5])
 
 
-def test_enum_attr_datatypes():
+def test_enum_attr_datatypes(attr_datatypes_hdf5):
 
-    with pyfive.File(ATTR_DATATYPES_HDF5_FILE) as hfile:
+    with pyfive.File(attr_datatypes_hdf5) as hfile:
         import h5py
         enum_attr = hfile.attrs['enum']
         assert enum_attr == 2
@@ -130,9 +148,9 @@ def test_enum_attr_datatypes():
         )
 
 
-def test_empty_string_datatypes():
+def test_empty_string_datatypes(attr_datatypes_hdf5):
 
-    with pyfive.File(ATTR_DATATYPES_HDF5_FILE) as hfile:
+    with pyfive.File(attr_datatypes_hdf5) as hfile:
         enum_attr = hfile.attrs['empty_string']
         assert enum_attr == pyfive.Empty(dtype=np.dtype('|S1'))
         assert enum_attr.dtype == np.dtype('|S1')
