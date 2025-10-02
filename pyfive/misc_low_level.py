@@ -342,6 +342,9 @@ def get_vlen_string_data_contiguous(
     """ Return the data for a variable which is made up of variable length string data """
     # we need to import this from DatasetID, and that's imported from Dataobjects hence
     # hiding it here in misc_low_level.
+    if fillvalue in [0, None]:
+        fillvalue = b""
+
     fh.seek(data_offset)
     count = prod(shape)
     _, _, character_set = dtype
@@ -366,7 +369,7 @@ def get_vlen_string_data_contiguous(
             gheap = global_heaps[gheap_address]
 
             # skip if NULL vlen entry
-            if obj_index:=gheap_id['object_index'] != 0:
+            if (obj_index:=gheap_id['object_index']) != 0:
                 value[i] = gheap.objects[obj_index]
 
         offset +=16
