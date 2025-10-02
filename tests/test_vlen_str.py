@@ -11,8 +11,8 @@ def make_file_hdf5(our_file, vlen_strings):
     with h5py.File(our_file,'w') as hfile:
         
         dt = h5py.special_dtype(vlen=str)
-        v = hfile.create_dataset("var_len_str", (2,), dtype=dt)
-        v[:] = vlen_strings
+        v = hfile.create_dataset("var_len_str", (4,), dtype=dt)
+        v[:2] = vlen_strings
 
 
 def make_file_nc(file_like,m_array, inmemory=False):
