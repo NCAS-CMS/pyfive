@@ -1,13 +1,25 @@
 """ Unit tests for pyfive references. """
 import os
+import sys
+import subprocess
 
 import numpy as np
 from numpy.testing import assert_array_equal, assert_raises
+import pytest
 
 import pyfive
 
 DIRNAME = os.path.dirname(__file__)
 REFERENCES_HDF5_FILE = os.path.join(DIRNAME, 'references.hdf5')
+MAKE_REFERENCES_SCRIPT = os.path.join(DIRNAME, 'make_references_file.py')
+
+
+@pytest.fixture(scope="module")
+def references_hdf5(tmp_path_factory):
+    tmp_dir = tmp_path_factory.mktemp("references")
+    path = tmp_dir / "references.hdf5"
+    subprocess.run([sys.executable, MAKE_REFERENCES_SCRIPT, str(path)], check=True)
+    return str(path)
 
 
 def test_reference_attrs():
@@ -158,3 +170,11 @@ def test_region_reference_attrs():
         subset = dset1[region_ref]
         assert_array_equal(subset, [0, 2])
 """
+
+def test_uninitialized_references(references_hdf5):
+    with pyfive.File(references_hdf5) as hfile:
+        # testing id of connected dimension
+        assert hfile[hfile["foo1"].attrs["DIMENSION_LIST"][0][0]].id == hfile["x"].id
+        # test empty aka NULL return
+        assert hfile["foo1"].attrs["DIMENSION_LIST"][1].tolist() == []
+
