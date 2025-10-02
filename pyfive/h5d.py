@@ -312,7 +312,7 @@ class DatasetID:
                 self._nthindex.append(key)
                 self._index[key] = StoreInfo(key, filter_mask, addr, size)
 
-    def _get_contiguous_data(self, args):
+    def _get_contiguous_data(self, args, fillvalue):
 
         if isinstance(self._dtype, tuple):
             dtype_class = self._dtype[0]
