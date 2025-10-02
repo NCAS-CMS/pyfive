@@ -84,7 +84,7 @@ class DatasetID:
         self._msg_offset, self.layout_class,self.property_offset = dataobject.get_id_storage_params()
         self._unique = (self._filename, self.shape, self._msg_offset)
 
-        if isinstance(dataobject.dtype,tuple):
+        if isinstance(dataobject.dtype, tuple):
             if dataobject.dtype[0] == 'ENUMERATION':
                 self._dtype = np.dtype(dataobject.dtype[1], metadata={'enum':dataobject.dtype[2]})
             elif dataobject.dtype[0] == 'COMPOUND':
@@ -176,7 +176,7 @@ class DatasetID:
                     #       created. One for the future.
                     return np.full(self.shape, fillvalue, dtype=dtype)[args]
                 else:
-                    return self._get_contiguous_data(args)
+                    return self._get_contiguous_data(args, fillvalue)
             case 2:  # chunked storage
                 if not self._index:
                     # no storage is backing array, return an array of
@@ -314,7 +314,7 @@ class DatasetID:
                 self._nthindex.append(key)
                 self._index[key] = StoreInfo(key, filter_mask, addr, size)
 
-    def _get_contiguous_data(self, args):
+    def _get_contiguous_data(self, args, fillvalue):
 
         if isinstance(self._dtype, tuple):
             dtype_class = self._dtype[0]
@@ -339,7 +339,8 @@ class DatasetID:
                     self.data_offset,
                     self._global_heaps,
                     self.shape,
-                    self._dtype
+                    self._dtype,
+                    fillvalue,
                 )
                 if self.posix:
                     fh.close()

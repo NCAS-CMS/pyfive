@@ -11,8 +11,12 @@ def make_file_hdf5(our_file, vlen_strings):
     with h5py.File(our_file,'w') as hfile:
         
         dt = h5py.special_dtype(vlen=str)
-        v = hfile.create_dataset("var_len_str", (2,), dtype=dt)
-        v[:] = vlen_strings
+        v = hfile.create_dataset("var_len_str", (4,), dtype=dt)
+        v[:2] = vlen_strings
+
+        v = hfile.create_dataset("var_len_str_fv", (4,), dtype=dt,
+                                fillvalue=b"this really fills the data")
+        v[:2] = vlen_strings
 
 
 def make_file_nc(file_like,m_array, inmemory=False):
@@ -134,7 +138,7 @@ def test_vlen_string_hdf5(tmp_path):
     #tfile = io.BytesIO()
     our_file = tmp_path/'h5py_vlen.hdf5'
     our_view = tmp_path/'h5py_vlen.txt'
-    vlen_strings = ["foo","foobar"]
+    vlen_strings = ["foo", "foobar"]
     make_file_hdf5(our_file, vlen_strings)
     #os.system(f'h5dump {our_file} > {our_view}')
     #with open(our_view,'r') as f:
@@ -144,8 +148,12 @@ def test_vlen_string_hdf5(tmp_path):
     with pyfive.File(our_file) as hfile:
          
         ds1 = hfile['var_len_str'][:]
+        ds2 = hfile['var_len_str_fv'][:]
         print(ds1)
-        assert np.array_equal(ds1,vlen_strings)
+        print(ds2)
+        assert np.array_equal(ds1[:2], vlen_strings)
+        assert np.array_equal(ds2[:2], vlen_strings)
+        assert ds2[3] == "this really fills the data"
     
 def NOtest_vlen_string_nc1():
     """ this verson currently fails because netcdf4 is doing something odd in memory """
