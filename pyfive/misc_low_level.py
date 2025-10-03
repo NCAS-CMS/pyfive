@@ -337,30 +337,41 @@ class FractalHeap(object):
         return ndirect, nindirect
 
 def get_vlen_string_data_contiguous(
-        fh, data_offset, global_heaps, shape, dtype
+        fh, data_offset, global_heaps, shape, dtype, fillvalue
 ):
     """ Return the data for a variable which is made up of variable length string data """
     # we need to import this from DatasetID, and that's imported from Dataobjects hence
     # hiding it here in misc_low_level.
+    if fillvalue in [0, None]:
+        fillvalue = b""
+
     fh.seek(data_offset)
     count = prod(shape)
     _, _, character_set = dtype
     if int(character_set) not in [0, 1]:
         raise ValueError(f'Unexpected string type, cannot decode character set {character_set}')
-    value = np.empty(count,dtype=object)
+
+    # create with fillvalue
+    value = np.full(count, fillvalue, dtype=object)
     offset = 0
     buf = fh.read(16*count)
     for i in range(count):
         # vlen_size, = struct.unpack_from('<I', buf, offset=offset)
         gheap_id = _unpack_struct_from(GLOBAL_HEAP_ID, buf, offset+4)
         gheap_address = gheap_id['collection_address']
-        #print('Collection address for data', gheap_address)
-        if gheap_address not in global_heaps:
-            # load the global heap and cache the instance
-            gheap = GlobalHeap(fh, gheap_address)
-            global_heaps[gheap_address] = gheap
-        gheap = global_heaps[gheap_address]
-        value[i] = gheap.objects[gheap_id['object_index']]
+        # only work on valid global heap addresses
+        if gheap_address != 0:
+            #print('Collection address for data', gheap_address)
+            if gheap_address not in global_heaps:
+                # load the global heap and cache the instance
+                gheap = GlobalHeap(fh, gheap_address)
+                global_heaps[gheap_address] = gheap
+            gheap = global_heaps[gheap_address]
+
+            # skip if NULL vlen entry
+            if (obj_index:=gheap_id['object_index']) != 0:
+                value[i] = gheap.objects[obj_index]
+
         offset +=16
 
     # If character_set == 0 ascii character set, return as

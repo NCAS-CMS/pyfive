@@ -1,14 +1,26 @@
 """ Unit tests for pyfive. """
 import os
+import sys
+import subprocess
 
 import numpy as np
 from numpy.testing import assert_array_equal
+import pytest
 
 import pyfive
 
 DIRNAME = os.path.dirname(__file__)
 ATTR_DATATYPES_HDF5_FILE = os.path.join(DIRNAME, 'attr_datatypes.hdf5')
+MAKE_ATTR_DATATYPES_SCRIPT = os.path.join(DIRNAME, 'make_attr_datatypes_file.py')
 ATTR_DATATYPES_HDF5_FILE_2 = os.path.join(DIRNAME, 'attr_datatypes_2.hdf5')
+
+
+@pytest.fixture(scope="module")
+def attr_datatypes_hdf5(tmp_path_factory):
+    tmp_dir = tmp_path_factory.mktemp("attr_datatypes")
+    path = tmp_dir / "attr_datatypes.hdf5"
+    subprocess.run([sys.executable, MAKE_ATTR_DATATYPES_SCRIPT, str(path)], check=True)
+    return str(path)
 
 
 def test_numeric_scalar_attr_datatypes():
@@ -85,6 +97,24 @@ def test_numeric_array_attr_datatypes():
         assert hfile.attrs['vlen_str_array'].dtype == np.dtype('S6')
 
 
+def test_string_array_attr_datatypes(attr_datatypes_hdf5):
+
+    with pyfive.File(attr_datatypes_hdf5) as hfile:
+
+        # bytes
+        assert hfile.attrs['vlen_str_array'][0] == b'Hello'
+        assert hfile.attrs['vlen_str_array'][1] == b'World!'
+
+        assert hfile.attrs['vlen_str_array'].dtype == np.dtype('S6')
+
+        # strings
+        assert hfile.attrs['vlen_str_array1'][0] == 'Hello'
+        assert hfile.attrs['vlen_str_array1'][1] == 'World!'
+
+        assert hfile.attrs['vlen_str_array1'].dtype == np.dtype('O')
+        assert hfile.attrs['vlen_str_array1'].dtype.metadata == {'h5py_encoding': 'utf-8'}
+
+
 def test_vlen_sequence_attr_datatypes():
 
     with pyfive.File(ATTR_DATATYPES_HDF5_FILE) as hfile:
@@ -105,6 +135,25 @@ def test_vlen_sequence_attr_datatypes():
         assert_array_equal(vlen_attr[0], [0])
         assert_array_equal(vlen_attr[1], [1, 2, 3])
         assert_array_equal(vlen_attr[2], [4, 5])
+
+
+def test_enum_attr_datatypes(attr_datatypes_hdf5):
+
+    with pyfive.File(attr_datatypes_hdf5) as hfile:
+        import h5py
+        enum_attr = hfile.attrs['enum']
+        assert enum_attr == 2
+        assert enum_attr.dtype == h5py.special_dtype(
+            enum=(np.int32, {'one': 1, 'two': 2, 'three': 3})
+        )
+
+
+def test_empty_string_datatypes(attr_datatypes_hdf5):
+
+    with pyfive.File(attr_datatypes_hdf5) as hfile:
+        enum_attr = hfile.attrs['empty_string']
+        assert enum_attr == pyfive.Empty(dtype=np.dtype('|S1'))
+        assert enum_attr.dtype == np.dtype('|S1')
 
 
 def test_attributes_2():

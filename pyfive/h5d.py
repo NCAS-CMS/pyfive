@@ -84,9 +84,11 @@ class DatasetID:
         self._msg_offset, self.layout_class,self.property_offset = dataobject.get_id_storage_params()
         self._unique = (self._filename, self.shape, self._msg_offset)
 
-        if isinstance(dataobject.dtype,tuple):
+        if isinstance(dataobject.dtype, tuple):
             if dataobject.dtype[0] == 'ENUMERATION':
                 self._dtype = np.dtype(dataobject.dtype[1], metadata={'enum':dataobject.dtype[2]})
+            elif dataobject.dtype[0] == 'COMPOUND':
+                self._dtype = np.dtype(dataobject.dtype[1])
             else:
                 self._dtype = dataobject.dtype
         else:
@@ -98,7 +100,7 @@ class DatasetID:
         # throws a flake8 wobbly for Python<3.10; match is Py3.10+ syntax
         match self.layout_class:  # noqa
             case 0:  #compact storage
-                raise NotImplementedError("Compact Storage")
+                self._data = self._get_compact_data(dataobject)
             case 1:  # contiguous storage
                 self.data_offset, = struct.unpack_from('<Q', dataobject.msg_data, self.property_offset)
             case 2:  # chunked storage
@@ -154,14 +156,14 @@ class DatasetID:
             raise OSError("Chunk coordinates must lie on chunk boundaries")
         storeinfo = self._index[chunk_position]
         return storeinfo.filter_mask, self._get_raw_chunk(storeinfo)
-    
+
     def get_data(self, args, fillvalue):
         """ Called by the dataset getitem method """
         dtype = self._dtype
         # throws a flake8 wobbly for Python<3.10; match is Py3.10+ syntax
         match self.layout_class:  # noqa
             case 0:  #compact storage
-                raise NotImplementedError("Compact Storage")
+                return self._read_compact_data(args, fillvalue)
             case 1:  # contiguous storage
                 if self.data_offset == UNDEFINED_ADDRESS:
                     # no storage is backing array, return an array of
@@ -174,7 +176,7 @@ class DatasetID:
                     #       created. One for the future.
                     return np.full(self.shape, fillvalue, dtype=dtype)[args]
                 else:
-                    return self._get_contiguous_data(args)
+                    return self._get_contiguous_data(args, fillvalue)
             case 2:  # chunked storage
                 if not self._index:
                     # no storage is backing array, return an array of
@@ -312,7 +314,7 @@ class DatasetID:
                 self._nthindex.append(key)
                 self._index[key] = StoreInfo(key, filter_mask, addr, size)
 
-    def _get_contiguous_data(self, args):
+    def _get_contiguous_data(self, args, fillvalue):
 
         if isinstance(self._dtype, tuple):
             dtype_class = self._dtype[0]
@@ -337,7 +339,8 @@ class DatasetID:
                     self.data_offset,
                     self._global_heaps,
                     self.shape,
-                    self._dtype
+                    self._dtype,
+                    fillvalue,
                 )
                 if self.posix:
                     fh.close()
@@ -372,6 +375,40 @@ class DatasetID:
                 return result
             except UnsupportedOperation:
                 return self._get_direct_from_contiguous(args)
+
+    def _get_compact_data(self, dataobject):
+        data = None
+        layout = None
+        for msg in dataobject.msgs:
+            if msg["type"] == 8:
+                layout = msg
+                break
+        if layout is None:
+            raise ValueError("No layout message in compact dataset?")
+        byts = dataobject.msg_data[msg["offset_to_message"]:msg["offset_to_message"]+msg["size"]]
+        layout_version = byts[0]
+        if layout_version == 1 or layout_version == 2:
+            raise NotImplementedError("Compact layout v1 and v2.")
+        elif layout_version == 3 or layout_version == 4:
+            size = int.from_bytes(byts[2:4], "little")
+            data = byts[4:4+size]
+        else:
+            raise ValueError("Unknown layout version.")
+        return data
+
+    def _read_compact_data(self, args, fillvalue):
+        if self._data is None:
+            if isinstance(self._dtype, tuple):
+                dtype = np.array(fillvalue).dtype
+            return np.full(self.shape, fillvalue, dtype=dtype)[args]
+        else:
+            view = np.frombuffer(
+                self._data,
+                dtype=self._dtype,
+            ).reshape(self.shape)
+            # Create the sub-array
+            result = view[args]
+            return result
 
 
     def _get_direct_from_contiguous(self, args=None):
@@ -593,6 +630,7 @@ class DatasetMeta:
         self.fletcher32 = dataobject.fletcher32
         self.fillvalue = dataobject.fillvalue
         self.attributes = dataobject.get_attributes()
+        self.datatype = dataobject.dtype
 
         #horrible kludge for now, this isn't really the same sort of thing
         #https://github.com/NCAS-CMS/pyfive/issues/13#issuecomment-2557121461

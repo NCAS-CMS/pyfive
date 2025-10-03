@@ -74,6 +74,36 @@ def check_dtype(**kwds):
     else:
         return None
 
+# todo: refactor the following classes, so TypeEnumID and TypeCompoundID sublass from the base TypeID.
+class TypeID:
+    """
+    Used by DataType to expose internal structure of a generic
+    datatype. This is instantiated by pyfive using arcane
+    hdf5 structure information, and should not normally be
+    needed by any user code.
+    """
+    def __init__(self, raw_dtype):
+        """
+        Initialised with the raw_dtype read from the message.
+        This is not the same init signature as h5py!
+        """
+        super().__init__()
+        dtype = raw_dtype
+        self.kind = dtype.replace('<', '|')
+
+    def __eq__(self, other):
+        if type(self) != type(other):
+            return False
+        return self.dtype == other.dtype
+
+    @property
+    def dtype(self):
+        """
+        The numpy dtype.
+        """
+        return np.dtype(self.kind)
+
+
 class TypeEnumID:
     """ 
     Used by DataType to expose internal structure of an enum 
@@ -87,10 +117,11 @@ class TypeEnumID:
         This is not the same init signature as h5py!
         """
         super().__init__()
-        enum, dtype, enumdict = raw_dtype
+        dtype, enumdict = raw_dtype
         self.metadata = {'enum':enumdict}
         self.__reversed = None
         self.kind = dtype.replace('<','|')
+
     def enum_valueof(self, name):
         """
         Get the value associated with an enum name.
@@ -105,10 +136,12 @@ class TypeEnumID:
         Determine the name associated with the given value.
         """
         return self.__reversed[index]
+
     def __eq__(self, other):
         if type(self) != type(other):
             return False
         return self.metadata == other.metadata
+
     @property
     def dtype(self):
         """ 
@@ -121,5 +154,35 @@ class TypeEnumID:
             x = my_datatype.id.dtype
             enum_dict = x.metadata
         """
-        return np.dtype(self.kind,metadata=self.metadata)
+        return np.dtype(self.kind, metadata=self.metadata)
+
+
+class TypeCompoundID:
+    """
+    Used by DataType to expose internal structure of a compound
+    datatype. This is instantiated by pyfive using arcane
+    hdf5 structure information, and should not normally be
+    needed by any user code.
+    """
+
+    def __init__(self, raw_dtype):
+        """
+        Initialised with the raw_dtype read from the message.
+        This is not the same init signature as h5py!
+        """
+        super().__init__()
+        dtype = raw_dtype
+        self.kind = dtype.replace('<', '|')
+
+    def __eq__(self, other):
+        if type(self) != type(other):
+            return False
+        return self.dtype == other.dtype
+
+    @property
+    def dtype(self):
+        """
+        The numpy dtype.
+        """
+        return np.dtype(self.kind)
     

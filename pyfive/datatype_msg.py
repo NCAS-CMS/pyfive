@@ -157,7 +157,7 @@ class DatatypeMessage(object):
                 prop2['dim_size_4'] == 0
             )
             if names_valid and dtypes_valid and offsets_valid and props_valid:
-                return complex_dtype_map[dtype1]
+                return "COMPOUND", complex_dtype_map[dtype1]
 
         raise NotImplementedError("Compound dtype not supported.")
 

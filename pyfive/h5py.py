@@ -4,7 +4,7 @@
 
 
 from pyfive.datatype_msg import DatatypeMessage
-from pyfive.h5t import TypeEnumID
+from pyfive.h5t import TypeID, TypeEnumID, TypeCompoundID
 
 import numpy as np
 from pathlib import PurePosixPath
@@ -15,7 +15,17 @@ class Datatype:
     suitable for use with enumerations.
     """
     def __init__(self, name, hfile, raw_dtype):
-        self.id = TypeEnumID(raw_dtype)
+        id = raw_dtype
+        if isinstance(raw_dtype, tuple):
+            if raw_dtype[0] == "ENUMERATION":
+                id = TypeEnumID(raw_dtype[1:])
+            elif raw_dtype[0] == "COMPOUND":
+                id = TypeCompoundID(raw_dtype[1])
+            elif raw_dtype[0] == "VLEN_SEQUENCE":
+                id = TypeID(raw_dtype[1])
+        else:
+            id = TypeID(id)
+        self.id = id
         path = PurePosixPath(name)
         self.name = path.name
         self.parent = str(path.parent) if str(path.parent) != '' else '/'
@@ -34,7 +44,8 @@ class Empty:
     Proxy object to represent empty/null dataspaces (a.k.a H5S_NULL).
     This can have an associated dtype, but has no shape or data. This is not
     the same as an array with shape (0,). This class provided for compatibility
-    with the H5Py API to support h5netcdf. It is not used by pyfive.
+    with the H5Py API to support h5netcdf. In pyfive this is used to wrap
+    attributes associated with null dataspaces.
     """
     shape = None
     size = None

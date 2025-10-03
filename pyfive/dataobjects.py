@@ -22,6 +22,7 @@ from pyfive.btree import GZIP_DEFLATE_FILTER, SHUFFLE_FILTER, FLETCH32_FILTER
 from pyfive.misc_low_level import Heap, SymbolTable, GlobalHeap, FractalHeap, GLOBAL_HEAP_ID
 from pyfive.h5d import DatasetID
 from pyfive.indexing import OrthogonalIndexer, ZarrArrayStub
+from pyfive.h5py import Empty
 
 # these constants happen to have the same value...
 UNLIMITED_SIZE = UNDEFINED_ADDRESS
@@ -230,11 +231,17 @@ class DataObjects(object):
 
         # Read the dataspace information
         shape, maxshape = determine_data_shape(buffer, offset)
-        items = int(np.prod(shape))
-        offset += _padded_size(attr_dict['dataspace_size'], padding_multiple)
 
-        # Read the value(s)
-        value = self._attr_value(dtype, buffer, items, offset)
+        # detect Empty/NULL dataspace
+        if shape is None:
+            value = Empty(dtype=dtype)
+        else:
+            items = int(np.prod(shape))
+
+            offset += _padded_size(attr_dict['dataspace_size'], padding_multiple)
+
+            # Read the value(s)
+            value = self._attr_value(dtype, buffer, items, offset)
 
         if shape == ():
             value = value[0]
@@ -250,6 +257,14 @@ class DataObjects(object):
 
     def _attr_value(self, dtype, buf, count, offset):
         """ Retrieve an HDF5 attribute value from a buffer. """
+
+        # first handle ENUMERATION, we just extract the dtype
+        if isinstance(dtype, tuple):
+            if dtype[0] == "ENUMERATION":
+                dtype = np.dtype(dtype[1], metadata={'enum': dtype[2]})
+            elif dtype[0] == "COMPOUND":
+                dtype = np.dtype(dtype[1])
+
         if isinstance(dtype, tuple):
             dtype_class = dtype[0]
             if dtype_class == 'VLEN_STRING':
@@ -272,8 +287,6 @@ class DataObjects(object):
                     vlen, vlen_data = self._vlen_size_and_data(buf, offset)
                     value[i] = self._attr_value(base_dtype, vlen_data, vlen, 0)
                     offset += 16
-                elif dtype_class == 'ENUMERATION':
-                    return np.dtype(dtype[1],metadata={'enum':dtype[2]})
                 else:
                     raise NotImplementedError
         else:
@@ -290,13 +303,17 @@ class DataObjects(object):
         # stored in the data object storage.
         gheap_id = _unpack_struct_from(GLOBAL_HEAP_ID, buf, offset+4)
         gheap_address = gheap_id['collection_address']
-        #print('Collection address in _vlen', gheap_address)
-        if gheap_address not in self._global_heaps:
-            # load the global heap and cache the instance
-            gheap = GlobalHeap(self.fh, gheap_address)
-            self._global_heaps[gheap_address] = gheap
-        gheap = self._global_heaps[gheap_address]
-        vlen_data = gheap.objects[gheap_id['object_index']]
+        # only work on valid global heap addresses
+        if gheap_address != 0:
+            #print('Collection address in _vlen', gheap_address)
+            if gheap_address not in self._global_heaps:
+                # load the global heap and cache the instance
+                gheap = GlobalHeap(self.fh, gheap_address)
+                self._global_heaps[gheap_address] = gheap
+            gheap = self._global_heaps[gheap_address]
+            vlen_data = gheap.objects[gheap_id['object_index']]
+        else:
+            vlen_data = None
         return vlen_size, vlen_data
     
 
@@ -719,6 +736,9 @@ def determine_data_shape(buf, offset):
     elif version == 2:
         header = _unpack_struct_from(DATASPACE_MSG_HEADER_V2, buf, offset)
         assert header['version'] == 2
+        # check for Empty aka NULL dataspace in V2 and return early
+        if header["type"] == 2:
+            return None, None
         offset += DATASPACE_MSG_HEADER_V2_SIZE
     else:
         raise InvalidHDF5File('unknown dataspace message version')
