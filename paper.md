@@ -89,7 +89,37 @@ A pure python code also makes it easier to develop scripts which can work around
 
 A notable feature of the recent pyfive upgrade is that it was carried out with thread-safety and remote access using fsspec (filesystem-spec.readthedocs.io) in mind.  We provide two examples of using pyfive to access remote data, one in S3, and one behind a modern http web server:
 
-v.predoi@ncas.ac.uk When we have this is markdown, can you please put two python examples in here as above!
+For accessing the data on S3 storage, we will have to set up an ``s3fs`` virtual file system, then pass it to Pyfive:
+
+```python
+import pyfive
+import s3fs
+
+
+# storage options for an anon S3 bucket
+storage_options = {
+    'anon': True,
+    'client_kwargs': {'endpoint_url': "https://s3server.ac.uk"}
+}
+fs = s3fs.S3FileSystem(**storage_options)
+file_uri = "s3-bucket/myfile.nc"
+with fs.open(file_uri, 'rb') as s3_file:
+    nc = pyfive.File(s3_file)
+    dataset = nc[var]
+```
+
+for an HTTPS data server, the usage is similar:
+
+```python
+import fsspec
+import pyfive
+
+
+fs = fsspec.filesystem('http')
+with fs.open("https://site.com/myfile.nc", 'rb') as http_file:
+    nc = pyfive.File(http_file)
+    dataset = nc[var]
+```
 
 # Mathematics
 
