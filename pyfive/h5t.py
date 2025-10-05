@@ -79,6 +79,10 @@ def check_dtype(**kwds):
         mapping string names to integer values.  Returns None if the dtype does
         not represent an HDF5 enumerated type.
 
+    opaque = dtype
+        If the dtype represents an HDF5 opaque type, returns True.  Returns False if the
+        dtype does not represent an HDF5 opaque type.
+
     """
     #ref = dtype
     #    If the dtype represents an HDF5 reference type, returns the reference
@@ -95,6 +99,8 @@ def check_dtype(**kwds):
         return check_string_dtype(dt)
     elif name == 'enum':
         return check_enum_dtype(dt)
+    elif name == 'opaque':
+        return check_opaque_dtype(dt)
     elif name == 'ref':
         return NotImplementedError
     else:

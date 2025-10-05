@@ -5,7 +5,7 @@ which is a small subset of the H5PY API.
 """
 
 from pyfive.high_level import File, Group, Dataset
-from pyfive.h5t import check_enum_dtype, check_string_dtype, check_dtype, opaque_dtype
+from pyfive.h5t import check_enum_dtype, check_string_dtype, check_dtype, opaque_dtype, check_opaque_dtype
 from pyfive.h5py import Datatype, Empty
 from importlib.metadata import version
 
