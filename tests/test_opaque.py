@@ -21,10 +21,12 @@ def test_opaque_dataset_hdf5(name, opdata):
     # Now see if pyfive can do the right thin
     with pyfive.File(name) as hfile:
         # check data
-        with pytest.raises(NotImplementedError):
-            dset = hfile["opaque_datetimes"]
-            # pyfive should return the same raw bytes that h5py wrote
-            assert_array_equal(dset[...], data.astype(pyfive.opaque_dtype(data.dtype)))
+        dset = hfile["opaque_datetimes"]
+        # pyfive should return the same raw bytes that h5py wrote
+        # but in the instance that it is tagged with NUMPY, 
+        # pyfive automatically fixes it, which it should be for this example.
+        assert_array_equal(dset[...], opdata)
+
 
 
 @pytest.fixture(scope='module')
@@ -45,6 +47,8 @@ def name(opdata):
     name = os.path.join(os.path.dirname(__file__), "opaque_datetime.hdf5")
 
     # Convert dtype to an opaque version (as per h5py docs)
+    # AFIK this just adds {'h5py_opaque': True} to the dtype metadata
+    # without which h5py cannot write the data.
     opaque_data = opdata.astype(h5py.opaque_dtype(opdata.dtype))
 
     with h5py.File(name, "w") as f:
