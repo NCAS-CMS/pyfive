@@ -6,6 +6,7 @@ from pyfive.btree import BTreeV1RawDataChunks
 from pyfive.core import Reference, UNDEFINED_ADDRESS
 from pyfive.misc_low_level import get_vlen_string_data_contiguous, get_vlen_string_data_from_chunk
 from io import UnsupportedOperation
+from time import time
 
 import struct
 import logging
@@ -295,10 +296,11 @@ class DatasetID:
             self._index = {}
             return
         
-        logging.info(f'Building chunk index in pyfive {version("pyfive")}')
-       
+        t0 = time()
         chunk_btree = BTreeV1RawDataChunks(
                 dataobject.fh, dataobject._chunk_address, dataobject._chunk_dims)
+        t1 = time()-t0
+        logging.info(f'Obtained b-tree with {len(chunk_btree.all_nodes)} chunks, operation took {t1:.3}s {version("pyfive")}')
         
         self._index = {}
         self._nthindex = []
