@@ -33,14 +33,26 @@ def test_opaque_dataset_hdf5(name, data):
         assert_array_equal(hfile['string_data'][...],string_data)
         assert_array_equal(hfile['ordinary_data'][...],ordinary_data)
 
+
+        # check the dtype interrogation functions
+
         assert pyfive.check_opaque_dtype(dset.dtype) is True
         assert pyfive.check_enum_dtype(dset.dtype) is None
         assert pyfive.check_opaque_dtype(hfile['ordinary_data'].dtype) is False
         assert pyfive.check_dtype(opaque=hfile['ordinary_data'].dtype) is False
         assert pyfive.check_dtype(opaque=hfile['opaque_datetimes'].dtype) is True
+        assert pyfive.check_dtype(opaque=hfile['opaque_datetimes'].dtype) is True
+        assert pyfive.check_dtype(opaque=hfile['opaque_datetimes'].dtype) is True
+        assert pyfive.check_dtype(enum=hfile['string_data'].dtype) is None
+        assert pyfive.check_dtype(vlen=hfile['string_data'].dtype) is not None       
+        assert pyfive.check_dtype(vlen=hfile['ordinary_data'].dtype) is None
 
+        dt = hfile['ordinary_data'].dtype
+        with pytest.raises(NotImplementedError):
+            pyfive.check_dtype(ref=dt)
 
-
+        with pytest.raises(TypeError):
+            pyfive.check_dtype(fred=1,jane=2)
 
 
 
@@ -48,7 +60,9 @@ def test_opaque_dataset_hdf5(name, data):
 def data():
     """Provide datetime64 array data."""
     ordinary_data = np.array([1, 2, 3], dtype='i4')
-    string_data = np.array([b'one', b'two', b'three'], dtype='S5')
+    #string_data = np.array([b'one', b'two', b'three'], dtype='S5')
+    dt = h5py.special_dtype(vlen=str)
+    string_data = np.array(['one', 'two', 'three'], dtype=dt)
     opaque_data =  np.array([
             np.datetime64("2019-09-22T17:38:30"),
             np.datetime64("2020-01-01T00:00:00"),
