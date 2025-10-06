@@ -102,7 +102,7 @@ def check_dtype(**kwds):
     elif name == 'opaque':
         return check_opaque_dtype(dt)
     elif name == 'ref':
-        return NotImplementedError
+        raise NotImplementedError
     else:
         return None
 
