@@ -1,3 +1,19 @@
+Version 0.7.0
+-------------
+
+**2025-10-06**
+
+
+* add joss paper pdf conversion via gha by `Valeriu Predoi <https://github.com/valeriupredoi>`_ in https://github.com/NCAS-CMS/pyfive/pull/97
+* fix changelog to include Kai as contributor to v0.6.0 and change Brian L -> Bryan L (typos) by `Valeriu Predoi
+  <https://github.com/valeriupredoi>`_ in https://github.com/NCAS-CMS/pyfive/pull/96
+* New logo by `Valeriu Predoi <https://github.com/valeriupredoi>`_ in https://github.com/NCAS-CMS/pyfive/pull/98
+* fix Enum and Empty attributes by `Kai Mühlbauer <https://github.com/kmuehlbauer>`_ in https://github.com/NCAS-CMS/pyfive/pull/102
+* Fix user datatypes (enum, compound) by `Kai Mühlbauer <https://github.com/kmuehlbauer>`_ in https://github.com/NCAS-CMS/pyfive/pull/105
+* Added partial support for compact datasets. by `Ezequiel Cimadevilla <https://github.com/zequihg50>`_ in https://github.com/NCAS-CMS/pyfive/pull/107
+* fix handling of uninitialized vlen strings by `Kai Mühlbauer <https://github.com/kmuehlbauer>`_ in https://github.com/NCAS-CMS/pyfive/pull/110
+* add dataobjects.dtype to DatasetMeta by `Kai Mühlbauer <https://github.com/kmuehlbauer>`_ in https://github.com/NCAS-CMS/pyfive/pull/112
+
 Version 0.6.0
 -------------
 
