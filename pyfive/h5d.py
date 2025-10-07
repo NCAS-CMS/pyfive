@@ -94,7 +94,6 @@ class DatasetID:
                 if dtype[1].startswith('NUMPY:'):
                     self._dtype = np.dtype(dtype[1][6:], metadata={'h5py_opaque': True})
                 else: 
-                    # Can't test this, since I don't know how to write a test dataset
                     self._dtype = np.dtype('V'+str(dtype[2]), metadata={'h5py_opaque': True})
             else:
                 self._dtype = dtype
