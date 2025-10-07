@@ -165,7 +165,7 @@ class DatatypeMessage(object):
         """ Return the dtype information for an opaque class. """
         # Opaque types are not understood by pyfive, so we return
         # a tuple indicating the type is opaque, the size in bytes
-        # and the tag, if any. THe tag is a an ascii string, null terminated 
+        # and the tag, if any. The tag is an ascii string, null terminated 
         # and padded to an 8 byte boundary, the number of which is given by the 
         # message size.
         nbufs =  datatype_msg['size']
