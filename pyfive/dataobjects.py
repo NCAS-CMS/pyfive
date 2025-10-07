@@ -220,13 +220,11 @@ class DataObjects(object):
         try:
             dtype = DatatypeMessage(buffer, offset).dtype
         except NotImplementedError:
-            if name == 'REFERENCE_LIST':
-                pass #suppress this one, no one actually cares about these as far as I know
-            else:
-                warnings.warn(
-                    f"Attribute {name} type not implemented, set to None."
-                )
+            warnings.warn(
+                f"Attribute {name} type not implemented, set to None."
+            )
             return name, None
+
         offset += _padded_size(attr_dict['datatype_size'], padding_multiple)
 
         # Read the dataspace information
@@ -258,12 +256,29 @@ class DataObjects(object):
     def _attr_value(self, dtype, buf, count, offset):
         """ Retrieve an HDF5 attribute value from a buffer. """
 
-        # first handle ENUMERATION, we just extract the dtype
+        has_ref = False
         if isinstance(dtype, tuple):
+            # first handle ENUMERATION, we just extract the dtype
             if dtype[0] == "ENUMERATION":
                 dtype = np.dtype(dtype[1], metadata={'enum': dtype[2]})
             elif dtype[0] == "COMPOUND":
-                dtype = np.dtype(dtype[1])
+                # for COMPOUND we have normal dtypes
+                if isinstance(dtype[1], (np.dtype, str)):
+                    dtype = np.dtype(dtype[1])
+                # and we have tuples
+                elif isinstance(dtype[1], tuple):
+                    _dtype = dtype[1]
+                    # check for nested REFERENCE
+                    is_ref = [isinstance(d, tuple) and d[0] == "REFERENCE" for d in _dtype[1]]
+                    has_ref = any(is_ref)
+                    formats = [f"V{d[1]}" if is_ref[i] else d for i, d in enumerate(_dtype[1])]
+                    dtype = np.dtype(
+                        {
+                            'names': _dtype[0],
+                            'formats': formats,
+                            'offsets': _dtype[2],
+                            'itemsize': _dtype[3],
+                        })
 
         if isinstance(dtype, tuple):
             dtype_class = dtype[0]
@@ -291,6 +306,32 @@ class DataObjects(object):
                     raise NotImplementedError
         else:
             value = np.frombuffer(buf, dtype=dtype, count=count, offset=offset)
+
+            # if we have nested REFERENCE we need to create a new dtype
+            # and copy the data over
+            if has_ref:
+                names = _dtype[0]
+                types = [
+                    object if is_ref[i] else d
+                    for i, d in enumerate(_dtype[1])
+                ]
+                new_dtype = np.dtype(list(zip(names, types)), align=False)
+                # create empty arrays
+                new_value = np.empty(value.shape, dtype=new_dtype)
+
+                for i, d in enumerate(_dtype[1]):
+                    field = _dtype[0][i]
+                    if is_ref[i]:
+                        # wrap in Reference
+                        new_array = np.array(
+                            [Reference(struct.unpack_from('<Q', buf)[0]) for buf in value[field]],
+                            dtype=object
+                        )
+                        new_value[field] = new_array
+                    else:
+                        new_value[field] = value[field]
+                value = new_value
+
         return value
 
     def _vlen_size_and_data(self, buf, offset):
