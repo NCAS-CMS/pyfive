@@ -35,7 +35,7 @@ class DatatypeMessage(object):
         elif datatype_class == DATATYPE_BITFIELD:
             raise NotImplementedError("Bitfield datatype class not supported.")
         elif datatype_class == DATATYPE_OPAQUE:
-            raise NotImplementedError("Opaque datatype class not supported.")
+            return self._determine_dtype_opaque(datatype_msg)
         elif datatype_class == DATATYPE_COMPOUND:
             return self._determine_dtype_compound(datatype_msg)
         elif datatype_class == DATATYPE_REFERENCE:
@@ -160,6 +160,24 @@ class DatatypeMessage(object):
                 return "COMPOUND", complex_dtype_map[dtype1]
 
         raise NotImplementedError("Compound dtype not supported.")
+
+    def _determine_dtype_opaque(self, datatype_msg):
+        """ Return the dtype information for an opaque class. """
+        # Opaque types are not understood by pyfive, so we return
+        # a tuple indicating the type is opaque, the size in bytes
+        # and the tag, if any. The tag is an ascii string, null terminated 
+        # and padded to an 8 byte boundary, the number of which is given by the 
+        # message size.
+        size =  datatype_msg['size']
+        null_location = self.buf.index(b'\x00', self.offset)
+        tag_size = _padded_size(null_location - self.offset + 1, 8)
+        tag_bytes = self.buf[self.offset:self.offset+tag_size]
+        tag = tag_bytes.strip(b'\x00').decode('ascii')
+        self.offset += tag_size
+        if tag == '':
+            tag = None  
+        
+        return ('OPAQUE', tag, size)
 
     @staticmethod
     def _determine_dtype_vlen(datatype_msg):

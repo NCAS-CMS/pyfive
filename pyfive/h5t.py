@@ -10,6 +10,32 @@ import numpy as np
 string_info = namedtuple('string_info', ['encoding', 'length'])
 
 
+def opaque_dtype(dt):
+    """
+    Return the numpy dtype of the dtype. (So it does nothing,
+    but is included for compatibility with the h5py API
+    docuemntation which _implies_ this is needed to read data,
+    but it is not.)
+    """
+    # For pyfive, the opaque dtype is fully handled in h5d.py
+    # and as this is really only for writing (where it marks
+    # a dtype with metadata) we just return the dtype in 
+    # pyfive where we are only reading and users don't actually
+    # need  this function. It is only included as the h5py docs
+    # make it seem relevant for reading. It is not.
+    return dt 
+
+def check_opaque_dtype(dt):
+    """
+    If the dtype represents an HDF5 opaque type, returns True.
+    Returns False if the dtype does not represent an HDF5 opaque type.
+    """
+    if dt.metadata and 'h5py_opaque' in dt.metadata:
+        return True
+    return False 
+
+
+
 def check_enum_dtype(dt):
     """
     If the dtype represents an HDF5 enumerated type, returns the dictionary
@@ -53,6 +79,10 @@ def check_dtype(**kwds):
         mapping string names to integer values.  Returns None if the dtype does
         not represent an HDF5 enumerated type.
 
+    opaque = dtype
+        If the dtype represents an HDF5 opaque type, returns True.  Returns False if the
+        dtype does not represent an HDF5 opaque type.
+
     """
     #ref = dtype
     #    If the dtype represents an HDF5 reference type, returns the reference
@@ -69,8 +99,10 @@ def check_dtype(**kwds):
         return check_string_dtype(dt)
     elif name == 'enum':
         return check_enum_dtype(dt)
+    elif name == 'opaque':
+        return check_opaque_dtype(dt)
     elif name == 'ref':
-        return NotImplementedError
+        raise NotImplementedError
     else:
         return None
 
