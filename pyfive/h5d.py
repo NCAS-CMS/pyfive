@@ -84,22 +84,22 @@ class DatasetID:
         self._msg_offset, self.layout_class,self.property_offset = dataobject.get_id_storage_params()
         self._unique = (self._filename, self.shape, self._msg_offset)
 
-        #FIXME: Everyone of these parses the message each time. Optimisation possible?
-        if isinstance(dataobject.dtype, tuple):
-            if dataobject.dtype[0] == 'ENUMERATION':
+        dtype = dataobject.dtype
+        if isinstance(dtype, tuple):
+            if dtype[0] == 'ENUMERATION':
                 self._dtype = np.dtype(dataobject.dtype[1], metadata={'enum':dataobject.dtype[2]})
-            elif dataobject.dtype[0] == 'COMPOUND':
+            elif dtype[0] == 'COMPOUND':
                 self._dtype = np.dtype(dataobject.dtype[1])
-            elif dataobject.dtype[0] == 'OPAQUE':
-                if dataobject.dtype[1].startswith('NUMPY:'):
-                    self._dtype = np.dtype(dataobject.dtype[1][6:], metadata={'h5py_opaque': True})
+            elif dtype[0] == 'OPAQUE':
+                if dtype[1].startswith('NUMPY:'):
+                    self._dtype = np.dtype(dtype[1][6:], metadata={'h5py_opaque': True})
                 else: 
                     # Can't test this, since I don't know how to write a test dataset
-                    self._dtype = np.dtype('V'+str(dataobject.dtype[1]), metadata={'h5py_opaque': True})
+                    self._dtype = np.dtype('V'+str(dtype[2]), metadata={'h5py_opaque': True})
             else:
-                self._dtype = dataobject.dtype
+                self._dtype = dtype
         else:
-            self._dtype = np.dtype(dataobject.dtype)
+            self._dtype = np.dtype(dtype)
 
         self._meta = DatasetMeta(dataobject)
 

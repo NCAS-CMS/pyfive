@@ -168,18 +168,25 @@ class DatatypeMessage(object):
         # and the tag, if any. The tag is an ascii string, null terminated 
         # and padded to an 8 byte boundary, the number of which is given by the 
         # message size.
-        nbufs =  datatype_msg['size']
-        tag = None
-        if nbufs:
-            tag_size = nbufs * 8
-            tag_bytes = self.buf[self.offset:self.offset+tag_size]
-            null_location = tag_bytes.find(b'\x00')
-            if null_location != -1:
-                tag = tag_bytes[:null_location].decode('ascii')
-            else:
-                tag = tag_bytes.decode('ascii')
-            self.offset += tag_size
-        return ('OPAQUE', tag)
+        size =  datatype_msg['size']
+        #if nbufs:
+        #    tag_size = nbufs * 8
+        #    tag_bytes = self.buf[self.offset:self.offset+tag_size]
+        #    null_location = tag_bytes.find(b'\x00')
+        #    if null_location != -1:
+        #        tag = tag_bytes[:null_location].decode('ascii')
+        #    else:
+        #        tag = tag_bytes.decode('ascii')
+        #    self.offset += tag_size
+        null_location = self.buf.index(b'\x00', self.offset)
+        tag_size = _padded_size(null_location - self.offset + 1, 8)
+        tag_bytes = self.buf[self.offset:self.offset+tag_size]
+        tag = tag_bytes.strip(b'\x00').decode('ascii')
+        self.offset += tag_size
+        if tag == '':
+            tag = None  
+        
+        return ('OPAQUE', tag, size)
 
     @staticmethod
     def _determine_dtype_vlen(datatype_msg):

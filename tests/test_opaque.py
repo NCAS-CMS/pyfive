@@ -8,7 +8,7 @@ import pyfive
 import h5py
 
 
-def test_opaque_dataset_hdf5(name, data):
+def test_opaque_dataset1_hdf5(name, data):
 
     # Verify that h5py can read this file before we do
     # our own test. If this fails, pyfive cannot be 
@@ -33,7 +33,6 @@ def test_opaque_dataset_hdf5(name, data):
         assert_array_equal(hfile['string_data'][...],string_data)
         assert_array_equal(hfile['ordinary_data'][...],ordinary_data)
 
-
         # check the dtype interrogation functions
 
         assert pyfive.check_opaque_dtype(dset.dtype) is True
@@ -54,6 +53,59 @@ def test_opaque_dataset_hdf5(name, data):
         with pytest.raises(TypeError):
             pyfive.check_dtype(fred=1,jane=2)
 
+def test_opaque_dataset2_fixed(really_opaque):
+
+    name, original_data = really_opaque
+
+
+    with h5py.File(name, "r") as f:
+        dset = f["opaque_data"]
+        assert dset.shape == (3,)
+        assert dset.dtype == np.dtype('V64')
+
+        for i, blob in enumerate(original_data):
+            assert dset[i].tobytes().startswith(blob)
+        
+
+    with pyfive.File(name) as hfile:
+        dset = hfile['opaque_data']
+        assert dset.shape == (3,)
+        assert dset.dtype == np.dtype('V64')
+
+        for i, blob in enumerate(original_data):
+            assert dset[i].tobytes().startswith(blob)
+
+        assert pyfive.check_opaque_dtype(dset.dtype) is True
+        assert pyfive.check_dtype(opaque=dset.dtype) is True
+        assert pyfive.check_enum_dtype(dset.dtype) is None
+
+
+
+        
+@pytest.fixture(scope='module')
+def really_opaque():
+    """ Create an HDF5 file with a fixed size opaque dataset. """
+    name = os.path.join(os.path.dirname(__file__), "opaque_fixed.hdf5")
+
+    with h5py.File(name, "w") as f:
+        # Define a fixed-size opaque dtype as NumPy void
+        max_len = 64  # bytes per element
+        dt = np.dtype(f"V{max_len}")  # 'V' = void type
+
+        # Create dataset
+        dset = f.create_dataset("opaque_data", shape=(3,), dtype=dt)
+
+        data = [
+            b"hello world",
+            b"\x01\x02\x03\x04custombinarydata",
+            bytes(range(10))
+        ]
+
+        for i, blob in enumerate(data):
+            buf = blob[:max_len].ljust(max_len, b'\x00')
+            dset[i] = np.void(buf)
+    
+    return name , data  
 
 
 @pytest.fixture(scope='module')
@@ -96,3 +148,5 @@ def name(data):
         f['ordinary_data'] = ordinary_data
 
     return name
+
+
