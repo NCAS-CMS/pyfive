@@ -8,6 +8,199 @@ from collections import namedtuple
 import numpy as np
 
 string_info = namedtuple('string_info', ['encoding', 'length'])
+ref_dtype = np.dtype("O")
+complex_dtype_map = {
+                '>f4': '>c8',
+                '<f4': '<c8',
+                '>f8': '>c16',
+                '<f8': '<c16',
+               }
+
+
+
+from dataclasses import dataclass, field
+from typing import Optional, Dict, Tuple, Union, List
+
+class H5Type:
+    """Base class for H5 types within pyfive."""
+    is_atomic: bool = True
+    type_id: Optional[int] = None
+
+    def __init__(self, dtype: Optional[Union[str, np.dtype]] = None):
+        self._dtype: Optional[np.dtype] = np.dtype(dtype) if dtype is not None else None
+
+    @property
+    def dtype(self) -> np.dtype:
+        """Return NumPy dtype."""
+        if self._dtype is None:
+            self._dtype = self._build_dtype()
+        return self._dtype
+
+    def _build_dtype(self) -> np.dtype:
+        """Subclasses implement this if dtype not provided at init."""
+        raise NotImplementedError
+
+
+class H5IntegerType(H5Type):
+    type_id = 0
+    def __init__(self, dtype: Union[str, np.dtype]):
+        super().__init__(dtype=np.dtype(dtype))
+
+
+class H5FloatType(H5Type):
+    type_id = 1
+    def __init__(self, dtype: Union[str, np.dtype]):
+        super().__init__(dtype=np.dtype(dtype))
+
+
+class H5ReferenceType(H5Type):
+    type_id = 7
+    def __init__(self, size: int, storage_dtype: Union[str, np.dtype]):
+        super().__init__()
+        self.size = size
+        self.storage_dtype = np.dtype(storage_dtype)
+        self.ref_dtype = np.dtype("<u8")
+        self.is_atomic = False
+
+    def _build_dtype(self) -> np.dtype:
+        return np.dtype(self.storage_dtype, metadata={"h5py_class": "REFERENCE"})
+
+
+class H5EnumType(H5Type):
+    type_id = 8
+    def __init__(self, base_dtype: Union[str, np.dtype], mapping: dict):
+        super().__init__()
+        self.base_dtype = np.dtype(base_dtype)
+        self.mapping = mapping
+        self.is_atomic = True
+
+    def _build_dtype(self) -> np.dtype:
+        return np.dtype(self.base_dtype, metadata={'enum': self.mapping})
+
+
+class H5OpaqueType(H5Type):
+    type_id = 5
+    def __init__(self, dtype_spec: str, size: int):
+        super().__init__()
+        self.dtype_spec = dtype_spec
+        self.size = size
+
+    def _build_dtype(self) -> np.dtype:
+        if self.dtype_spec.startswith('NUMPY:'):
+            dtype = np.dtype(self.dtype_spec[6:], metadata={'h5py_opaque': True})
+        else:
+            dtype = np.dtype(f'V{self.size}', metadata={'h5py_opaque': True})
+        return dtype
+
+
+class H5SequenceType(H5Type):
+    type_id = 9
+    def __init__(self, base_dtype: H5Type):
+        super().__init__()
+        self.base_dtype = base_dtype
+        self.is_atomic = False
+
+    def _build_dtype(self) -> np.dtype:
+        return np.dtype('O', metadata={'vlen': self.base_dtype.dtype})
+
+
+class H5StringType(H5Type):
+    type_id = 3
+    CHARACTER_SETS = {
+        0: "ASCII",
+        1: "UTF-8",
+    }
+
+    def __init__(self, character_set: int = 0):
+        super().__init__()
+        self.character_set = character_set
+        self.is_atomic = True
+
+    @property
+    def encoding(self) -> str:
+        return self.CHARACTER_SETS.get(self.character_set, "UNKNOWN")
+
+
+class H5FixedStringType(H5StringType):
+    def __init__(
+        self,
+        fixed_size: int,
+        padding: Optional[np.uint8] = None,
+        character_set: int = 0,
+        null_terminated: bool = False,
+    ):
+        super().__init__(character_set)
+        self.fixed_size = fixed_size
+        self.padding = padding
+        self.null_terminated = null_terminated
+
+    def _build_dtype(self) -> np.dtype:
+        if self.character_set == 0:  # ASCII
+            base_dtype = np.dtype(f'S{self.fixed_size}')
+        elif self.character_set == 1:  # UTF-8
+            base_dtype = np.dtype(f'<U{self.fixed_size}')
+        else:
+            raise ValueError(f"Unknown character_set: {self.character_set}")
+
+        return np.dtype(base_dtype, metadata={'h5py_encoding': self.encoding.lower()})
+
+
+class H5VlenStringType(H5StringType):
+    type_id = 9
+    def __init__(self, character_set: int = 1):
+        super().__init__(character_set)
+
+    def _build_dtype(self) -> np.dtype:
+        return np.dtype('O', metadata={'h5py_encoding': self.encoding.lower()})
+
+
+@dataclass
+class H5CompoundField:
+    name: str
+    offset: int
+    subtype: H5Type
+
+    @property
+    def is_atomic(self) -> bool:
+        return self.subtype.is_atomic
+
+
+class H5CompoundType(H5Type):
+    type_id = 6
+    def __init__(self, fields: list[H5CompoundField], size: Optional[int] = None):
+        super().__init__()
+        self.fields = fields
+        self.size = size
+        self.is_atomic = all(f.is_atomic for f in self.fields)
+        self.is_complex = self._check_complex()
+        if self.is_complex:
+            # map complex type using first field dtype
+            self._dtype = np.dtype(complex_dtype_map[self.fields[0].subtype.dtype.str])
+
+    def _check_complex(self) -> bool:
+        if len(self.fields) != 2:
+            return False
+        if self.fields[0].name not in {"r", "real"}:
+            return False
+        if self.fields[1].name not in {"i", "imag"}:
+            return False
+        if self.fields[0].offset != 0:
+            return False
+        if self.size is None or self.fields[1].offset != self.size // 2:
+            return False
+        return True
+
+    def _build_dtype(self) -> np.dtype:
+        names = [f.name for f in self.fields]
+        formats = [f.subtype.dtype for f in self.fields]
+        offsets = [f.offset for f in self.fields]
+
+        return np.dtype({
+            'names': names,
+            'formats': formats,
+            'offsets': offsets,
+            'itemsize': self.size,
+        })
 
 
 def opaque_dtype(dt):
@@ -106,7 +299,7 @@ def check_dtype(**kwds):
     else:
         return None
 
-# todo: refactor the following classes, so TypeEnumID and TypeCompoundID sublass from the base TypeID.
+
 class TypeID:
     """
     Used by DataType to expose internal structure of a generic
@@ -120,8 +313,8 @@ class TypeID:
         This is not the same init signature as h5py!
         """
         super().__init__()
-        dtype = raw_dtype
-        self.kind = dtype.replace('<', '|')
+        self._dtype = raw_dtype.dtype
+        self._h5typeid = raw_dtype.type_id
 
     def __eq__(self, other):
         if type(self) != type(other):
@@ -133,10 +326,20 @@ class TypeID:
         """
         The numpy dtype.
         """
-        return np.dtype(self.kind)
+        return self._dtype
+
+    @property
+    def kind(self):
+        s = self._dtype.str
+        if self._dtype.kind in {'i', 'u', 'f'}:
+            s = s.replace("<", "|")
+        return s
+
+    def get_class(self):
+        return self._h5typeid
 
 
-class TypeEnumID:
+class TypeEnumID(TypeID):
     """ 
     Used by DataType to expose internal structure of an enum 
     datatype. This is instantiated by pyfive using arcane
@@ -148,11 +351,12 @@ class TypeEnumID:
         Initialised with the raw_dtype read from the message.
         This is not the same init signature as h5py!
         """
-        super().__init__()
-        dtype, enumdict = raw_dtype
-        self.metadata = {'enum':enumdict}
+        super().__init__(raw_dtype)
         self.__reversed = None
-        self.kind = dtype.replace('<','|')
+
+    @property
+    def metadata(self):
+        return self.dtype.metadata
 
     def enum_valueof(self, name):
         """
@@ -174,47 +378,10 @@ class TypeEnumID:
             return False
         return self.metadata == other.metadata
 
-    @property
-    def dtype(self):
-        """ 
-        The numpy dtype. Note that the enumeration dictionary
-        appears as an attribute of the dtype itself, and
-        can be inspected with code similar to this:
-        
-        .. code-block:: python
 
-            x = my_datatype.id.dtype
-            enum_dict = x.metadata
-        """
-        return np.dtype(self.kind, metadata=self.metadata)
-
-
-class TypeCompoundID:
+class TypeCompoundID(TypeID):
     """
     Used by DataType to expose internal structure of a compound
-    datatype. This is instantiated by pyfive using arcane
-    hdf5 structure information, and should not normally be
-    needed by any user code.
+    datatype.
     """
-
-    def __init__(self, raw_dtype):
-        """
-        Initialised with the raw_dtype read from the message.
-        This is not the same init signature as h5py!
-        """
-        super().__init__()
-        dtype = raw_dtype
-        self.kind = dtype.replace('<', '|')
-
-    def __eq__(self, other):
-        if type(self) != type(other):
-            return False
-        return self.dtype == other.dtype
-
-    @property
-    def dtype(self):
-        """
-        The numpy dtype.
-        """
-        return np.dtype(self.kind)
-    
+    pass
