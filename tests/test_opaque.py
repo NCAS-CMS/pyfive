@@ -8,11 +8,6 @@ import pyfive
 import h5py
 
 
-@pytest.fixture(scope="module")
-def modular_tmp_path(tmp_path_factory):
-    return tmp_path_factory.mktemp("temp")
-
-
 def test_opaque_dataset1_hdf5(name, data):
 
     # Verify that h5py can read this file before we do

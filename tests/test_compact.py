@@ -8,11 +8,6 @@ import pyfive
 import h5py
 
 
-@pytest.fixture(scope="module")
-def modular_tmp_path(tmp_path_factory):
-    return tmp_path_factory.mktemp("temp")
-
-
 def test_compact_dataset_hdf5(name, data):
     with pyfive.File(name) as hfile:
         # check data
