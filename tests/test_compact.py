@@ -8,6 +8,11 @@ import pyfive
 import h5py
 
 
+@pytest.fixture(scope="module")
+def modular_tmp_path(tmp_path_factory):
+    return tmp_path_factory.mktemp("temp")
+
+
 def test_compact_dataset_hdf5(name, data):
     with pyfive.File(name) as hfile:
         # check data
@@ -21,8 +26,8 @@ def data():
 
 
 @pytest.fixture(scope='module')
-def name(data):
-    name = os.path.join(os.path.dirname(__file__), 'compact.hdf5')
+def name(data, modular_tmp_path):
+    name = modular_tmp_path / 'compact.hdf5'
 
     f = h5py.File(name, 'w', libver='earliest')
     dtype = h5py.h5t.NATIVE_INT32

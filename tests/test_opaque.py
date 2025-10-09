@@ -8,6 +8,11 @@ import pyfive
 import h5py
 
 
+@pytest.fixture(scope="module")
+def modular_tmp_path(tmp_path_factory):
+    return tmp_path_factory.mktemp("temp")
+
+
 def test_opaque_dataset1_hdf5(name, data):
 
     # Verify that h5py can read this file before we do
@@ -80,12 +85,10 @@ def test_opaque_dataset2_fixed(really_opaque):
         assert pyfive.check_enum_dtype(dset.dtype) is None
 
 
-
-        
 @pytest.fixture(scope='module')
-def really_opaque():
+def really_opaque(modular_tmp_path):
     """ Create an HDF5 file with a fixed size opaque dataset. """
-    name = os.path.join(os.path.dirname(__file__), "opaque_fixed.hdf5")
+    name = modular_tmp_path / "opaque_fixed.hdf5"
 
     with h5py.File(name, "w") as f:
         # Define a fixed-size opaque dtype as NumPy void
@@ -127,9 +130,9 @@ def data():
 
 
 @pytest.fixture(scope='module')
-def name(data):
+def name(data, modular_tmp_path):
     """Create an HDF5 file with datetime64 data stored as opaque."""
-    name = os.path.join(os.path.dirname(__file__), "opaque_datetime.hdf5")
+    name = modular_tmp_path / "opaque_datetime.hdf5"
 
     (ordinary_data, string_data, opdata) = data
 
