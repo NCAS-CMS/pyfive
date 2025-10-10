@@ -1,11 +1,14 @@
+import os
+
 import h5py
 import pyfive
 from pathlib import Path
 import pytest
 from operator import mul
 
+
 mypath = Path(__file__).parent
-filename = 'compressed.hdf5'
+filename = os.path.join(mypath, "data", 'compressed.hdf5')
 variable_name = 'dataset3'
 breaking_address=(2,0)
 
