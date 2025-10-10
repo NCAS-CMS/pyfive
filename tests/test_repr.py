@@ -5,7 +5,7 @@ import os
 import pyfive
 
 DIRNAME = os.path.dirname(__file__)
-EARLIEST_HDF5_FILE = os.path.join(DIRNAME, 'earliest.hdf5')
+EARLIEST_HDF5_FILE = os.path.join(DIRNAME, 'data', 'earliest.hdf5')
 
 
 def test_repr():

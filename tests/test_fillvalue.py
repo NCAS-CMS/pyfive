@@ -9,9 +9,9 @@ import pyfive
 
 DIRNAME = os.path.dirname(__file__)
 DATASET_FILLVALUE_EARLIEST_HDF5_FILE = os.path.join(
-    DIRNAME, 'fillvalue_earliest.hdf5')
+    DIRNAME, 'data', 'fillvalue_earliest.hdf5')
 DATASET_FILLVALUE_LATEST_HDF5_FILE = os.path.join(
-    DIRNAME, 'fillvalue_latest.hdf5')
+    DIRNAME, 'data', 'fillvalue_latest.hdf5')
 
 
 def test_dataset_fillvalue_earliest():

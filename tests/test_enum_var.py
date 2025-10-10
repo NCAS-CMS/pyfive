@@ -10,8 +10,8 @@ import numpy as np
 import pyfive
 
 DIRNAME = os.path.dirname(__file__)
-ENUMVAR_NC_FILE = os.path.join(DIRNAME, 'enum_variable.nc')
-ENUMVAR_H5_FILE = os.path.join(DIRNAME, 'enum_variable.hdf5')
+ENUMVAR_NC_FILE = os.path.join(DIRNAME, "data", 'enum_variable.nc')
+ENUMVAR_H5_FILE = os.path.join(DIRNAME, "data", 'enum_variable.hdf5')
 MAKE_ENUM_VARIABLE_SCRIPT = os.path.join(DIRNAME, 'make_enum_file.py')
 
 

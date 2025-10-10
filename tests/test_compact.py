@@ -21,8 +21,8 @@ def data():
 
 
 @pytest.fixture(scope='module')
-def name(data):
-    name = os.path.join(os.path.dirname(__file__), 'compact.hdf5')
+def name(data, modular_tmp_path):
+    name = modular_tmp_path / 'compact.hdf5'
 
     f = h5py.File(name, 'w', libver='earliest')
     dtype = h5py.h5t.NATIVE_INT32
