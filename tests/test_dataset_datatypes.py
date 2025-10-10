@@ -10,7 +10,7 @@ import pytest
 import pyfive
 
 DIRNAME = os.path.dirname(__file__)
-DATASET_DATATYPES_HDF5_FILE = os.path.join(DIRNAME, 'dataset_datatypes.hdf5')
+DATASET_DATATYPES_HDF5_FILE = os.path.join(DIRNAME, 'data', 'dataset_datatypes.hdf5')
 MAKE_DATASET_DATATYPES_SCRIPT = os.path.join(DIRNAME, 'make_dataset_datatypes_file.py')
 
 
