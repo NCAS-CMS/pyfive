@@ -7,7 +7,7 @@ from numpy.testing import assert_array_equal
 import pyfive
 
 DIRNAME = os.path.dirname(__file__)
-DATASET_COMPRESSED_HDF5_FILE = os.path.join(DIRNAME, 'compressed.hdf5')
+DATASET_COMPRESSED_HDF5_FILE = os.path.join(DIRNAME, "data", 'compressed.hdf5')
 
 
 def test_compressed_dataset():
