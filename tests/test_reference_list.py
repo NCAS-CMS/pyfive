@@ -9,7 +9,7 @@ import pyfive
 import h5py
 
 DIRNAME = os.path.dirname(__file__)
-NETCDF4_CLASSIC_FILE = os.path.join(DIRNAME, 'netcdf4_classic.nc')
+NETCDF4_CLASSIC_FILE = os.path.join(DIRNAME, "data", 'netcdf4_classic.nc')
 
 
 def test_read_netcdf4_dims():

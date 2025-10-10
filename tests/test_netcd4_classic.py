@@ -8,7 +8,7 @@ from numpy.testing import assert_array_equal, assert_almost_equal
 import pyfive
 
 DIRNAME = os.path.dirname(__file__)
-NETCDF4_CLASSIC_FILE = os.path.join(DIRNAME, 'netcdf4_classic.nc')
+NETCDF4_CLASSIC_FILE = os.path.join(DIRNAME, "data", 'netcdf4_classic.nc')
 
 
 def test_read_netcdf4_classic():
