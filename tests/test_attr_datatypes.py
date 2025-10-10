@@ -10,7 +10,7 @@ import pytest
 import pyfive
 
 DIRNAME = os.path.dirname(__file__)
-ATTR_DATATYPES_HDF5_FILE = os.path.join(DIRNAME, 'attr_datatypes.hdf5')
+ATTR_DATATYPES_HDF5_FILE = os.path.join(DIRNAME, "data", 'attr_datatypes.hdf5')
 MAKE_ATTR_DATATYPES_SCRIPT = os.path.join(DIRNAME, 'make_attr_datatypes_file.py')
 ATTR_DATATYPES_HDF5_FILE_2 = os.path.join(DIRNAME, 'attr_datatypes_2.hdf5')
 MAKE_ATTR_DATATYPES_SCRIPT_2 = os.path.join(DIRNAME, 'make_attr_datatypes_file_2.py')
