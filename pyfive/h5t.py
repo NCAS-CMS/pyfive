@@ -151,7 +151,7 @@ class H5VlenStringType(H5StringType):
         super().__init__(character_set)
 
     def _build_dtype(self) -> np.dtype:
-        return np.dtype('O', metadata={'h5py_encoding': self.encoding.lower()})
+        return np.dtype('O', metadata={'vlen': str if self.character_set else bytes})
 
 
 @dataclass
