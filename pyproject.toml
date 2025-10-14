@@ -55,7 +55,7 @@ test = [
     "flask-cors",
     "h5netcdf",
     "h5py",
-    "netCDF4",
+    "netCDF4<1.7.3",  # github.com/NCAS-CMS/pyfive/issues/123
     "moto",
     "s3fs",
 ]
