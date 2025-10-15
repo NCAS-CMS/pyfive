@@ -8,6 +8,7 @@ dependencies:
   - numpy
   - python >=3.10
   # testing
+  - netcdf4  # has history of broken packages on PyPI
   - pytest
   - pytest-cov
   # documentation
