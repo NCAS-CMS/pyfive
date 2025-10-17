@@ -7,7 +7,7 @@ Version 0.9.0
 * Install netcdf4 from conda-forge and pin netcdf4<1.7.3 in pyproject.toml by `Valeriu Predoi <https://github.com/valeriupredoi>`_ in https://github.com/NCAS-CMS/pyfive/pull/124
 * Support Python 3.14 by `Valeriu Predoi <https://github.com/valeriupredoi>`_ in https://github.com/NCAS-CMS/pyfive/pull/125
 * remove pin on netcdf4 by `Valeriu Predoi <https://github.com/valeriupredoi>`_ in https://github.com/NCAS-CMS/pyfive/pull/126
-* all changes above with review from `Kai Mühlbauer <https://github.com/kmuehlbauer>`_
+* all changes above with review from `Kai Mühlbauer <https://github.com/kmuehlbauer>`_ and `David Hassell <https://github.com/davidhassell>`_
 
 Version 0.8.0
 -------------
