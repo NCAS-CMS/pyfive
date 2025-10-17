@@ -242,15 +242,13 @@ class BTreeV1RawDataChunks(BTreeV1):
             arr = np.frombuffer(chunk_buffer[:-4]+b'\x00', '<u2')
         else:
             arr = np.frombuffer(chunk_buffer[:-4], '<u2')
-        sum1 = sum2 = 0
+        sum1 = sum2 = np.uint32(0)
         for i in arr:
             sum1 = (sum1 + i) % 65535
             sum2 = (sum2 + sum1) % 65535
 
         # extract stored checksums
         ref_sum1, ref_sum2 = np.frombuffer(chunk_buffer[-4:], '>u2')
-        ref_sum1 = ref_sum1 % 65535
-        ref_sum2 = ref_sum2 % 65535
 
         # compare
         if sum1 != ref_sum1 or sum2 != ref_sum2:
