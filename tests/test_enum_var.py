@@ -113,6 +113,12 @@ def test_enum_datatype2(enum_variable_nc):
             assert pfile["enum_t"].id != pfile["phony_vlen"].id
 
 
+def test_enum_dataset2(enum_variable_nc):
+    # test uninitalized values as well as fillvalue
 
-        
+    with pyfive.File(enum_variable_nc) as pfile:
+        p5_enum_var = pfile['enum_var']
+        assert p5_enum_var.fillvalue == 255
+        data = np.array([1, 3, 255, 3, 5, 255, 255, 255, 255, 255], dtype="uint8")
+        np.testing.assert_array_equal(p5_enum_var[...], data)
 
