@@ -1,6 +1,8 @@
 # tests the variables found in the file h5netcdf_test.hdf5,
 # which is produced by the write_h5netcdf test routine in the h5netcdf package
 #
+import os
+
 import pyfive
 import h5py
 import warnings
@@ -9,8 +11,9 @@ from pathlib import Path
 DIRNAME = Path(__file__).parent
 
 def test_file_contents():
-    p5file = pyfive.File(DIRNAME/'h5netcdf_test.hdf5') 
-    h5file = h5py.File(DIRNAME/'h5netcdf_test.hdf5')
+    fpath = os.path.join(DIRNAME, 'data', 'h5netcdf_test.hdf5')
+    p5file = pyfive.File(fpath) 
+    h5file = h5py.File(fpath)
 
     expected_variables = [
         "foo",

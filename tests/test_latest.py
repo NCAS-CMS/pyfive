@@ -7,7 +7,7 @@ from numpy.testing import assert_array_equal, assert_almost_equal
 import pyfive
 
 DIRNAME = os.path.dirname(__file__)
-LATEST_HDF5_FILE = os.path.join(DIRNAME, 'latest.hdf5')
+LATEST_HDF5_FILE = os.path.join(DIRNAME, 'data', 'latest.hdf5')
 
 # Polygot string type for representing unicode
 try:

@@ -9,7 +9,7 @@ from numpy.testing import assert_raises
 import pyfive
 
 DIRNAME = os.path.dirname(__file__)
-EARLIEST_HDF5_FILE = os.path.join(DIRNAME, 'earliest.hdf5')
+EARLIEST_HDF5_FILE = os.path.join(DIRNAME, 'data', 'earliest.hdf5')
 
 # Polyglot string type for representing unicode
 try:

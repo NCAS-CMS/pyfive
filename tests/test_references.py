@@ -10,7 +10,7 @@ import pytest
 import pyfive
 
 DIRNAME = os.path.dirname(__file__)
-REFERENCES_HDF5_FILE = os.path.join(DIRNAME, 'references.hdf5')
+REFERENCES_HDF5_FILE = os.path.join(DIRNAME, 'data', 'references.hdf5')
 MAKE_REFERENCES_SCRIPT = os.path.join(DIRNAME, 'make_references_file.py')
 
 

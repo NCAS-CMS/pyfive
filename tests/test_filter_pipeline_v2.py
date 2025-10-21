@@ -7,7 +7,7 @@ from numpy.testing import assert_almost_equal
 import pyfive
 
 DIRNAME = os.path.dirname(__file__)
-FILTER_PIPELINE_V2_FILE = os.path.join(DIRNAME, 'filter_pipeline_v2.hdf5')
+FILTER_PIPELINE_V2_FILE = os.path.join(DIRNAME, 'data', 'filter_pipeline_v2.hdf5')
 
 
 def test_filter_pipeline_descr_v2():

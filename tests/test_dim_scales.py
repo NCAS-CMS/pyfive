@@ -7,7 +7,7 @@ from numpy.testing import assert_array_equal
 import pyfive
 
 DIRNAME = os.path.dirname(__file__)
-DIM_SCALES_HDF5_FILE = os.path.join(DIRNAME, './dim_scales.hdf5')
+DIM_SCALES_HDF5_FILE = os.path.join(DIRNAME, 'data', 'dim_scales.hdf5')
 
 
 def test_dim_labels():
