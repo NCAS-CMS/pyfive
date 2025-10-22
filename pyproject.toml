@@ -58,6 +58,7 @@ test = [
     "h5py",
     "netCDF4",
     "moto",
+    "python-lzf",
     "s3fs>=2025.9.0",  # v-mismatch with boto3 results in ancient s3fs
 ]
 
