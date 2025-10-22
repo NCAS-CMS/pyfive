@@ -151,55 +151,6 @@ class BTreeV1RawDataChunks(BTreeV1):
         node['addresses'] = addresses
         return node
 
-    def construct_data_from_chunks(
-            self, chunk_shape, data_shape, dtype, filter_pipeline):
-        """ Build a complete data array from chunks. """
-        if isinstance(dtype, tuple):
-            true_dtype = tuple(dtype)
-            dtype_class = dtype[0]
-            if dtype_class == 'REFERENCE':
-                size = dtype[1]
-                if size != 8:
-                    raise NotImplementedError('Unsupported Reference type')
-                dtype = '<u8'
-            else:
-                raise NotImplementedError('datatype not implemented')
-        else:
-            true_dtype = None
-
-        # create array to store data
-        shape = [_padded_size(i, j) for i, j in zip(data_shape, chunk_shape)]
-        data = np.zeros(shape, dtype=dtype)
-
-        # loop over chunks reading each into the full data array
-        count = np.prod(chunk_shape)
-        itemsize = np.dtype(dtype).itemsize
-        chunk_buffer_size = count * itemsize
-        for node in self.all_nodes[0]:
-            for node_key, addr in zip(node['keys'], node['addresses']):
-                self.fh.seek(addr)
-                if filter_pipeline is None:
-                    chunk_buffer = self.fh.read(chunk_buffer_size)
-                else:
-                    chunk_buffer = self.fh.read(node_key['chunk_size'])
-                    filter_mask = node_key['filter_mask']
-                    chunk_buffer = self._filter_chunk(
-                        chunk_buffer, filter_mask, filter_pipeline, itemsize)
-
-                chunk_data = np.frombuffer(chunk_buffer, dtype=dtype)
-                start = node_key['chunk_offset'][:-1]
-                region = [slice(i, i+j) for i, j in zip(start, chunk_shape)]
-                data[tuple(region)] = chunk_data.reshape(chunk_shape)
-
-        if isinstance(true_dtype, tuple):
-            if dtype_class == 'REFERENCE':
-                to_reference = np.vectorize(Reference)
-                data = to_reference(data)
-            else:
-                raise NotImplementedError('datatype not implemented')
-
-        non_padded_region = tuple([slice(i) for i in data_shape])
-        return data[non_padded_region]
 
     @classmethod
     def _filter_chunk(cls, chunk_buffer, filter_mask, filter_pipeline, itemsize):
