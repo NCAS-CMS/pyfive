@@ -11,6 +11,8 @@ from .core import _unpack_struct_from_file
 from .core import _unpack_integer
 from .core import InvalidHDF5File
 from .core import UNDEFINED_ADDRESS
+from .core import Reference
+from .p5t import P5Type, P5CompoundType, P5EnumType, P5StringType, P5OpaqueType, P5ReferenceType, P5IntegerType, P5FloatType
 from math import prod
 import numpy as np
 
@@ -347,9 +349,6 @@ def get_vlen_string_data_contiguous(
 
     fh.seek(data_offset)
     count = prod(shape)
-    _, _, character_set = dtype
-    if int(character_set) not in [0, 1]:
-        raise ValueError(f'Unexpected string type, cannot decode character set {character_set}')
 
     # create with fillvalue
     value = np.full(count, fillvalue, dtype=object)
@@ -376,7 +375,7 @@ def get_vlen_string_data_contiguous(
 
     # If character_set == 0 ascii character set, return as
     # bytes. Otherwise return as UTF-8.
-    if character_set:
+    if dtype.character_set:
         value = _convert_to_utf8_string_objects(value)
 
     return value
@@ -392,12 +391,6 @@ length string data.
     # Dataobjects hence hiding it here in misc_low_level.
     fh.seek(data_offset)
     count = prod(shape)
-    character_set = dtype[2]
-    if int(character_set) not in [0, 1]:
-        raise ValueError(
-            "Unexpected string type, cannot decode character set "
-            f"{character_set!r}"
-        )
 
     value = np.empty(count, dtype=object)
     offset = 0
@@ -415,7 +408,7 @@ length string data.
 
     # If character_set == 0 ascii character set, return as
     # bytes. Otherwise return as UTF-8.
-    if character_set:
+    if dtype.character_set:
         value = _convert_to_utf8_string_objects(value)
 
     return value
@@ -430,6 +423,45 @@ def _convert_to_utf8_string_objects(array):
     array = decode(array)
     array = array.astype('O')
     return array
+
+
+def dtype_replace_refs_with_object(dtype):
+    """
+    Recursively build a new dtype from `dtype` where all REFERENCE fields
+    (metadata['h5_class']=='REFERENCE') are replaced with object dtype.
+    """
+    # atomic type
+    if dtype.fields is None:
+        meta = dtype.metadata or {}
+        if meta.get("h5py_class") == "REFERENCE":
+            return np.dtype(object, metadata=dict(meta))
+        return dtype
+
+    # compound type (recursive)
+    fields = []
+    for name, (subdtype, offset) in dtype.fields.items():
+        new_subdtype = dtype_replace_refs_with_object(subdtype)
+        fields.append((name, new_subdtype))
+    return np.dtype(fields)
+
+
+def _decode_array(arr, decoded):
+    # todo: check for other types
+    # currently only compound
+    for name, (subdtype, offset) in arr.dtype.fields.items():
+        field_data = arr[name]
+        meta = subdtype.metadata or {}
+
+        if subdtype.fields is not None:
+            decoded[name] = _decode_array(field_data, decoded[name])
+            continue
+
+        if meta.get("h5py_class") == "REFERENCE":
+            ids = field_data.view("<u8")
+            decoded[name] = np.frompyfunc(Reference, 1, 1)(ids)
+            continue
+
+    return decoded
 
 
 FORMAT_SIGNATURE = b'\211HDF\r\n\032\n'

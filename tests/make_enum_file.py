@@ -23,10 +23,11 @@ def create_nc_file(path):
         enum_type2 = ncd.createEnumType(np.uint8,'enum2_t', enum_dict)
         vlen_t = ncd.createVLType(np.int32, "phony_vlen")
 
-        dim = ncd.createDimension('axis',5)
+        # make axis longer to gain uninitialized values
+        dim = ncd.createDimension('axis', 10)
         enum_var = ncd.createVariable('enum_var',enum_type,'axis',
                                         fill_value=enum_dict['missing'])
-        enum_var[:] = data
+        enum_var[:5] = data
 
 
 def create_hdf_file(path):
