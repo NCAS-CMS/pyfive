@@ -256,15 +256,15 @@ class DataObjects(object):
         """ Retrieve an HDF5 attribute value from a buffer. """
 
         # numpy storage dtype
-        _dtype = ptype.dtype
+        dtype = ptype.dtype
 
         if isinstance(ptype, (P5SequenceType, P5ReferenceType, P5VlenStringType)):
             # todo: check, if this can be done in the P5Type
             # small hack to get Reference output ptype right
             if isinstance(ptype, P5ReferenceType):
-                _dtype = dtype_replace_refs_with_object(_dtype)
+                dtype = dtype_replace_refs_with_object(dtype)
 
-            value = np.empty(count, dtype=_dtype)
+            value = np.empty(count, dtype=dtype)
             for i in range(count):
                 if isinstance(ptype, P5StringType):
                     _, vlen_data = self._vlen_size_and_data(buf, offset)
@@ -281,10 +281,10 @@ class DataObjects(object):
                 else:
                     raise NotImplementedError
         else:
-            value = np.frombuffer(buf, dtype=_dtype, count=count, offset=offset)
+            value = np.frombuffer(buf, dtype=dtype, count=count, offset=offset)
             if not ptype.is_atomic:
                 # todo: check for Enum etc types
-                value = value.view(_dtype)
+                value = value.view(dtype)
                 if isinstance(ptype, P5CompoundType):
                     new_dtype = dtype_replace_refs_with_object(ptype.dtype)
                     new_array = np.empty(value.shape, dtype=new_dtype)
