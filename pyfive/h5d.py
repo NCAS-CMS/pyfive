@@ -321,6 +321,10 @@ class DatasetID:
         
         logging.info(f'Building chunk index in pyfive {version("pyfive")}')
        
+        #FIXME: How do we know it's a V1 B-tree?
+        # There are potentially five different chunk indexing options according to
+        # https://docs.hdfgroup.org/archive/support/HDF5/doc/H5.format.html#AppendixC
+        
         chunk_btree = BTreeV1RawDataChunks(
                 dataobject.fh, dataobject._chunk_address, dataobject._chunk_dims)
         
