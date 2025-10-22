@@ -1,3 +1,21 @@
+Version 0.9.0
+-------------
+
+**2025-10-17**
+
+* use pytest temporary dir factory to write some of the test hdf5 files and move all fixed hdf5 sample data files to `tests/data` by `Valeriu Predoi <https://github.com/valeriupredoi>`_ in https://github.com/NCAS-CMS/pyfive/pull/117
+* Install netcdf4 from conda-forge and pin netcdf4<1.7.3 in pyproject.toml by `Valeriu Predoi <https://github.com/valeriupredoi>`_ in https://github.com/NCAS-CMS/pyfive/pull/124
+* Support Python 3.14 by `Valeriu Predoi <https://github.com/valeriupredoi>`_ in https://github.com/NCAS-CMS/pyfive/pull/125
+* remove pin on netcdf4 by `Valeriu Predoi <https://github.com/valeriupredoi>`_ in https://github.com/NCAS-CMS/pyfive/pull/126
+* all changes above with review from `Kai Mühlbauer <https://github.com/kmuehlbauer>`_ and `David Hassell <https://github.com/davidhassell>`_
+
+Version 0.8.0
+-------------
+
+**2025-10-07**
+
+* Support for Opaque datasets by @bnlawrence in https://github.com/NCAS-CMS/pyfive/pull/114 with review from `Kai Mühlbauer <https://github.com/kmuehlbauer>`_
+
 Version 0.7.0
 -------------
 
