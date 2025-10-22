@@ -2,13 +2,34 @@
 (as is found in some new netCDF4 files) """
 import os
 
+import h5py
+import numpy as np
 from numpy.testing import assert_almost_equal
-
+import pytest
 import pyfive
 
 DIRNAME = os.path.dirname(__file__)
 FILTER_PIPELINE_V2_FILE = os.path.join(DIRNAME, 'data', 'filter_pipeline_v2.hdf5')
 
+
+@pytest.fixture
+def generate_data():
+    return np.random.rand(100, 100)
+
+
+@pytest.mark.parametrize("chunk_size", [None, (10, 10), (20, 20)], ids=lambda x: f"chunk_{x}")
+@pytest.mark.parametrize("compression", [None, 9], ids=lambda x: f"compression_{x}")
+@pytest.mark.parametrize("shuffle", [True, False], ids=lambda x: f"shuffle_{x}")
+@pytest.mark.parametrize("fletcher32", [True, False], ids=lambda x: f"fletcher32_{x}")
+def test_hdf5_filters(modular_tmp_path, generate_data, chunk_size, compression, shuffle, fletcher32):
+    data = generate_data
+    file_name = f"test_{chunk_size}_{compression}_{shuffle}_{fletcher32}.hdf5"
+
+    with h5py.File(file_name, "w") as f:
+        f.create_dataset("data", data=data, chunks=chunk_size, shuffle=shuffle, fletcher32=fletcher32, compression=compression)
+
+    with pyfive.File(file_name, 'r') as f:
+        assert_almost_equal(f["data"][:], data)
 
 def test_filter_pipeline_descr_v2():
 
