@@ -5,7 +5,7 @@ from collections import OrderedDict
 from .core import _padded_size, _structure_size, _unpack_struct_from
 from .core import InvalidHDF5File
 
-from .h5t import H5Type, H5CompoundType, H5CompoundField, H5FixedStringType, H5VlenStringType, H5SequenceType, H5EnumType, H5OpaqueType, H5FloatType, H5ReferenceType, H5StringType, H5IntegerType
+from .p5t import P5Type, P5CompoundType, P5CompoundField, P5FixedStringType, P5VlenStringType, P5SequenceType, P5EnumType, P5OpaqueType, P5FloatType, P5ReferenceType, P5StringType, P5IntegerType
 
 import numpy as np
 
@@ -17,7 +17,7 @@ class DatatypeMessage(object):
     def __init__(self, buf, offset):
         self.buf = buf
         self.offset = offset
-        self.dtype = self.determine_dtype()
+        self.ptype = self.determine_dtype()
 
     def determine_dtype(self):
         """ Return the dtype (often numpy-like) for the datatype message.  """
@@ -41,7 +41,7 @@ class DatatypeMessage(object):
         elif datatype_class == DATATYPE_COMPOUND:
             return self._determine_dtype_compound(datatype_msg)
         elif datatype_class == DATATYPE_REFERENCE:
-            return H5ReferenceType(datatype_msg['size'], f"V{datatype_msg['size']}")
+            return P5ReferenceType(datatype_msg['size'], f"V{datatype_msg['size']}")
         elif datatype_class == DATATYPE_ENUMERATED:
             return self._determine_dtype_enum(datatype_msg)
         elif datatype_class == DATATYPE_ARRAY:
@@ -73,7 +73,7 @@ class DatatypeMessage(object):
         # not read, assumed to be IEEE standard format
         self.offset += 4
 
-        return H5IntegerType(byte_order_char + dtype_char + str(length_in_bytes))
+        return P5IntegerType(byte_order_char + dtype_char + str(length_in_bytes))
 
     def _determine_dtype_floating_point(self, datatype_msg):
         """ Return the NumPy dtype for a floating point class. """
@@ -94,12 +94,12 @@ class DatatypeMessage(object):
         # not read, assumed to be IEEE standard format
         self.offset += 12
 
-        return H5FloatType(byte_order_char + dtype_char + str(length_in_bytes))
+        return P5FloatType(byte_order_char + dtype_char + str(length_in_bytes))
 
     @staticmethod
     def _determine_dtype_string(datatype_msg):
         """ Return the NumPy dtype for a string class. """
-        return H5FixedStringType(datatype_msg['size'])
+        return P5FixedStringType(datatype_msg['size'])
 
     def _determine_dtype_compound(self, datatype_msg):
         """ Return the dtype of a compound class if supported. """
@@ -135,11 +135,11 @@ class DatatypeMessage(object):
                 self.offset += offset_len
 
             comp_dtype = self.determine_dtype()
-            if not isinstance(comp_dtype, H5Type):
+            if not isinstance(comp_dtype, P5Type):
                 raise TypeError(f"Field {name} is not an H5Type instance")
-            fields.append(H5CompoundField(name=name, offset=prop_desc["offset"], subtype=comp_dtype))
+            fields.append(P5CompoundField(name=name, offset=prop_desc["offset"], ptype=comp_dtype))
 
-        return H5CompoundType(fields=fields, size=datatype_msg["size"])
+        return P5CompoundType(fields=fields, size=datatype_msg["size"])
 
 
     def _determine_dtype_opaque(self, datatype_msg):
@@ -158,15 +158,15 @@ class DatatypeMessage(object):
         if tag == '':
             tag = None  
         
-        return H5OpaqueType(tag, size)
+        return P5OpaqueType(tag, size)
 
     def _determine_dtype_vlen(self, datatype_msg):
         """ Return the dtype information for a variable length class. """
         vlen_type = datatype_msg['class_bit_field_0'] & 0x01
         if vlen_type != 1:
-            return H5SequenceType(base_dtype=self.determine_dtype())
+            return P5SequenceType(base_dtype=self.determine_dtype())
         character_set = datatype_msg['class_bit_field_1'] & 0x01
-        return H5VlenStringType(character_set=character_set)
+        return P5VlenStringType(character_set=character_set)
 
     def _determine_dtype_enum(self,datatype_msg):
         """ Return the basetype and the underlying enum dictionary """
@@ -176,7 +176,7 @@ class DatatypeMessage(object):
         num_members = enum_msg['number_of_members']
         value_size = enum_msg['size']
         enum_keys = []
-        dtype = DatatypeMessage(self.buf,self.offset).dtype.dtype
+        dtype = DatatypeMessage(self.buf, self.offset).ptype.dtype
         self.offset+=12
         # An extra 4 bytes are read as part of establishing the data type
         # FIXME:ENUM Need to be sure that some other base type in the future
@@ -195,7 +195,7 @@ class DatatypeMessage(object):
         nbytes = value_size*num_members
         values = np.frombuffer(self.buf[self.offset:], dtype=dtype, count=num_members)
         enum_dict = {k:v for k,v in zip(enum_keys,values)}
-        return H5EnumType(dtype, enum_dict)
+        return P5EnumType(dtype, enum_dict)
 
 
 # IV.A.2.d The Datatype Message

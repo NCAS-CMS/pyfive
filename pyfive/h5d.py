@@ -5,7 +5,7 @@ from pyfive.indexing import OrthogonalIndexer, ZarrArrayStub
 from pyfive.btree import BTreeV1RawDataChunks
 from pyfive.core import Reference, UNDEFINED_ADDRESS
 from pyfive.misc_low_level import get_vlen_string_data_contiguous, get_vlen_string_data_from_chunk, _decode_array, dtype_replace_refs_with_object
-from pyfive.h5t import H5Type, H5CompoundType, H5VlenStringType, H5EnumType, H5StringType, H5OpaqueType, H5ReferenceType, H5SequenceType
+from pyfive.p5t import P5Type, P5CompoundType, P5VlenStringType, P5EnumType, P5StringType, P5OpaqueType, P5ReferenceType, P5SequenceType
 from io import UnsupportedOperation
 
 import struct
@@ -85,7 +85,7 @@ class DatasetID:
         self._msg_offset, self.layout_class,self.property_offset = dataobject.get_id_storage_params()
         self._unique = (self._filename, self.shape, self._msg_offset)
 
-        self._dtype = dataobject.dtype
+        self._ptype = dataobject.ptype
 
         self._meta = DatasetMeta(dataobject)
 
@@ -169,7 +169,7 @@ class DatasetID:
                 if not self._index:
                     no_storage = True
                 else:
-                    if isinstance(self._dtype, H5ReferenceType):
+                    if isinstance(self._ptype, P5ReferenceType):
                         # references need to read all the chunks for now
                         return self._get_selection_via_chunks(())[args]
                     else:
@@ -303,8 +303,8 @@ class DatasetID:
 
     def _get_contiguous_data(self, args, fillvalue):
 
-        if isinstance(self._dtype, H5ReferenceType):
-            size = self._dtype.size
+        if isinstance(self._ptype, P5ReferenceType):
+            size = self._ptype.size
             if size != 8:
                 raise NotImplementedError(f'Unsupported Reference type - size {size}')
 
@@ -317,22 +317,22 @@ class DatasetID:
                 fh.close()
 
             return result
-        elif isinstance(self._dtype, H5VlenStringType):
+        elif isinstance(self._ptype, P5VlenStringType):
             fh = self._fh
             array = get_vlen_string_data_contiguous(
                 fh,
                 self.data_offset,
                 self._global_heaps,
                 self.shape,
-                self._dtype,
+                self._ptype,
                 fillvalue,
             )
             if self.posix:
                 fh.close()
 
             return array.reshape(self.shape, order=self._order)[args]
-        elif isinstance(self._dtype, H5SequenceType):
-            raise NotImplementedError(f'datatype not implemented - {self._dtype.__class__.__name__}')
+        elif isinstance(self._ptype, P5SequenceType):
+            raise NotImplementedError(f'datatype not implemented - {self._ptype.__class__.__name__}')
 
         if not self.posix:
             # Not posix
@@ -356,13 +356,13 @@ class DatasetID:
                 result = view[args]
                 # Copy the data from disk to physical memory
                 result = result.view(type=np.ndarray)
-                if not self._dtype.is_atomic:
+                if not self._ptype.is_atomic:
                     # if we have a type which is not atomic
                     # we have to get a view
                     result = result.view(self.dtype)
                     # and for compounds we have to wrap any References properly
                     # todo: check for Enum etc types
-                    if isinstance(self._dtype, H5CompoundType):
+                    if isinstance(self._ptype, P5CompoundType):
                         new_dtype = dtype_replace_refs_with_object(self.dtype)
                         new_array = np.empty(result.shape, dtype=new_dtype)
                         new_array[:] = result
@@ -500,9 +500,9 @@ class DatasetID:
         """
         # need a local dtype as we may override it for a reference read.
         dtype = self.dtype
-        if isinstance(self._dtype, H5ReferenceType):
+        if isinstance(self._ptype, P5ReferenceType):
             # this is a reference and we're returning that
-            size = self._dtype.size
+            size = self._ptype.size
             dtype = '<u8'
             if size != 8:
                 raise NotImplementedError('Unsupported Reference type')
@@ -515,7 +515,7 @@ class DatasetID:
         out_shape = indexer.shape
         out = np.empty(out_shape, dtype=dtype, order=self._order)
 
-        if isinstance(self._dtype, H5VlenStringType):
+        if isinstance(self._ptype, P5VlenStringType):
             fh = self._fh
             
             chunk_shape = self.chunks
@@ -528,7 +528,7 @@ class DatasetID:
                     index[chunk_coords].byte_offset,
                     global_heaps,
                     chunk_shape,
-                    self._dtype
+                    self._ptype
                 )
                 chunk_data  = chunk_data.reshape(chunk_shape)
                 out[out_selection] = chunk_data[chunk_selection]
@@ -557,7 +557,7 @@ class DatasetID:
                 chunk_data = chunk_data.reshape(self.chunks, order=self._order)
                 out[out_selection] = chunk_data[chunk_selection]
 
-        if isinstance(self._dtype, H5ReferenceType):
+        if isinstance(self._ptype, P5ReferenceType):
             to_reference = np.vectorize(Reference)
             out = to_reference(out)
 
@@ -594,13 +594,13 @@ class DatasetID:
         """
         Return numpy dtype of the dataset.
         """
-        return self._dtype.dtype
+        return self._ptype.dtype
 
     def get_type(self):
         """
         Return pyfive type of the dataset.
         """
-        return self._dtype
+        return self._ptype
 
 
 class DatasetMeta:
@@ -618,7 +618,7 @@ class DatasetMeta:
         self.fletcher32 = dataobject.fletcher32
         self.fillvalue = dataobject.fillvalue
         self.attributes = dataobject.get_attributes()
-        self.datatype = dataobject.dtype
+        self.datatype = dataobject.ptype
 
         #horrible kludge for now, this isn't really the same sort of thing
         #https://github.com/NCAS-CMS/pyfive/issues/13#issuecomment-2557121461

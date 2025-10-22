@@ -12,7 +12,7 @@ from .core import _unpack_integer
 from .core import InvalidHDF5File
 from .core import UNDEFINED_ADDRESS
 from .core import Reference
-from .h5t import H5Type, H5CompoundType, H5EnumType, H5StringType, H5OpaqueType, H5ReferenceType, H5IntegerType, H5FloatType
+from .p5t import P5Type, P5CompoundType, P5EnumType, P5StringType, P5OpaqueType, P5ReferenceType, P5IntegerType, P5FloatType
 from math import prod
 import numpy as np
 

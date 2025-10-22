@@ -4,7 +4,8 @@
 
 
 from pyfive.datatype_msg import DatatypeMessage
-from pyfive.h5t import TypeID, TypeEnumID, TypeCompoundID, H5EnumType, H5CompoundType
+from pyfive.h5t import TypeID, TypeEnumID, TypeCompoundID
+from pyfive.p5t import P5EnumType, P5CompoundType
 
 import numpy as np
 from pathlib import PurePosixPath
@@ -15,10 +16,10 @@ class Datatype:
     suitable for use with enumerations, compounds and other types.
     """
     def __init__(self, name, hfile, raw_dtype):
-        # raw_dtype is H5Type
-        if isinstance(raw_dtype, H5EnumType):
+        # raw_dtype is P5Type
+        if isinstance(raw_dtype, P5EnumType):
             id = TypeEnumID(raw_dtype)
-        elif isinstance(raw_dtype, H5CompoundType):
+        elif isinstance(raw_dtype, P5CompoundType):
             id = TypeCompoundID(raw_dtype)
         else:
             id = TypeID(raw_dtype)

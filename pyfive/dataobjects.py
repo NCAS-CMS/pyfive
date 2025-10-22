@@ -19,7 +19,7 @@ from pyfive.btree import BTreeV2GroupNames, BTreeV2GroupOrders
 from pyfive.btree import BTreeV2AttrCreationOrder, BTreeV2AttrNames
 from pyfive.btree import GZIP_DEFLATE_FILTER, SHUFFLE_FILTER, FLETCH32_FILTER
 from pyfive.misc_low_level import Heap, SymbolTable, GlobalHeap, FractalHeap, GLOBAL_HEAP_ID, _decode_array, dtype_replace_refs_with_object
-from pyfive.h5t import H5Type, H5StringType, H5CompoundType, H5VlenStringType, H5ReferenceType, H5SequenceType, H5EnumType
+from pyfive.p5t import P5Type, P5StringType, P5CompoundType, P5VlenStringType, P5ReferenceType, P5SequenceType, P5EnumType
 from pyfive.h5py import Empty
 from pyfive.h5d import DatasetID
 
@@ -217,7 +217,7 @@ class DataObjects(object):
 
         # Read the datatype information
         try:
-            dtype = DatatypeMessage(buffer, offset).dtype
+            ptype = DatatypeMessage(buffer, offset).ptype
         except NotImplementedError:
             warnings.warn(
                 f"Attribute {name} type not implemented, set to None."
@@ -231,14 +231,14 @@ class DataObjects(object):
 
         # detect Empty/NULL dataspace
         if shape is None:
-            value = Empty(dtype=dtype.dtype)
+            value = Empty(dtype=ptype.dtype)
         else:
             items = int(np.prod(shape))
 
             offset += _padded_size(attr_dict['dataspace_size'], padding_multiple)
 
             # Read the value(s)
-            value = self._attr_value(dtype, buffer, items, offset)
+            value = self._attr_value(ptype, buffer, items, offset)
 
         if shape == ():
             value = value[0]
@@ -252,41 +252,41 @@ class DataObjects(object):
 
         return name, value
 
-    def _attr_value(self, dtype, buf, count, offset):
+    def _attr_value(self, ptype, buf, count, offset):
         """ Retrieve an HDF5 attribute value from a buffer. """
 
         # numpy storage dtype
-        _dtype = dtype.dtype
+        _dtype = ptype.dtype
 
-        if isinstance(dtype, (H5SequenceType, H5ReferenceType, H5VlenStringType)):
-            # todo: check, if this can be done in the H5Type
-            # small hack to get Reference output dtype right
-            if isinstance(dtype, H5ReferenceType):
+        if isinstance(ptype, (P5SequenceType, P5ReferenceType, P5VlenStringType)):
+            # todo: check, if this can be done in the P5Type
+            # small hack to get Reference output ptype right
+            if isinstance(ptype, P5ReferenceType):
                 _dtype = dtype_replace_refs_with_object(_dtype)
 
             value = np.empty(count, dtype=_dtype)
             for i in range(count):
-                if isinstance(dtype, H5StringType):
+                if isinstance(ptype, P5StringType):
                     _, vlen_data = self._vlen_size_and_data(buf, offset)
                     value[i] = vlen_data.decode('utf-8')
                     offset += 16
-                elif isinstance(dtype, H5ReferenceType):
+                elif isinstance(ptype, P5ReferenceType):
                     address, = struct.unpack_from('<Q', buf, offset=offset)
                     value[i] = Reference(address)
                     offset += 8
-                elif isinstance(dtype, H5SequenceType):
+                elif isinstance(ptype, P5SequenceType):
                     vlen, vlen_data = self._vlen_size_and_data(buf, offset)
-                    value[i] = self._attr_value(dtype.base_dtype, vlen_data, vlen, 0)
+                    value[i] = self._attr_value(ptype.base_dtype, vlen_data, vlen, 0)
                     offset += 16
                 else:
                     raise NotImplementedError
         else:
             value = np.frombuffer(buf, dtype=_dtype, count=count, offset=offset)
-            if not dtype.is_atomic:
+            if not ptype.is_atomic:
                 # todo: check for Enum etc types
                 value = value.view(_dtype)
-                if isinstance(dtype, H5CompoundType):
-                    new_dtype = dtype_replace_refs_with_object(dtype.dtype)
+                if isinstance(ptype, P5CompoundType):
+                    new_dtype = dtype_replace_refs_with_object(ptype.dtype)
                     new_array = np.empty(value.shape, dtype=new_dtype)
                     new_array[:] = value
                     value = _decode_array(value, new_array)
@@ -357,22 +357,22 @@ class DataObjects(object):
             size = 0
 
         if size:
-            if isinstance(self.dtype, H5VlenStringType):
-                fillvalue = self._attr_value(self.dtype, self.msg_data, 1, offset)[0]
+            if isinstance(self.ptype, P5VlenStringType):
+                fillvalue = self._attr_value(self.ptype, self.msg_data, 1, offset)[0]
             else:
                 payload = self.msg_data[offset:offset+size]
-                fillvalue = np.frombuffer(payload, self.dtype.dtype, count=1)[0]
+                fillvalue = np.frombuffer(payload, self.ptype.dtype, count=1)[0]
         else:
             fillvalue = 0
         return fillvalue
 
     @property
-    def dtype(self):
+    def ptype(self):
         """ Datatype of the dataset. """
         msg = self.find_msg_type(DATATYPE_MSG_TYPE)[0]
         msg_offset = msg['offset_to_message']
-        dtype = DatatypeMessage(self.msg_data, msg_offset).dtype
-        return dtype
+        ptype = DatatypeMessage(self.msg_data, msg_offset).ptype
+        return ptype
        
     @property
     def chunks(self):
