@@ -23,6 +23,7 @@ class DatatypeMessage(object):
         self.offset += DATATYPE_MSG_SIZE
         # last 4 bits
         datatype_class = datatype_msg['class_and_version'] & 0x0F
+        datatype_version = datatype_msg['class_and_version'] >> 4
 
         if datatype_class == DATATYPE_FIXED_POINT:
             return self._determine_dtype_fixed_point(datatype_msg)
@@ -109,21 +110,33 @@ class DatatypeMessage(object):
         bit_field_0 = datatype_msg['class_bit_field_0']
         bit_field_1 = datatype_msg['class_bit_field_1']
         n_comp = bit_field_0 + (bit_field_1 << 4)
+        version = datatype_msg['class_and_version'] >> 4
 
         # read in the members of the compound datatype
         # at the moment we need to skip two bytes which I do
-        # 
         members = []
         for _ in range(n_comp):
             null_location = self.buf.index(b'\x00', self.offset)
-            name_size = _padded_size(null_location - self.offset + 1, 8)
+            # we read with padding and without
+            name_size = null_location - self.offset + 1 if version == 3 else _padded_size(
+                null_location - self.offset + 1, 8)
             name = self.buf[self.offset:self.offset+name_size]
             name = name.strip(b'\x00').decode('utf-8')
             self.offset += name_size
 
-            prop_desc = _unpack_struct_from(
-                COMPOUND_PROP_DESC_V1, self.buf, self.offset)
-            self.offset += COMPOUND_PROP_DESC_V1_SIZE
+            # handle different message type versions
+            if version == 1:
+                prop_desc = _unpack_struct_from(
+                    COMPOUND_PROP_DESC_V1, self.buf, self.offset)
+                self.offset += COMPOUND_PROP_DESC_V1_SIZE
+            elif version == 3:
+                # according HDF5 manual
+                # https://support.hdfgroup.org/documentation/hdf5/latest/_f_m_t4.html#subsec_fmt4_intro_doc
+                offset_len = max(1, (datatype_msg["size"] - 1).bit_length() + 7 >> 3)
+                fmt = {1: 'B', 2: 'H', 4: 'I', 8: 'Q'}[offset_len]
+                offset_struct = OrderedDict((('offset', fmt),))
+                prop_desc = _unpack_struct_from(offset_struct, self.buf, self.offset)
+                self.offset += offset_len
 
             comp_dtype = self.determine_dtype()
             members.append((name, prop_desc, comp_dtype))
@@ -132,34 +145,56 @@ class DatatypeMessage(object):
         if len(members) == 2:
             name1, prop1, dtype1 = members[0]
             name2, prop2, dtype2 = members[1]
-            names_valid = (name1 == 'r' and name2 == 'i')
+            # not sure, if we need "real"/"imag" here
+            names_valid = (name1 in ['r', "real"] and name2 in ['i', "imag"])
             complex_dtype_map = {
                 '>f4': '>c8',
                 '<f4': '<c8',
                 '>f8': '>c16',
                 '<f8': '<c16',
-            }
+               }
             dtypes_valid = (dtype1 == dtype2) and dtype1 in complex_dtype_map
             half = datatype_msg['size'] // 2
             offsets_valid = (prop1['offset'] == 0 and prop2['offset'] == half)
-            props_valid = (
-                prop1['dimensionality'] == 0 and
-                prop1['permutation'] == 0 and
-                prop1['dim_size_1'] == 0 and
-                prop1['dim_size_2'] == 0 and
-                prop1['dim_size_3'] == 0 and
-                prop1['dim_size_4'] == 0 and
-                prop2['dimensionality'] == 0 and
-                prop2['permutation'] == 0 and
-                prop2['dim_size_1'] == 0 and
-                prop2['dim_size_2'] == 0 and
-                prop2['dim_size_3'] == 0 and
-                prop2['dim_size_4'] == 0
-            )
-            if names_valid and dtypes_valid and offsets_valid and props_valid:
+            if names_valid and dtypes_valid and offsets_valid:
+                # now we have complex type
+                if version == 1:
+                    props_valid = (
+                        prop1['dimensionality'] == 0 and
+                        prop1['permutation'] == 0 and
+                        prop1['dim_size_1'] == 0 and
+                        prop1['dim_size_2'] == 0 and
+                        prop1['dim_size_3'] == 0 and
+                        prop1['dim_size_4'] == 0 and
+                        prop2['dimensionality'] == 0 and
+                        prop2['permutation'] == 0 and
+                        prop2['dim_size_1'] == 0 and
+                        prop2['dim_size_2'] == 0 and
+                        prop2['dim_size_3'] == 0 and
+                        prop2['dim_size_4'] == 0
+                    )
+                    if not props_valid:
+                        return NotImplementedError
                 return "COMPOUND", complex_dtype_map[dtype1]
 
-        raise NotImplementedError("Compound dtype not supported.")
+        def _make_compound_dtype(members, compound_size):
+            names = [m[0] for m in members]
+            offsets = [m[1]['offset'] for m in members]
+            has_reference = [isinstance(m[2], tuple) and m[2][0] == "REFERENCE" for m in members].count(True)
+            formats = [m[2] for m in members]
+            if has_reference:
+                # if we have nested REFERENCE we need to return tuple
+                return names, formats, offsets, datatype_msg["size"]
+            # otherwise just return numpy structured dtype
+            return np.dtype({
+                'names': names,
+                'formats': formats,
+                'offsets': offsets,
+                'itemsize': compound_size,
+            })
+
+        return "COMPOUND", _make_compound_dtype(members, datatype_msg["size"])
+
 
     def _determine_dtype_opaque(self, datatype_msg):
         """ Return the dtype information for an opaque class. """
