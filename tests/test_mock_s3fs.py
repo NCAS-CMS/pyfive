@@ -24,7 +24,7 @@ def test_s3fs_s3(s3fs_s3):
     assert mock_s3_filesystem.client_kwargs == {'endpoint_url': 'http://127.0.0.1:5555/'}
 
 
-def test_s3file_with_s3fs(s3fs_s3):
+def test_s3file_with_s3fs(s3fs_s3, capsys):
     """
     This test spoofs a complete s3fs FileSystem via s3fs_s3,
     creates a mock bucket inside it, then puts a REAL netCDF4 file in it,
@@ -57,3 +57,11 @@ def test_s3file_with_s3fs(s3fs_s3):
         pyfive_ds = pyfive.File(f)
         print(f"Dataset loaded from mock S3 with s3fs and Pyfive: ds")
         assert "q" in pyfive_ds
+
+    # test command command line main test_s3
+    with s3.open(os.path.join("MY_BUCKET", file_name), "rb") as f:
+        pyfive.p5ncdump(f)
+
+    captured = capsys.readouterr()
+    assert ('File: issue23_A.nc' in captured.out)
+    assert ('q:cell_methods = "area: mean"' in captured.out)
