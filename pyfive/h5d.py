@@ -249,6 +249,22 @@ class DatasetID:
             raise ValueError('No chunk index available for HDF layout class {self.layout}')
         else:
             return self._index
+
+    ##### This property is made available to help understand object store performance
+    @property
+    def btree_range(self):
+        """ A tuple with the addresses of the first b-tree node
+        for this variable, and the address of the furthest away node
+        (Which may not be the last one in the chunk index). This property
+        may be of use in understanding the read performance of chunked
+        data in object stores.  ``btree_range`` is a ``pyfive`` API extgension.
+        """
+        if self._index is None:
+             raise ValueError('No b-tree available for HDF layout class {self.layout}')
+        else:
+            return (self._btree_start, self._btree_end)
+
+
     #### The following method can be used to set pseudo chunking size after the 
     #### file has been closed and before data transactions. This is pyfive specific
     def set_pseudo_chunk_size(self, newsize_MB):
@@ -311,7 +327,10 @@ class DatasetID:
         self._index = {}
         self._nthindex = []
         
+        
         for node in chunk_btree.all_nodes[0]:
+            self._btree_start=node['addresses'][0]
+            self._btree_end=node['addresses'][0]
             for node_key, addr in zip(node['keys'], node['addresses']):
                 start = node_key['chunk_offset'][:-1]
                 key = start
@@ -319,6 +338,9 @@ class DatasetID:
                 filter_mask = node_key['filter_mask']
                 self._nthindex.append(key)
                 self._index[key] = StoreInfo(key, filter_mask, addr, size)
+                self._btree_end=max(addr,self._btree_end)
+
+
 
     def _get_contiguous_data(self, args, fillvalue):
 
