@@ -21,7 +21,11 @@ def dump_header(f, filename):
 
     print(f"File: {filename} "+'{')
     dims = set()
-    datasets = {name: f[name] for name in f.keys() if hasattr(f[name], "shape")}
+    datasets = {}
+    for name in f:
+        item = f.get_lazy_view(name)
+        if hasattr(item,"shape"):
+            datasets[name]=item
     for ds in datasets.values():
         for dim in ds.dims:
             for scale in dim:

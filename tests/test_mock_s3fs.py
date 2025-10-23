@@ -65,3 +65,4 @@ def test_s3file_with_s3fs(s3fs_s3, capsys):
     captured = capsys.readouterr()
     assert ('File: issue23_A.nc' in captured.out)
     assert ('q:cell_methods = "area: mean"' in captured.out)
+    assert (':Conventions = "CF-1.12"' in captured.out)

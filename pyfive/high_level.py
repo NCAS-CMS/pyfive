@@ -60,7 +60,44 @@ class Group(Mapping):
         return obj
 
     def __getitem__(self, y):
-        """ x.__getitem__(y) <==> x[y] """
+        """ x.__getitem__(y) <==> x[y].
+        """
+        return self.__getitem_lazy_control(y, noindex=False)
+
+
+    def get_lazy_view(self, y):
+        """ 
+        This instantiates the object y, and if it is a 
+        chunked dataset, does so without reading the b-tree
+        index. This is useful for inspecting a variable
+        that you are not expecting to access. If you know you
+        want to access the data, and in particular, if you are 
+        going to hand the data to Dask or something else, you
+        almost certainly want to read the index now, so
+        just do x[y] rather than x.get_lazy_view(y).
+
+        This is a ``pyfive`` extension to the standard h5py API.
+        """
+
+        return self.__getitem_lazy_control(y, noindex=True)
+
+
+    def __getitem_lazy_control(self, y, noindex):
+        """ 
+        This is the routine which actually does the get item
+        but does it in such a way that we control how much laziness
+        is possible where we have chunked variables with b-trees.
+
+        We want to return y, but if y is a chunked dataset we
+        normally return it with a cached b-tree (noindex=false).
+        If noindex is True, we do not read the b-tree, and that 
+        will be done when data is first read - which is fine
+        in a single-threaded environment, but in a parallel
+        environment you only want to read the index once
+        (so use noindex=False, which you get via the 
+        normal getitem interface - x[y]).
+        """
+
         if isinstance(y, Reference):
             return self._dereference(y)
 
@@ -92,7 +129,7 @@ class Group(Mapping):
         if dataobjs.is_dataset:
             if additional_obj != '.':
                 raise KeyError('%s is a dataset, not a group' % (obj_name))
-            return Dataset(obj_name, DatasetID(dataobjs), self)
+            return Dataset(obj_name, DatasetID(dataobjs, noindex=noindex), self)
        
         try:
             # if true, this may well raise a NotImplementedError, if so, we need
