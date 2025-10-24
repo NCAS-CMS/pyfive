@@ -162,7 +162,7 @@ class Group(Mapping):
         """
         return self.visititems(lambda name, obj: func(name))
 
-    def visititems(self, func):
+    def visititems(self, func, noindex=False):
         """
         Recursively visit all objects in this group and subgroups.
 
@@ -173,11 +173,25 @@ class Group(Mapping):
         Returning None continues iteration, return anything else stops and
         return that value from the visit method.
 
+        Use of the optional noindex=True will ensure that
+        all operations are not only lazy wrt data, but lazy
+        wrt to any chunked data indices.
+
         """
         root_name_length = len(self.name)
         if not self.name.endswith('/'):
             root_name_length += 1
-        queue = deque(self.values())
+
+        # Use either normal access or lazy access:
+        if noindex:
+            # Avoid loading dataset indices
+            get_obj = self.get_lazy_view
+        else:
+            get_obj = self.__getitem__
+
+        # Initialize queue using the correct getter
+        queue = deque(get_obj(k) for k in self._links.keys())
+
         while queue:
             obj = queue.popleft()
             name = obj.name[root_name_length:]
