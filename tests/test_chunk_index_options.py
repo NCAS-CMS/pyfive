@@ -26,3 +26,30 @@ def test_lazy_index():
         # this should force an index build
         assert_array_equal(dset1[:], np.arange(21*16).reshape((21, 16)))
         assert dset1.chunks == (2, 2)
+
+
+def test_lazy_visititems():
+
+    def simpler_check(x,y):
+        """ Expect this to be visited and instantiated without an index """
+        print(x,y.name)
+        assert y.attrs['attr1'] == 130
+        assert y.id._DatasetID__index_built==False
+
+    def simplest_check(x,y):
+        """ Expect this to be visited and instantiated with an index """
+        print(x,y.name)
+        assert y.attrs['attr1'] == 130
+        assert y.id._DatasetID__index_built==True
+
+   
+    with pyfive.File(DATASET_CHUNKED_HDF5_FILE) as hfile:
+
+        assert hfile.visititems(simpler_check,noindex=True) is None
+        assert hfile.visititems(simplest_check) is None
+
+
+
+
+
+

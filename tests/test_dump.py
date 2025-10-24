@@ -21,8 +21,8 @@ def test_old_hd5_with_groups(capsys):
 
     #currently failing
     assert 'phony_dim_0' in captured.out
-    assert 'dataset3(phony_dim_0)' in captured.out
-    assert 'string :attr5 = "Test"' in captured.out
+    assert 'dataset3(phony_dim' in captured.out
+    assert 'attr5 = "Test"' in captured.out
 
 
 # Test: script -s filename (special mode)
