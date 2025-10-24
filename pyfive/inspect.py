@@ -95,6 +95,8 @@ def dump_header(obj, indent, real_dimensions):
             if k not in ommit:
                 if isinstance(v, bytes):
                     v = f'"{v.decode("utf-8")}"'
+                elif isinstance(v,str):
+                    v = f'"{v}"'
                 print(f"{indent}{dindent}{dindent}{name}:{k} = {v} ;")
 
     dims = set()
