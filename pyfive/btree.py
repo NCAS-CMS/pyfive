@@ -22,6 +22,7 @@ class AbstractBTree(object):
         self.offset = offset
         self.depth = None
         self.all_nodes = {}
+        self.last_offset = offset
 
         self._read_root_node()
         self._read_children()
@@ -53,6 +54,7 @@ class AbstractBTree(object):
         node = self._read_node_header(offset, node_level)
         node['keys'] = []
         node['addresses'] = []
+        self.last_offset=max(offset,self.last_offset)
         return node
 
     def _read_node_header(self, offset):

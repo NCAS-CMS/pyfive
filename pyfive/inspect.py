@@ -86,7 +86,7 @@ def gather_dimensions(obj, alldims, phonys, real_dimensions):
     return obj, alldims, phonys
 
 
-def dump_header(obj, indent, real_dimensions):
+def dump_header(obj, indent, real_dimensions, special):
     """ Pretty print a group within an HDF5 file (including the root group) """
 
     def printattr(attrs, ommit=[]):
@@ -139,6 +139,18 @@ def dump_header(obj, indent, real_dimensions):
                  'REFERENCE_LIST','DIMENSION_LIST','DIMENSION_LABELS','_Netcdf4Coordinates']
         
         printattr(ds.attrs, ommit)
+
+        if special:
+            extras = {}
+            if ds.id._index_params:
+                extras['_n_chunks'] = ds.id.get_num_chunks()
+                extras['_chunk_shape'] = ds.id.chunks
+                extras['_btree_range'] = ds.id.btree_range
+                extras['_first_chunk'] = ds.id.get_chunk_info(0).byte_offset
+            if ds.compression:
+                extras['_compression'] = ds.compression+f'({ds.compression_opts})'
+            printattr(extras,[])
+
        
     if isinstance(obj, File):
         hstr='// global '
@@ -159,9 +171,6 @@ def dump_header(obj, indent, real_dimensions):
 
 def p5ncdump(file_path, special=False):
 
-    if special:
-        raise NotImplementedError
-
     # handle posix and S3 differently
     filename = getattr(file_path,'full_name', None)
     if filename is None:
@@ -177,7 +186,7 @@ def p5ncdump(file_path, special=False):
             # ok, go for it
             print(f"File: {filename} "+'{')
             indent = ''
-            dump_header(f, indent, real_dimensions)
+            dump_header(f, indent, real_dimensions, special)
             print('}')
 
     except NotImplementedError as e:

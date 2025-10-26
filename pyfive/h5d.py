@@ -142,9 +142,11 @@ class DatasetID:
         """
         Retrieve storage information about a chunk specified by its index.
         """
-        if not self._index:
-            return None
+        if self._index_params is None:
+             raise ValueError('No chunk detail available for HDF layout class {self.layout}')
         else:
+            if not self.__index_built:
+                self._build_index()
             return self._index[self._nthindex[index]]
 
     def get_chunk_info_by_coord(self, coordinate_index):
@@ -161,6 +163,11 @@ class DatasetID:
         """ 
         Return total number of chunks in dataset
         """
+        if self._index_params is None:
+             raise ValueError('No chunk detail available for HDF layout class {self.layout}')
+        else:
+            if not self.__index_built:
+                self._build_index()
         return len(self._index)
     
     def read_direct_chunk(self, chunk_position, **kwargs):
@@ -354,8 +361,7 @@ class DatasetID:
         self._nthindex = []
         
         for node in chunk_btree.all_nodes[0]:
-            self._btree_start=node['addresses'][0]
-            self._btree_end=node['addresses'][0]
+           
             for node_key, addr in zip(node['keys'], node['addresses']):
                 start = node_key['chunk_offset'][:-1]
                 key = start
@@ -363,7 +369,10 @@ class DatasetID:
                 filter_mask = node_key['filter_mask']
                 self._nthindex.append(key)
                 self._index[key] = StoreInfo(key, filter_mask, addr, size)
-                self._btree_end=max(addr,self._btree_end)
+               
+
+        self._btree_start=chunk_btree.offset
+        self._btree_end=chunk_btree.last_offset
 
         self.__index_built=True
 
