@@ -17,9 +17,10 @@ from pyfive.core import UNDEFINED_ADDRESS
 from pyfive.btree import BTreeV1Groups, BTreeV1RawDataChunks
 from pyfive.btree import BTreeV2GroupNames, BTreeV2GroupOrders
 from pyfive.btree import BTreeV2AttrCreationOrder, BTreeV2AttrNames
-from pyfive.btree import GZIP_DEFLATE_FILTER, SHUFFLE_FILTER, FLETCH32_FILTER
+from pyfive.btree import GZIP_DEFLATE_FILTER, SHUFFLE_FILTER, FLETCH32_FILTER, LZF_FILTER
 from pyfive.misc_low_level import Heap, SymbolTable, GlobalHeap, FractalHeap, GLOBAL_HEAP_ID, _decode_array, dtype_replace_refs_with_object
 from pyfive.p5t import P5Type, P5StringType, P5CompoundType, P5VlenStringType, P5ReferenceType, P5SequenceType, P5EnumType
+from pyfive.indexing import OrthogonalIndexer, ZarrArrayStub
 from pyfive.h5py import Empty
 from pyfive.h5d import DatasetID
 
@@ -387,6 +388,8 @@ class DataObjects(object):
             return None
         if GZIP_DEFLATE_FILTER in self._filter_ids:
             return 'gzip'
+        elif LZF_FILTER in self._filter_ids:
+            return 'lzf'
         return None
 
     @property

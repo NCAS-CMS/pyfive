@@ -18,12 +18,15 @@ def generate_data():
 
 
 @pytest.mark.parametrize("chunk_size", [None, (10, 10), (20, 20)], ids=lambda x: f"chunk_{x}")
-@pytest.mark.parametrize("compression", [None, 9], ids=lambda x: f"compression_{x}")
+@pytest.mark.parametrize("compression", [None, 9, "lzf"], ids=lambda x: f"compression_{x}")
 @pytest.mark.parametrize("shuffle", [True, False], ids=lambda x: f"shuffle_{x}")
 @pytest.mark.parametrize("fletcher32", [True, False], ids=lambda x: f"fletcher32_{x}")
 def test_hdf5_filters(modular_tmp_path, generate_data, chunk_size, compression, shuffle, fletcher32):
+    if compression == "lzf" and chunk_size is None and shuffle is True:
+        pytest.xfail(reason="lzf compression requires chunk_size with shuffle=True")
+
     data = generate_data
-    file_name = f"test_{chunk_size}_{compression}_{shuffle}_{fletcher32}.hdf5"
+    file_name = modular_tmp_path / f"test_{chunk_size}_{compression}_{shuffle}_{fletcher32}.hdf5"
 
     with h5py.File(file_name, "w") as f:
         f.create_dataset("data", data=data, chunks=chunk_size, shuffle=shuffle, fletcher32=fletcher32, compression=compression)
