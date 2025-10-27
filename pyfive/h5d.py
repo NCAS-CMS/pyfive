@@ -343,6 +343,8 @@ class DatasetID:
         # look out for an empty dataset, which will have no btree
         if np.prod(self.shape) == 0 or self._index_params.chunk_address == UNDEFINED_ADDRESS:
             self._index = {}
+            #FIXME: There are other edge cases for self._index = {} to handle
+            self._btree_end, self._btree_start = None, None
             return
         
         logging.info(f'Building chunk index in pyfive {version("pyfive")}')

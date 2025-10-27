@@ -151,6 +151,7 @@ class BTreeV1RawDataChunks(BTreeV1):
             addresses.append(chunk_address)
         node['keys'] = keys
         node['addresses'] = addresses
+        self.last_offset=max(offset,self.last_offset)
         return node
 
 
