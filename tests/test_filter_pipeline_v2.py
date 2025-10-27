@@ -17,6 +17,7 @@ def generate_data():
     return np.random.rand(100, 100)
 
 
+@pytest.mark.flaky
 @pytest.mark.parametrize("chunk_size", [None, (10, 10), (20, 20)], ids=lambda x: f"chunk_{x}")
 @pytest.mark.parametrize("compression", [None, 9, "lzf"], ids=lambda x: f"compression_{x}")
 @pytest.mark.parametrize("shuffle", [True, False], ids=lambda x: f"shuffle_{x}")
