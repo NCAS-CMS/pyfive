@@ -1,13 +1,20 @@
-""" Test pyfive's abililty to read multidimensional datasets. """
+""" 
+Test pyfive's abililty to read multidimensional datasets
+and variants of the chunk index accesses 
+"""
 import os
 
 import numpy as np
 from numpy.testing import assert_array_equal
 
 import pyfive
+from pyfive.h5d import StoreInfo
+import pytest
 
 DIRNAME = os.path.dirname(__file__)
 DATASET_CHUNKED_HDF5_FILE = os.path.join(DIRNAME, "data", 'chunked.hdf5')
+
+NOT_CHUNKED_FILE = os.path.join(DIRNAME, "data", 'issue23_A_contiguous.nc')
 
 
 def test_lazy_index():
@@ -47,6 +54,54 @@ def test_lazy_visititems():
 
         assert hfile.visititems(simpler_check,noindex=True) is None
         assert hfile.visititems(simplest_check) is None
+
+
+def test_get_chunk_info_chunked():
+
+    # start lazy, then go real
+
+      with pyfive.File(DATASET_CHUNKED_HDF5_FILE) as hfile:
+
+        ds = hfile.get_lazy_view('dataset1')
+        assert ds.id._DatasetID__index_built==False
+
+        si = StoreInfo((0,0), 0, 4016, 16)
+        info = ds.id.get_chunk_info(0)
+        assert info == si
+
+        assert ds.id.get_num_chunks() == 88
+    
+        assert ds.id.btree_range == (1072, 8680)
+    
+
+def test_get_chunk_methods_contiguous():
+
+    with pyfive.File(NOT_CHUNKED_FILE) as hfile:
+
+        ds = hfile.get_lazy_view('q')
+        assert ds.id._DatasetID__index_built==False
+
+        with pytest.raises(TypeError):
+            ds.id.get_chunk_info(0)
+
+        with pytest.raises(TypeError):
+            ds.id.get_num_chunks()
+
+        with pytest.raises(TypeError):
+            ds.id.read_direct_chunk(0)
+
+        with pytest.raises(TypeError):
+            ds.id.btree_range
+
+        
+
+        
+
+
+
+
+
+
 
 
 

@@ -138,44 +138,52 @@ class DatasetID:
         """
         return self._unique == other._unique
 
+    def __chunk_init_check(self):
+        """ 
+        Used by all the chunk methods to see if this dataset is
+        chunked, and if so, if the index is present, and if not,
+        build it. Otherwise handle errors etc.
+        """
+        if self.layout_class != 2:
+            raise TypeError('Dataset is not chunked ')
+        return not self.index == {}
+
+
     def get_chunk_info(self, index):
         """
         Retrieve storage information about a chunk specified by its index.
         """
-        if self._index_params is None:
-             raise ValueError('No chunk detail available for HDF layout class {self.layout}')
-        else:
-            if not self.__index_built:
-                self._build_index()
+        if self.__chunk_init_check():
             return self._index[self._nthindex[index]]
+        else:
+            return None
+
 
     def get_chunk_info_by_coord(self, coordinate_index):
         """
         Retrieve information about a chunk specified by the array address of the chunk’s 
         first element in each dimension.
         """
-        if not self._index:
-            return None
-        else:
+        if self.__chunk_init_check():
             return self._index[coordinate_index]
+        else:
+            return None
     
     def get_num_chunks(self):
         """ 
         Return total number of chunks in dataset
         """
-        if self._index_params is None:
-             raise ValueError('No chunk detail available for HDF layout class {self.layout}')
+        if self.__chunk_init_check():
+            return len(self._index)
         else:
-            if not self.__index_built:
-                self._build_index()
-        return len(self._index)
+            return 0
     
     def read_direct_chunk(self, chunk_position, **kwargs):
         """
         Returns a tuple containing the filter_mask and the raw data storing this chunk as bytes.
         Additional arguments supported by ``h5py`` are not supported here.
         """
-        if not self.index:
+        if not self.__chunk_init_check():
             return None
         if chunk_position not in self._index:
             raise OSError("Chunk coordinates must lie on chunk boundaries")
@@ -229,9 +237,9 @@ class DatasetID:
         intersection of the given chunk with the selection area. 
         This can be used to read data in that chunk.
         """
-        if self.chunks is None:
-            raise TypeError('Dataset is not chunked')
-        
+        if not self.__chunk_init_check():
+            return None
+
         def convert_selection(tuple_of_slices):
             # while a slice of the form slice(a,b,None) is equivalent
             # in function to a slice of form (a,b,1) it is not the same.
@@ -265,12 +273,13 @@ class DatasetID:
     @property
     def index(self):
         """ Direct access to the chunk index, if there is one. This is a ``pyfive`` API extension. """
-        if self._index_params is None:
-            raise ValueError('No chunk index available for HDF layout class {self.layout}')
-        else:
-            if not self.__index_built:
-                self._build_index()
-            return self._index
+        # can't use init_chunk_check because that would be an infinite regression
+        if self.layout_class != 2:
+            raise TypeError("Data is not chunked") 
+        if not self._index:
+            self._build_index()
+        return self._index
+        
 
     ##### This property is made available to help understand object store performance
     @property
@@ -281,12 +290,8 @@ class DatasetID:
         may be of use in understanding the read performance of chunked
         data in object stores.  ``btree_range`` is a ``pyfive`` API extgension.
         """
-        if self._index_params is None:
-             raise ValueError('No b-tree available for HDF layout class {self.layout}')
-        else:
-            if not self.__index_built:
-                self._build_index()
-            return (self._btree_start, self._btree_end)
+        self.__chunk_init_check()
+        return (self._btree_start, self._btree_end)
 
     #### The following method can be used to set pseudo chunking size after the 
     #### file has been closed and before data transactions. This is pyfive specific
