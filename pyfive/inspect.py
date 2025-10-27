@@ -141,14 +141,14 @@ def dump_header(obj, indent, real_dimensions, special):
         printattr(ds.attrs, ommit)
 
         if special:
-            extras = {}
-            if ds.id._index_params:
+            extras = {'_Storage':{0:'Compact',1:'Contiguous',2:'Chunked'}[ds.id.layout_class]}
+            if ds.id.layout_class==2:
                 extras['_n_chunks'] = ds.id.get_num_chunks()
                 extras['_chunk_shape'] = ds.id.chunks
                 extras['_btree_range'] = ds.id.btree_range
                 extras['_first_chunk'] = ds.id.get_chunk_info(0).byte_offset
-            if ds.compression:
-                extras['_compression'] = ds.compression+f'({ds.compression_opts})'
+                if ds.compression:
+                    extras['_compression'] = ds.compression+f'({ds.compression_opts})'
             printattr(extras,[])
 
        
