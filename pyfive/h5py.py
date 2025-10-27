@@ -5,6 +5,7 @@
 
 from pyfive.datatype_msg import DatatypeMessage
 from pyfive.h5t import TypeID, TypeEnumID, TypeCompoundID
+from pyfive.p5t import P5EnumType, P5CompoundType
 
 import numpy as np
 from pathlib import PurePosixPath
@@ -12,27 +13,26 @@ from pathlib import PurePosixPath
 class Datatype:
     """ 
     Provides a minimal instantiation of an h5py DataType 
-    suitable for use with enumerations.
+    suitable for use with enumerations, compounds and other types.
     """
     def __init__(self, name, hfile, raw_dtype):
-        id = raw_dtype
-        if isinstance(raw_dtype, tuple):
-            if raw_dtype[0] == "ENUMERATION":
-                id = TypeEnumID(raw_dtype[1:])
-            elif raw_dtype[0] == "COMPOUND":
-                id = TypeCompoundID(raw_dtype[1])
-            elif raw_dtype[0] == "VLEN_SEQUENCE":
-                id = TypeID(raw_dtype[1])
+        # raw_dtype is P5Type
+        if isinstance(raw_dtype, P5EnumType):
+            id = TypeEnumID(raw_dtype)
+        elif isinstance(raw_dtype, P5CompoundType):
+            id = TypeCompoundID(raw_dtype)
         else:
-            id = TypeID(id)
+            id = TypeID(raw_dtype)
         self.id = id
         path = PurePosixPath(name)
         self.name = path.name
         self.parent = str(path.parent) if str(path.parent) != '' else '/'
         self.file = hfile
+
     @property
     def dtype(self):
         return self.id.dtype
+
     def __str__(self):
         return f'<HDF5 named type "{self.name}" (dtype {self.id.kind})>'
     

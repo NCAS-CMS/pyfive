@@ -183,9 +183,18 @@ class BTreeV1RawDataChunks(BTreeV1):
                 cls._verify_fletcher32(chunk_buffer)
                 # strip off 4-byte checksum from end of buffer
                 chunk_buffer = chunk_buffer[:-4]
+            elif filter_id == LZF_FILTER:
+                try:
+                    import lzf
+                except ImportError as e:
+                    raise ModuleNotFoundError(
+                        "LZF codec requires optional package 'python-lzf'."
+                    ) from e
+                uncompressed_len = struct.unpack(">H", chunk_buffer[:2])[0]
+                chunk_buffer = lzf.decompress(chunk_buffer, uncompressed_len)
             else:
                 raise NotImplementedError(
-                    "Filter with id: %i import supported" % (filter_id))
+                    "Filter with id: %i import not supported" % (filter_id))
         return chunk_buffer
 
     @staticmethod
@@ -196,15 +205,13 @@ class BTreeV1RawDataChunks(BTreeV1):
             arr = np.frombuffer(chunk_buffer[:-4]+b'\x00', '<u2')
         else:
             arr = np.frombuffer(chunk_buffer[:-4], '<u2')
-        sum1 = sum2 = 0
+        sum1 = sum2 = np.uint32(0)
         for i in arr:
             sum1 = (sum1 + i) % 65535
             sum2 = (sum2 + sum1) % 65535
 
         # extract stored checksums
         ref_sum1, ref_sum2 = np.frombuffer(chunk_buffer[-4:], '>u2')
-        ref_sum1 = ref_sum1 % 65535
-        ref_sum2 = ref_sum2 % 65535
 
         # compare
         if sum1 != ref_sum1 or sum2 != ref_sum2:
@@ -423,6 +430,7 @@ FLETCH32_FILTER = 3
 SZIP_FILTER = 4
 NBIT_FILTER = 5
 SCALEOFFSET_FILTER = 6
+LZF_FILTER = 32000
 
 
 # Attribute message B-Tree node types

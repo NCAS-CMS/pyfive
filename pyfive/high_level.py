@@ -140,7 +140,7 @@ class Group(Mapping):
             is_datatype = True
 
         if is_datatype:
-            return Datatype(obj_name, self.file, dataobjs.dtype) 
+            return Datatype(obj_name, self.file, dataobjs.ptype)
         else:
             return Group(obj_name, dataobjs, self)[additional_obj]
 

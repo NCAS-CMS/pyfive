@@ -4,7 +4,8 @@ from operator import mul
 from pyfive.indexing import OrthogonalIndexer, ZarrArrayStub
 from pyfive.btree import BTreeV1RawDataChunks
 from pyfive.core import Reference, UNDEFINED_ADDRESS
-from pyfive.misc_low_level import get_vlen_string_data_contiguous, get_vlen_string_data_from_chunk
+from pyfive.misc_low_level import get_vlen_string_data_contiguous, get_vlen_string_data_from_chunk, _decode_array, dtype_replace_refs_with_object
+from pyfive.p5t import P5Type, P5CompoundType, P5VlenStringType, P5EnumType, P5StringType, P5OpaqueType, P5ReferenceType, P5SequenceType
 from io import UnsupportedOperation
 
 import struct
@@ -90,21 +91,7 @@ class DatasetID:
         self._msg_offset, self.layout_class,self.property_offset = dataobject.get_id_storage_params()
         self._unique = (self._filename, self.shape, self._msg_offset)
 
-        dtype = dataobject.dtype
-        if isinstance(dtype, tuple):
-            if dtype[0] == 'ENUMERATION':
-                self._dtype = np.dtype(dataobject.dtype[1], metadata={'enum':dataobject.dtype[2]})
-            elif dtype[0] == 'COMPOUND':
-                self._dtype = np.dtype(dataobject.dtype[1])
-            elif dtype[0] == 'OPAQUE':
-                if dtype[1].startswith('NUMPY:'):
-                    self._dtype = np.dtype(dtype[1][6:], metadata={'h5py_opaque': True})
-                else: 
-                    self._dtype = np.dtype('V'+str(dtype[2]), metadata={'h5py_opaque': True})
-            else:
-                self._dtype = dtype
-        else:
-            self._dtype = np.dtype(dtype)
+        self._ptype = dataobject.ptype
 
         self._meta = DatasetMeta(dataobject)
 
@@ -192,41 +179,35 @@ class DatasetID:
 
     def get_data(self, args, fillvalue):
         """ Called by the dataset getitem method """
-        dtype = self._dtype
         # throws a flake8 wobbly for Python<3.10; match is Py3.10+ syntax
+        no_storage = False
         match self.layout_class:  # noqa
             case 0:  #compact storage
-                return self._read_compact_data(args, fillvalue)
+                if self._data is None:
+                    no_storage = True
+                else:
+                    return self._read_compact_data(args)
             case 1:  # contiguous storage
                 if self.data_offset == UNDEFINED_ADDRESS:
-                    # no storage is backing array, return an array of
-                    # fill values
-                    if isinstance(dtype, tuple):
-                        dtype = np.array(fillvalue).dtype
-
-                    # Note: We can improve this so only an array of
-                    #       the shape implied by 'args' is
-                    #       created. One for the future.
-                    return np.full(self.shape, fillvalue, dtype=dtype)[args]
+                    no_storage = True
                 else:
                     return self._get_contiguous_data(args, fillvalue)
             case 2:  # chunked storage
                 if not self.__index_built:
                     self._build_index()
                 if not self._index:
-                    # no storage is backing array, return an array of
-                    # fill values
-                    if isinstance(dtype, tuple):
-                        dtype = np.array(fillvalue).dtype
-
-                    return np.full(self.shape, fillvalue, dtype=dtype)[args]
-
-                if isinstance(dtype, tuple) and dtype[0] == "REFERENCE":
-                    # references need to read all the chunks for now
-                    return self._get_selection_via_chunks(())[args]
+                    no_storage = True
                 else:
-                    # this is lazily reading only the chunks we need
-                    return self._get_selection_via_chunks(args)
+                    if isinstance(self._ptype, P5ReferenceType):
+                        # references need to read all the chunks for now
+                        return self._get_selection_via_chunks(())[args]
+                    else:
+                        # this is lazily reading only the chunks we need
+                        return self._get_selection_via_chunks(args)
+
+        if no_storage:
+            return np.full(self.shape, fillvalue, dtype=self.dtype)[args]
+
 
     def iter_chunks(self, args):
         """ 
@@ -319,7 +300,7 @@ class DatasetID:
         is returned for the contiguous data as if it were one chunk.
         """
         if not self._index:
-            dummy =  StoreInfo(None, None, self.data_offset, self._dtype.itemsize*np.prod(self.shape))
+            dummy =  StoreInfo(None, None, self.data_offset, self.dtype.itemsize*np.prod(self.shape))
             return dummy
         else:
             coord_index = tuple(map(mul, chunk_coords, self.chunks))
@@ -385,38 +366,36 @@ class DatasetID:
 
     def _get_contiguous_data(self, args, fillvalue):
 
-        if isinstance(self._dtype, tuple):
-            dtype_class = self._dtype[0]
-            if dtype_class == 'REFERENCE':
-                size = self._dtype[1]
-                if size != 8:
-                    raise NotImplementedError('Unsupported Reference type - size {size}')
+        if isinstance(self._ptype, P5ReferenceType):
+            size = self._ptype.size
+            if size != 8:
+                raise NotImplementedError(f'Unsupported Reference type - size {size}')
 
-                fh = self._fh
-                ref_addresses = np.memmap(
-                    fh, dtype=('<u8'), mode='c', offset=self.data_offset,
-                    shape=self.shape, order=self._order)
-                result = np.array([Reference(addr) for addr in ref_addresses])[args]
-                if self.posix:
-                    fh.close()
+            fh = self._fh
+            ref_addresses = np.memmap(
+                fh, dtype=('<u8'), mode='c', offset=self.data_offset,
+                shape=self.shape, order=self._order)
+            result = np.array([Reference(addr) for addr in ref_addresses])[args]
+            if self.posix:
+                fh.close()
 
-                return result
-            elif dtype_class == 'VLEN_STRING':
-                fh = self._fh
-                array = get_vlen_string_data_contiguous(
-                    fh,
-                    self.data_offset,
-                    self._global_heaps,
-                    self.shape,
-                    self._dtype,
-                    fillvalue,
-                )
-                if self.posix:
-                    fh.close()
+            return result
+        elif isinstance(self._ptype, P5VlenStringType):
+            fh = self._fh
+            array = get_vlen_string_data_contiguous(
+                fh,
+                self.data_offset,
+                self._global_heaps,
+                self.shape,
+                self._ptype,
+                fillvalue,
+            )
+            if self.posix:
+                fh.close()
 
-                return array.reshape(self.shape, order=self._order)[args]
-            else:
-                raise NotImplementedError(f'datatype not implemented - {dtype_class}')
+            return array.reshape(self.shape, order=self._order)[args]
+        elif isinstance(self._ptype, P5SequenceType):
+            raise NotImplementedError(f'datatype not implemented - {self._ptype.__class__.__name__}')
 
         if not self.posix:
             # Not posix
@@ -430,7 +409,7 @@ class DatasetID:
                 fh = self._fh
                 view = np.memmap(
                     fh,
-                    dtype=self._dtype,
+                    dtype=self.dtype,
                     mode='c',
                     offset=self.data_offset,
                     shape=self.shape,
@@ -440,6 +419,17 @@ class DatasetID:
                 result = view[args]
                 # Copy the data from disk to physical memory
                 result = result.view(type=np.ndarray)
+                if not self._ptype.is_atomic:
+                    # if we have a type which is not atomic
+                    # we have to get a view
+                    result = result.view(self.dtype)
+                    # and for compounds we have to wrap any References properly
+                    # todo: check for Enum etc types
+                    if isinstance(self._ptype, P5CompoundType):
+                        new_dtype = dtype_replace_refs_with_object(self.dtype)
+                        new_array = np.empty(result.shape, dtype=new_dtype)
+                        new_array[:] = result
+                        result = _decode_array(result, new_array)
                 fh.close()
                 return result
             except UnsupportedOperation:
@@ -465,19 +455,14 @@ class DatasetID:
             raise ValueError("Unknown layout version.")
         return data
 
-    def _read_compact_data(self, args, fillvalue):
-        if self._data is None:
-            if isinstance(self._dtype, tuple):
-                dtype = np.array(fillvalue).dtype
-            return np.full(self.shape, fillvalue, dtype=dtype)[args]
-        else:
-            view = np.frombuffer(
-                self._data,
-                dtype=self._dtype,
-            ).reshape(self.shape)
-            # Create the sub-array
-            result = view[args]
-            return result
+    def _read_compact_data(self, args):
+        view = np.frombuffer(
+            self._data,
+            dtype=self.dtype,
+        ).reshape(self.shape)
+        # Create the sub-array
+        result = view[args]
+        return result
 
 
     def _get_direct_from_contiguous(self, args=None):
@@ -491,7 +476,7 @@ class DatasetID:
         """
         def __get_pseudo_shape():
             """ Determine an appropriate chunk and stride for a given pseudo chunk size """
-            element_size = self._dtype.itemsize
+            element_size = self.dtype.itemsize
             chunk_shape = np.copy(self.shape)
             while True:
                 chunk_size = np.prod(chunk_shape) * element_size
@@ -520,7 +505,7 @@ class DatasetID:
             array = ZarrArrayStub(self.shape, chunk_shape)
             indexer = OrthogonalIndexer(args, array)
             out_shape = indexer.shape
-            out = np.empty(out_shape, dtype=self._dtype, order=self._order)
+            out = np.empty(out_shape, dtype=self.dtype, order=self._order)
             chunk_size = np.prod(chunk_shape)
 
             for chunk_coords, chunk_selection, out_selection in indexer:
@@ -528,10 +513,10 @@ class DatasetID:
                 index = int(index)
                 fh.seek(index)
                 chunk_buffer = fh.read(stride)
-                chunk_data = np.frombuffer(chunk_buffer, dtype=self._dtype).copy()
+                chunk_data = np.frombuffer(chunk_buffer, dtype=self.dtype).copy()
                 if len(chunk_data) < chunk_size:
                     # last chunk over end of file
-                    padded_chunk_data = np.zeros(chunk_size, dtype=self._dtype)
+                    padded_chunk_data = np.zeros(chunk_size, dtype=self.dtype)
                     padded_chunk_data[:len(chunk_data)] = chunk_data
                     chunk_data = padded_chunk_data
                 out[out_selection] = chunk_data.reshape(chunk_shape, order=self._order)[chunk_selection]
@@ -542,7 +527,7 @@ class DatasetID:
             return out
 
         else:
-            itemsize = np.dtype(self._dtype).itemsize
+            itemsize = self.dtype.itemsize
             num_elements = np.prod(self.shape, dtype=int)
             num_bytes = num_elements*itemsize
 
@@ -550,7 +535,7 @@ class DatasetID:
             # read the lot)
             fh.seek(self.data_offset)
             chunk_buffer = fh.read(num_bytes) 
-            chunk_data = np.frombuffer(chunk_buffer, dtype=self._dtype).copy()
+            chunk_data = np.frombuffer(chunk_buffer, dtype=self.dtype).copy()
             chunk_data = chunk_data.reshape(self.shape, order=self._order)
             chunk_data = chunk_data[args]
             if self.posix:
@@ -577,21 +562,14 @@ class DatasetID:
 
         """
         # need a local dtype as we may override it for a reference read.
-        dtype = self._dtype
-        if isinstance(self._dtype, tuple): 
+        dtype = self.dtype
+        if isinstance(self._ptype, P5ReferenceType):
             # this is a reference and we're returning that
-            true_dtype = tuple(dtype)
-            dtype_class = dtype[0]
-            if dtype_class == 'REFERENCE':
-                size = dtype[1]
-                dtype = '<u8'
-                if size != 8:
-                    raise NotImplementedError('Unsupported Reference type')
-            elif dtype_class == 'VLEN_STRING':
-                dtype = self.dtype
+            size = self._ptype.size
+            dtype = '<u8'
+            if size != 8:
+                raise NotImplementedError('Unsupported Reference type')
         else:
-            true_dtype = None
-            dtype_class = None
             if np.prod(self.shape) == 0:
                 return np.zeros(self.shape)
 
@@ -600,13 +578,12 @@ class DatasetID:
         out_shape = indexer.shape
         out = np.empty(out_shape, dtype=dtype, order=self._order)
 
-        if dtype_class == 'VLEN_STRING':
+        if isinstance(self._ptype, P5VlenStringType):
             fh = self._fh
             
             chunk_shape = self.chunks
             global_heaps = self._global_heaps
             index = self._index
-            _dtype = self._dtype
             for chunk_coords, chunk_selection, out_selection in indexer:
                 chunk_coords = tuple(map(mul, chunk_coords, self.chunks))
                 chunk_data = get_vlen_string_data_from_chunk(
@@ -614,7 +591,7 @@ class DatasetID:
                     index[chunk_coords].byte_offset,
                     global_heaps,
                     chunk_shape,
-                    _dtype
+                    self._ptype
                 )
                 chunk_data  = chunk_data.reshape(chunk_shape)
                 out[out_selection] = chunk_data[chunk_selection]
@@ -637,13 +614,13 @@ class DatasetID:
                         chunk_buffer,
                         filter_mask,
                         self.filter_pipeline,
-                        self._dtype.itemsize
+                        self.dtype.itemsize
                     )
                 chunk_data = np.frombuffer(chunk_buffer, dtype=dtype)
                 chunk_data = chunk_data.reshape(self.chunks, order=self._order)
                 out[out_selection] = chunk_data[chunk_selection]
 
-        if dtype_class == 'REFERENCE':
+        if isinstance(self._ptype, P5ReferenceType):
             to_reference = np.vectorize(Reference)
             out = to_reference(out)
 
@@ -677,11 +654,16 @@ class DatasetID:
 
     @property
     def dtype(self):
-        if isinstance(self._dtype, tuple):
-            if  self._dtype[0] == 'VLEN_STRING':
-                return np.dtype("O")
-        return self._dtype
+        """
+        Return numpy dtype of the dataset.
+        """
+        return self._ptype.dtype
 
+    def get_type(self):
+        """
+        Return pyfive type of the dataset.
+        """
+        return self._ptype
 
 
 class DatasetMeta:
@@ -699,7 +681,7 @@ class DatasetMeta:
         self.fletcher32 = dataobject.fletcher32
         self.fillvalue = dataobject.fillvalue
         self.attributes = dataobject.get_attributes()
-        self.datatype = dataobject.dtype
+        self.datatype = dataobject.ptype
 
         #horrible kludge for now, this isn't really the same sort of thing
         #https://github.com/NCAS-CMS/pyfive/issues/13#issuecomment-2557121461
