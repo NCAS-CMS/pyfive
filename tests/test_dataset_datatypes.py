@@ -150,12 +150,11 @@ def test_vlen_dataset_datatypes(dataset_datatypes_hdf5, base, width, endian):
     ref_data[3] = np.array([0, 1, 2, 3], dtype)
 
     with pyfive.File(dataset_datatypes_hdf5) as hfile:
-
-        assert hfile[f"vlen_{tstr}_type"].dtype == dtype
+        assert hfile[f"vlen_{tstr}_type"].dtype == np.dtype("O", metadata={"vlen": dtype})
         assert isinstance(hfile[f"vlen_{tstr}_type"].id, pyfive.h5t.TypeID)
 
         # vlen sequence isn't implemented yet
-        with pytest.raises(NotImplementedError, match="datatype not implemented - VLEN_SEQUENCE"):
+        with pytest.raises(NotImplementedError, match="datatype not implemented - P5SequenceType"):
             assert_array_equal(hfile[f"vlen_{tstr}"][:], ref_data)
 
 

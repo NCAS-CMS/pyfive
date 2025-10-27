@@ -3,6 +3,7 @@ import os
 import sys
 import subprocess
 
+import h5py
 import numpy as np
 from numpy.testing import assert_array_equal
 import pytest
@@ -121,7 +122,7 @@ def test_string_array_attr_datatypes(attr_datatypes_hdf5):
         assert hfile.attrs['vlen_str_array1'][1] == 'World!'
 
         assert hfile.attrs['vlen_str_array1'].dtype == np.dtype('O')
-        assert hfile.attrs['vlen_str_array1'].dtype.metadata == {'h5py_encoding': 'utf-8'}
+        assert hfile.attrs['vlen_str_array1'].dtype.metadata == {'vlen': bytes}
 
 
 def test_vlen_sequence_attr_datatypes():
