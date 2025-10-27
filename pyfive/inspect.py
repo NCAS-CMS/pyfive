@@ -2,6 +2,12 @@ from pathlib import Path
 
 from pyfive import Dataset, Group, File 
 
+def safe_print(*args, **kwargs):
+    try:
+        print(*args, **kwargs)
+    except BrokenPipeError:
+        raise SystemExit(1)
+
 def clean_types(dtype):
     """Convert a numpy dtype to classic ncdump type string."""
     # Strip endianness (> or <) and map to ncdump types
@@ -97,7 +103,7 @@ def dump_header(obj, indent, real_dimensions, special):
                     v = f'"{v.decode("utf-8")}"'
                 elif isinstance(v,str):
                     v = f'"{v}"'
-                print(f"{indent}{dindent}{dindent}{name}:{k} = {v} ;")
+                safe_print(f"{indent}{dindent}{dindent}{name}:{k} = {v} ;")
 
     dims = set()
     datasets = {}
@@ -117,10 +123,10 @@ def dump_header(obj, indent, real_dimensions, special):
     for ds in datasets.values():
         ds, dims, phonys = gather_dimensions(ds, dims, phonys, real_dimensions)
     if dims:
-        print(f"{indent}dimensions:")
+        safe_print(f"{indent}dimensions:")
     dindent = '        '
     for d in dims:
-        print(f'{indent}{dindent}{d[0]} = {d[1]};')
+        safe_print(f'{indent}{dindent}{d[0]} = {d[1]};')
     
     print(f"{indent}variables:")
     for name,ds in datasets.items():
@@ -132,7 +138,7 @@ def dump_header(obj, indent, real_dimensions, special):
         if hasattr(ds,'__inspected_dims'):
             dim_names = [d[0] for d in ds.__inspected_dims]
             dim_str = "(" + ", ".join(dim_names) + ")" if dim_names else ""
-            print(f"{indent}{dindent}{dtype_str} {name}{dim_str} ;")
+            safe_print(f"{indent}{dindent}{dtype_str} {name}{dim_str} ;")
 
         # Attributes
         ommit = ['CLASS','NAME','_Netcdf4Dimid',
@@ -158,15 +164,15 @@ def dump_header(obj, indent, real_dimensions, special):
     elif isinstance(obj, Group):
         hstr=f'{indent}// group '
     if obj.attrs:
-        print(hstr+'attributes:')
-        printattr(obj.attrs, ['_NCProperties'])
+        safe_print(hstr+'attributes:')
+        safe_printattr(obj.attrs, ['_NCProperties'])
         
     if groups:
         for g,o in groups.items():
-            print(f'{indent}group: {g} '+'{')
+            safe_print(f'{indent}group: {g} '+'{')
             gindent = indent+' '
             dump_header(o,gindent,real_dimensions)
-            print(gindent+'}'+f' // group {g}')
+            safe_print(gindent+'}'+f' // group {g}')
    
 
 
@@ -185,10 +191,10 @@ def p5ncdump(file_path, special=False):
             real_dimensions = collect_dimensions_from_root(f)
     
             # ok, go for it
-            print(f"File: {filename} "+'{')
+            safe_print(f"File: {filename} "+'{')
             indent = ''
             dump_header(f, indent, real_dimensions, special)
-            print('}')
+            safe_print('}')
 
     except NotImplementedError as e:
         if 'unsupported superblock' in str(e):
