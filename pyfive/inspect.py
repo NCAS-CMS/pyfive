@@ -165,13 +165,13 @@ def dump_header(obj, indent, real_dimensions, special):
         hstr=f'{indent}// group '
     if obj.attrs:
         safe_print(hstr+'attributes:')
-        safe_printattr(obj.attrs, ['_NCProperties'])
+        printattr(obj.attrs, ['_NCProperties'])
         
     if groups:
         for g,o in groups.items():
             safe_print(f'{indent}group: {g} '+'{')
             gindent = indent+' '
-            dump_header(o,gindent,real_dimensions)
+            dump_header(o,gindent,real_dimensions, special=special)
             safe_print(gindent+'}'+f' // group {g}')
    
 

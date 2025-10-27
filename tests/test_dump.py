@@ -27,9 +27,8 @@ def test_old_hd5_with_groups(capsys):
 
 # Test: script -s filename (special mode)
 def test_main_special_real():
-    filename = "tests/data/sample.nc"
-    with pytest.raises(NotImplementedError):
-        assert main(["-s", filename]) == 0
+    filename = EARLIEST_HDF5_FILE
+    assert main(["-s", filename]) == 0
 
 # Test: -h should print help
 def test_main_help_real(capsys):
