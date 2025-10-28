@@ -49,6 +49,7 @@ test = [
     "pytest>6.0.0",
     "pytest-cov>=2.10.1",
     "pytest-html!=2.1.0",
+    "pytest-rerunfailures",
     "pytest-xdist",
     "dask",
     "flake8",
@@ -97,6 +98,7 @@ addopts = [
     "--cov-report=xml:test-reports/coverage.xml",
     "--cov-report=html:test-reports/coverage_html",
     "--html=test-reports/report.html",
+    "--reruns=3",
 ]
 
 [tool.coverage.run]
