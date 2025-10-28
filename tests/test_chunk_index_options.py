@@ -10,6 +10,7 @@ from numpy.testing import assert_array_equal
 import pyfive
 from pyfive.h5d import StoreInfo
 import pytest
+import h5py
 
 DIRNAME = os.path.dirname(__file__)
 DATASET_CHUNKED_HDF5_FILE = os.path.join(DIRNAME, "data", 'chunked.hdf5')
@@ -58,9 +59,13 @@ def test_lazy_visititems():
 
 def test_get_chunk_info_chunked():
 
-    # start lazy, then go real
+    # Start lazy, then go real
+    # we think we know what the right answers are, so we hard
+    # code them as well as check that's what h5py would return
 
-      with pyfive.File(DATASET_CHUNKED_HDF5_FILE) as hfile:
+      with pyfive.File(DATASET_CHUNKED_HDF5_FILE) as hfile, \
+            h5py.File(DATASET_CHUNKED_HDF5_FILE) as h5f, \
+            open(DATASET_CHUNKED_HDF5_FILE, "rb") as f:
 
         ds = hfile.get_lazy_view('dataset1')
         assert ds.id._DatasetID__index_built==False
@@ -68,10 +73,17 @@ def test_get_chunk_info_chunked():
         si = StoreInfo((0,0), 0, 4016, 16)
         info = ds.id.get_chunk_info(0)
         assert info == si
+        assert h5f["dataset1"].id.get_chunk_info(0) == si
 
         assert ds.id.get_num_chunks() == 88
+        assert h5f["dataset1"].id.get_num_chunks() == 88
     
         assert ds.id.btree_range == (1072, 8680)
+        f.seek(1072)
+        assert f.read(4) == b"TREE"  # only v1 btrees
+        f.seek(8680)
+        assert f.read(4) == b"TREE"  # only v1 btrees
+
     
 
 def test_get_chunk_methods_contiguous():
