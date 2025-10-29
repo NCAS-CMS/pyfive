@@ -98,7 +98,6 @@ addopts = [
     "--cov-report=xml:test-reports/coverage.xml",
     "--cov-report=html:test-reports/coverage_html",
     "--html=test-reports/report.html",
-    "--reruns=3",
 ]
 
 [tool.coverage.run]
