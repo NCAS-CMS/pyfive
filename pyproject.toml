@@ -49,6 +49,7 @@ test = [
     "pytest>6.0.0",
     "pytest-cov>=2.10.1",
     "pytest-html!=2.1.0",
+    "pytest-rerunfailures",
     "pytest-xdist",
     "dask",
     "flake8",
