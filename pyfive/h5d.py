@@ -261,7 +261,6 @@ class DatasetID:
             self._build_index()
         return self._index
         
-
     ##### This property is made available to help understand object store performance
     @property
     def btree_range(self):
@@ -269,10 +268,23 @@ class DatasetID:
         for this variable, and the address of the furthest away node
         (Which may not be the last one in the chunk index). This property
         may be of use in understanding the read performance of chunked
-        data in object stores.  ``btree_range`` is a ``pyfive`` API extgension.
+        data in object stores.  ``btree_range`` is a ``pyfive`` API extension.
         """
         self.__chunk_init_check()
         return (self._btree_start, self._btree_end)
+
+
+    ##### This property is made available to help understand object store performance
+    @property
+    def first_chunk(self):
+        """The integer address of the first data chunk for this variable.
+        
+        This property may be of use in understanding the read
+        performance of chunked data in object stores.  ``first_chunk``
+        is a ``pyfive`` API extension.
+        """
+        self.__chunk_init_check()
+        return self.get_chunk_info(0).byte_offset
 
     #### The following method can be used to set pseudo chunking size after the 
     #### file has been closed and before data transactions. This is pyfive specific

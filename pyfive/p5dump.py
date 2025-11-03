@@ -7,7 +7,7 @@ def main(argv=None):
     Provides some of the functionality of tools like ncdump and h5dump.
     By default this will attempt to do something similar to ncdump.
     - h will return this information
-    - will provide additional information
+    - s will provide additional information, especially for chunked datasets.
     """
     if argv is None:
         argv = sys.argv[1:]  # ignore script name

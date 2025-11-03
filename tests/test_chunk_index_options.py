@@ -84,6 +84,7 @@ def test_get_chunk_info_chunked():
         f.seek(8680)
         assert f.read(4) == b"TREE"  # only v1 btrees
 
+        assert ds.id.first_chunk == si.byte_offset
     
 
 def test_get_chunk_methods_contiguous():
@@ -104,6 +105,9 @@ def test_get_chunk_methods_contiguous():
 
         with pytest.raises(TypeError):
             ds.id.btree_range
+
+        with pytest.raises(TypeError):
+            ds.id.first_chunk
 
         
 

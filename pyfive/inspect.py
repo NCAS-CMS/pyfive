@@ -153,7 +153,7 @@ def dump_header(obj, indent, real_dimensions, special):
                 if extras['_n_chunks'] != 0:
                     extras['_chunk_shape'] = ds.id.chunks
                     extras['_btree_range'] = ds.id.btree_range
-                    extras['_first_chunk'] = ds.id.get_chunk_info(0).byte_offset
+                    extras['_first_chunk'] = ds.id.first_chunk
                 if ds.compression:
                     extras['_compression'] = ds.compression+f'({ds.compression_opts})'
             printattr(extras,[])
@@ -177,6 +177,18 @@ def dump_header(obj, indent, real_dimensions, special):
 
 
 def p5ncdump(file_path, special=False):
+    """
+    Implements a dump functionality which aims to be similar
+    but not idnentical the ncdump utility. The key point of
+    difference is that datatypes are reported using their numpy
+    names (e.g. float64) and that the -s functinoality (special=True)
+    tells us more about the layout of chunked data than ncdump, 
+    including the location of the beginning and ending of 
+    each chunk index B-tree, the number of chunks, and the start 
+    of the first data. These characteristics are documented to
+    help with understanding retrieval performance across networks.
+    """
+
 
     # handle posix and S3 differently
     filename = getattr(file_path,'full_name', None)
