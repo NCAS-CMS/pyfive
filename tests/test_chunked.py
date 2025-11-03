@@ -10,6 +10,7 @@ import pyfive
 
 DIRNAME = os.path.dirname(__file__)
 DATASET_CHUNKED_HDF5_FILE = os.path.join(DIRNAME, "data", 'chunked.hdf5')
+DATASET_BTREEV2_HDF5_FILE = os.path.join(DIRNAME, "data", "btreev2.hdf5")
 
 
 @pytest.fixture(scope='module')
@@ -19,7 +20,7 @@ def data():
 
 @pytest.fixture(scope='module')
 def name(data):
-    name = os.path.join(os.path.dirname(__file__), 'btreev2.hdf5')
+    name = os.path.join(os.path.dirname(__file__), 'btreev2-generated.hdf5')
 
     with h5py.File(name, "w", libver="latest") as f:
         # type 10 record - chunked without filters
@@ -51,8 +52,13 @@ def test_chunked_dataset():
         assert_array_equal(dset1[:], np.arange(21 * 16).reshape((21, 16)))
         assert dset1.chunks == (2, 2)
 
+
 @pytest.mark.skip(reason="Not implemented yet, see https://github.com/NCAS-CMS/pyfive/issues/137")
 def test_chunked_dataset_btreev2(name, data):
     with pyfive.File(name) as hfile:
+        dset1 = hfile['btreev2']
+        assert_array_equal(dset1[...], data)
+
+    with pyfive.File(DATASET_BTREEV2_HDF5_FILE) as hfile:
         dset1 = hfile['btreev2']
         assert_array_equal(dset1[...], data)
