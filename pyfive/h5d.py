@@ -273,7 +273,6 @@ class DatasetID:
         self.__chunk_init_check()
         return (self._btree_start, self._btree_end)
 
-
     ##### This property is made available to help understand object store performance
     @property
     def first_chunk(self):
@@ -282,10 +281,11 @@ class DatasetID:
         This property may be of use in understanding the read
         performance of chunked data in object stores.  ``first_chunk``
         is a ``pyfive`` API extension.
+
         """
         self.__chunk_init_check()
         return self.get_chunk_info(0).byte_offset
-
+        
     #### The following method can be used to set pseudo chunking size after the 
     #### file has been closed and before data transactions. This is pyfive specific
     def set_pseudo_chunk_size(self, newsize_MB):
