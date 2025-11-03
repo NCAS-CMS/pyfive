@@ -175,7 +175,8 @@ class Group(Mapping):
 
         Use of the optional noindex=True will ensure that
         all operations are not only lazy wrt data, but lazy
-        wrt to any chunked data indices.
+        wrt to any chunked data indices. This keyword argument is a ``pyfive``
+        extension to the standard h5py API.
 
         """
         root_name_length = len(self.name)
@@ -348,7 +349,9 @@ class Dataset(object):
         self.name = name
         self._attrs = None
         self._astype = None
+        
         self.id=datasetid
+        """ This is the DatasetID instance which provides the actual data access methods. """
 
         #horrible kludge for now,
         #https://github.com/NCAS-CMS/pyfive/issues/13#issuecomment-2557121461
