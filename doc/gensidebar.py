@@ -62,6 +62,7 @@ def generate_sidebar(conf, conf_api):
     _write("pyfive", "API Reference", "api_reference")
     _write("pyfive", "Additional API Features", "additional")
     _write("pyfive", "Optimising Data Access Speed", "optimising")
+    _write("pyfive", "The p5dump utility", "p5dump")
     _write("pyfive", "Change Log", "changelog")
     # _write("pyfive", "Examples", "examples")
     # _write("pyfive", "Contributing to the community", "community/index")

@@ -285,7 +285,7 @@ class DatasetID:
         """
         self.__chunk_init_check()
         return self.get_chunk_info(0).byte_offset
-        
+
     #### The following method can be used to set pseudo chunking size after the 
     #### file has been closed and before data transactions. This is pyfive specific
     def set_pseudo_chunk_size(self, newsize_MB):
