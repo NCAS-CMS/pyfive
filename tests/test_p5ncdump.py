@@ -12,7 +12,7 @@ def test_which_p5dump():
     assert "bin/p5dump" in wh
 
 
-def test_p5dump_no_file():
+def test_p5dump_cmd():
     """Run a basic p5dump with no/yes file arg."""
     s1 = os.system("p5dump")
     assert s1 is not 0
