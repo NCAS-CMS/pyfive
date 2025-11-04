@@ -263,6 +263,19 @@ class File(Group):
         self.userblock_size = 0
         super(File, self).__init__('/', dataobjects, self)
 
+    @property
+    def is_cloud_optimized(self):
+        is_co = True
+
+        f = self
+        for ds in f:
+            if isinstance(f[ds], Dataset):
+                if f[ds].id.layout_class == 2:
+                    if f[ds].id.btree_range[1] > f[ds].id.first_chunk:
+                        is_co = False
+
+        return is_co
+
     def __repr__(self):
         return '<HDF5 file "%s" (mode r)>' % (os.path.basename(self.filename))
 
