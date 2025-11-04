@@ -2,7 +2,7 @@ p5dump
 ******
 
 ``pyfive`` includes a command line tool ``p5dump`` which can be used to dump the contents of an HDF5 file to the 
-terminal. This is similer to the ``ncdump`` tool included with the NetCDF library, or the ``h5dump`` tool included 
+terminal. This is similar to the ``ncdump`` tool included with the NetCDF library, or the ``h5dump`` tool included 
 with the HDF5 library, but like the rest of pyfive, is implemented in pure Python without any dependencies on the 
 HDF5 C library.
 
