@@ -8,7 +8,7 @@ HDF5 C library.
 
 It is not identical to either of these tools, though the default output is very close to that of ``ncdump``.
 When called with `-s` (e.g ``p5dump -s myfile.hdf5``, or simply ``p5dump myfile.hdf5``) the output provides extra information for chunked
-datsets, including the locations of the start and end of the chunk index b-tree 
+datasets, including the locations of the start and end of the chunk index b-tree 
 and the location of the first data chunk for that variable. This extra information is useful for understanding
 the performance of data access for chunked variables, particularly when accessing data in object stores such as
 S3. In general, if one fineds that the b-tree index continues past the first data chunk, access 
