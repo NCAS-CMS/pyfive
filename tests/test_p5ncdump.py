@@ -1,4 +1,5 @@
 """Test the p5dump executable via p5ncdump utility."""
+import os
 import shutil
 
 import pyfive
@@ -9,6 +10,14 @@ def test_which_p5dump():
     """Run the basic which p5dump."""
     wh = shutil.which("p5dump")
     assert "bin/p5dump" in wh
+
+
+def test_p5dump_no_file():
+    """Run a basic p5dump with no/yes file arg."""
+    s1 = os.system("p5dump")
+    assert s1 is not 0
+    s2 = os.system("p5dump tests/data/groups.hdf5")
+    assert s2 is 0
 
 
 def test_hdf5(capsys):
