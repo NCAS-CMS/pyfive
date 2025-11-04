@@ -1,29 +1,42 @@
 API Reference
 *************
 
+
+File
+-------
+
 .. autoclass:: pyfive.File
    :members:
    :noindex:
-      
-----
+
+Group  
+--------
 
 .. autoclass:: pyfive.Group
    :members:
    :noindex:
 
-----
+Dataset
+--------
 
 .. autoclass:: pyfive.Dataset
    :members:
    :noindex:
 
-----
+
+DatasetID
+----------
+.. autoclass:: pyfive.h5d.DatasetID
+   :members:
+   :noindex:
+
+Datatype
+--------
 
 .. autoclass:: pyfive.Datatype
    :members:
    :noindex:
 
-----
 
 The h5t module
 --------------

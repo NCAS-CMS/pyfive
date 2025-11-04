@@ -13,6 +13,7 @@ import logging
 from importlib.metadata import version
 
 StoreInfo = namedtuple('StoreInfo',"chunk_offset filter_mask byte_offset size")
+ChunkIndex = namedtuple('ChunkIndex',"chunk_address chunk_dims")
 
 class DatasetID:
     """ 
@@ -28,10 +29,15 @@ class DatasetID:
     from the parent file access as both share underlying C-structures.*
 
     """
-    def __init__(self, dataobject, pseudo_chunking_size_MB=4):
+    def __init__(self, dataobject, noindex=False, pseudo_chunking_size_MB=4):
         """ 
         Instantiated with the ``pyfive`` ``datasetdataobject``, we copy and cache everything 
         we want so that the only file operations are now data accesses.
+
+        noindex provides a method for controlling how lazy the data load 
+        actually is. This version supports values of False (normal behaviour
+        index is read when datasetid first instantiated) or True (index
+        is only read when the data is accessed).
         
         if ``pseudo_chunking_size_MB`` is set to a value greater than zero, and
         if the storage is not local posix (and hence ``np.mmap``is not available) then 
@@ -89,7 +95,9 @@ class DatasetID:
 
         self._meta = DatasetMeta(dataobject)
 
-        self._index =  None
+        self._index = None
+        self.__index_built = False
+        self._index_params = None
         # throws a flake8 wobbly for Python<3.10; match is Py3.10+ syntax
         match self.layout_class:  # noqa
             case 0:  #compact storage
@@ -97,7 +105,11 @@ class DatasetID:
             case 1:  # contiguous storage
                 self.data_offset, = struct.unpack_from('<Q', dataobject.msg_data, self.property_offset)
             case 2:  # chunked storage
-                self._build_index(dataobject)
+                self._index_params = ChunkIndex(
+                    dataobject._chunk_address,
+                    dataobject._chunk_dims)
+                if not noindex: 
+                    self._build_index()
 
     def __hash__(self):
         """ The hash is based on assuming the file path, the location
@@ -113,37 +125,52 @@ class DatasetID:
         """
         return self._unique == other._unique
 
+    def __chunk_init_check(self):
+        """ 
+        Used by all the chunk methods to see if this dataset is
+        chunked, and if so, if the index is present, and if not,
+        build it. Otherwise handle errors etc.
+        """
+        if self.layout_class != 2:
+            raise TypeError('Dataset is not chunked ')
+        return not self.index == {}
+
+
     def get_chunk_info(self, index):
         """
         Retrieve storage information about a chunk specified by its index.
         """
-        if not self._index:
-            return None
-        else:
+        if self.__chunk_init_check():
             return self._index[self._nthindex[index]]
+        else:
+            return None
+
 
     def get_chunk_info_by_coord(self, coordinate_index):
         """
         Retrieve information about a chunk specified by the array address of the chunk’s 
         first element in each dimension.
         """
-        if not self._index:
-            return None
-        else:
+        if self.__chunk_init_check():
             return self._index[coordinate_index]
+        else:
+            return None
     
     def get_num_chunks(self):
         """ 
         Return total number of chunks in dataset
         """
-        return len(self._index)
+        if self.__chunk_init_check():
+            return len(self._index)
+        else:
+            return 0
     
     def read_direct_chunk(self, chunk_position, **kwargs):
         """
         Returns a tuple containing the filter_mask and the raw data storing this chunk as bytes.
         Additional arguments supported by ``h5py`` are not supported here.
         """
-        if not self.index:
+        if not self.__chunk_init_check():
             return None
         if chunk_position not in self._index:
             raise OSError("Chunk coordinates must lie on chunk boundaries")
@@ -166,6 +193,8 @@ class DatasetID:
                 else:
                     return self._get_contiguous_data(args, fillvalue)
             case 2:  # chunked storage
+                if not self.__index_built:
+                    self._build_index()
                 if not self._index:
                     no_storage = True
                 else:
@@ -189,9 +218,9 @@ class DatasetID:
         intersection of the given chunk with the selection area. 
         This can be used to read data in that chunk.
         """
-        if self.chunks is None:
-            raise TypeError('Dataset is not chunked')
-        
+        if not self.__chunk_init_check():
+            return None
+
         def convert_selection(tuple_of_slices):
             # while a slice of the form slice(a,b,None) is equivalent
             # in function to a slice of form (a,b,1) it is not the same.
@@ -218,7 +247,6 @@ class DatasetID:
             else:
                 yield convert_selection(out_selection)
 
-   
 
     ##### The following property is made available to support ActiveStorage
     ##### and to help those who may want to generate kerchunk indices and
@@ -226,10 +254,38 @@ class DatasetID:
     @property
     def index(self):
         """ Direct access to the chunk index, if there is one. This is a ``pyfive`` API extension. """
-        if self._index is None:
-            raise ValueError('No chunk index available for HDF layout class {self.layout}')
-        else:
-            return self._index
+        # can't use init_chunk_check because that would be an infinite regression
+        if self.layout_class != 2:
+            raise TypeError("Data is not chunked") 
+        if not self._index:
+            self._build_index()
+        return self._index
+        
+    ##### This property is made available to help understand object store performance
+    @property
+    def btree_range(self):
+        """ A tuple with the addresses of the first b-tree node
+        for this variable, and the address of the furthest away node
+        (Which may not be the last one in the chunk index). This property
+        may be of use in understanding the read performance of chunked
+        data in object stores.  ``btree_range`` is a ``pyfive`` API extension.
+        """
+        self.__chunk_init_check()
+        return (self._btree_start, self._btree_end)
+
+    ##### This property is made available to help understand object store performance
+    @property
+    def first_chunk(self):
+        """The integer address of the first data chunk for this variable.
+        
+        This property may be of use in understanding the read
+        performance of chunked data in object stores.  ``first_chunk``
+        is a ``pyfive`` API extension.
+
+        """
+        self.__chunk_init_check()
+        return self.get_chunk_info(0).byte_offset
+
     #### The following method can be used to set pseudo chunking size after the 
     #### file has been closed and before data transactions. This is pyfive specific
     def set_pseudo_chunk_size(self, newsize_MB):
@@ -267,7 +323,7 @@ class DatasetID:
     # third parties to use them. They are not H5Py methods.
     ######
 
-    def _build_index(self, dataobject):
+    def _build_index(self):
         """ 
         Build the chunk index if it doesn't exist. This is only 
         called for chunk data, and only when the variable is accessed.
@@ -279,20 +335,33 @@ class DatasetID:
         if self._index is not None: 
             return
         
+        if self._index_params is None:
+            raise RuntimeError('Attempt to build index with no chunk index parameters')
+
         # look out for an empty dataset, which will have no btree
-        if np.prod(self.shape) == 0 or dataobject._chunk_address == UNDEFINED_ADDRESS:
+        if np.prod(self.shape) == 0 or self._index_params.chunk_address == UNDEFINED_ADDRESS:
             self._index = {}
+            #FIXME: There are other edge cases for self._index = {} to handle
+            self._btree_end, self._btree_start = None, None
             return
         
         logging.info(f'Building chunk index in pyfive {version("pyfive")}')
        
+        #FIXME: How do we know it's a V1 B-tree?
+        # There are potentially five different chunk indexing options according to
+        # https://docs.hdfgroup.org/archive/support/HDF5/doc/H5.format.html#AppendixC
+
+        fh = self._fh
         chunk_btree = BTreeV1RawDataChunks(
-                dataobject.fh, dataobject._chunk_address, dataobject._chunk_dims)
-        
+                fh, self._index_params.chunk_address, self._index_params.chunk_dims)
+        if self.posix:
+            fh.close()
+
         self._index = {}
         self._nthindex = []
         
         for node in chunk_btree.all_nodes[0]:
+           
             for node_key, addr in zip(node['keys'], node['addresses']):
                 start = node_key['chunk_offset'][:-1]
                 key = start
@@ -300,6 +369,12 @@ class DatasetID:
                 filter_mask = node_key['filter_mask']
                 self._nthindex.append(key)
                 self._index[key] = StoreInfo(key, filter_mask, addr, size)
+               
+
+        self._btree_start=chunk_btree.offset
+        self._btree_end=chunk_btree.last_offset
+
+        self.__index_built=True
 
     def _get_contiguous_data(self, args, fillvalue):
 

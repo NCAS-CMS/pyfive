@@ -44,6 +44,9 @@ license = {text = "BSD License, Version 3-Clause"}
 name = "pyfive"
 requires-python = ">=3.10"
 
+[project.scripts]
+p5dump = "pyfive.p5dump:main"
+
 [project.optional-dependencies]
 test = [
     "pytest>6.0.0",
