@@ -15,9 +15,9 @@ def test_which_p5dump():
 def test_p5dump_cmd():
     """Run a basic p5dump with no/yes file arg."""
     s1 = os.system("p5dump")
-    assert s1 is not 0
+    assert s1 != 0
     s2 = os.system("p5dump tests/data/groups.hdf5")
-    assert s2 is 0
+    assert s2 == 0
 
 
 def test_hdf5(capsys):
