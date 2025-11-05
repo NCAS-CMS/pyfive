@@ -266,13 +266,20 @@ class File(Group):
     @property
     def is_cloud_optimized(self):
         is_co = True
-
         f = self
+
+        # for all chunked datasets, check if all btree nodes are located before any dataset chunk
+        max_btree, min_chunk = None, None
         for ds in f:
             if isinstance(f[ds], Dataset):
                 if f[ds].id.layout_class == 2:
-                    if f[ds].id.btree_range[1] > f[ds].id.first_chunk:
-                        is_co = False
+                    if max_btree is None or f[ds].id.btree_range[1] > max_btree:
+                        max_btree = f[ds].id.btree_range[1]
+                    if min_chunk is None or f[ds].id.first_chunk < min_chunk:
+                        min_chunk = f[ds].id.first_chunk
+
+        if max_btree is not None and min_chunk is not None:
+            is_co = max_btree < min_chunk
 
         return is_co
 

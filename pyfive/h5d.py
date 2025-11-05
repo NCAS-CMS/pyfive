@@ -62,19 +62,19 @@ class DatasetID:
             #  No file descriptor => Not Posix
             self.posix = False
             self.__fh = fh
-            self.pseudo_chunking_size = pseudo_chunking_size_MB*1024*1024
+            self.pseudo_chunking_size = pseudo_chunking_size_MB * 1024 * 1024
             try:
                 # maybe this is an S3File instance?
-                self._filename = getattr(fh,'path')
+                self._filename = getattr(fh, 'path')
             except:
                 # maybe a remote https file opened as bytes?
                 # failing that, maybe a memory file, return as None
-                self._filename = getattr(fh,'full_name','None')
+                self._filename = getattr(fh, 'full_name', 'None')
         else:
             # Has a file descriptor => Posix
             self.posix = True
             self._filename = fh.name
-            self.pseudo_chunking_size = 0 
+            self.pseudo_chunking_size = 0
 
         self.filter_pipeline = dataobject.filter_pipeline
         self.shape = dataobject.shape
@@ -284,7 +284,11 @@ class DatasetID:
 
         """
         self.__chunk_init_check()
-        return self.get_chunk_info(0).byte_offset
+        min_offset = None
+        for k in self._index:
+            if min_offset is None or self._index[k].byte_offset < min_offset:
+                min_offset = self._index[k].byte_offset
+        return min_offset
 
     #### The following method can be used to set pseudo chunking size after the 
     #### file has been closed and before data transactions. This is pyfive specific
