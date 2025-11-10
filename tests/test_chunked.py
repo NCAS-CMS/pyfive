@@ -53,6 +53,19 @@ def test_chunked_dataset():
         assert dset1.chunks == (2, 2)
 
 
+def test_recognise_btree(name, data):
+    """ 
+    At this point we want to raise an error if we find a chunked variable
+    with a b-tree v2 index, as we don't know how to read it ... yet.
+    It seems that can only come with layoutclass = 4. 
+    """
+    with pytest.raises(RuntimeError):
+        with pyfive.File(name) as hfile:
+            dset1 = hfile['btreev2']
+            print(dset1)
+        
+
+
 @pytest.mark.skip(reason="Not implemented yet, see https://github.com/NCAS-CMS/pyfive/issues/137")
 def test_chunked_dataset_btreev2(name, data):
     with pyfive.File(name) as hfile:
