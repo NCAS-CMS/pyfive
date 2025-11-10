@@ -29,7 +29,7 @@ def test_lazy_index():
         assert dset1.attrs['attr1'] == 130
 
         # test we have no index yet 
-        assert dset1.id._DatasetID__index_built==False
+        assert not dset1.id._DatasetID__index_built
 
         # this should force an index build
         assert_array_equal(dset1[:], np.arange(21*16).reshape((21, 16)))
@@ -42,13 +42,13 @@ def test_lazy_visititems():
         """ Expect this to be visited and instantiated without an index """
         print(x,y.name)
         assert y.attrs['attr1'] == 130
-        assert y.id._DatasetID__index_built==False
+        assert not y.id._DatasetID__index_built
 
     def simplest_check(x,y):
         """ Expect this to be visited and instantiated with an index """
         print(x,y.name)
         assert y.attrs['attr1'] == 130
-        assert y.id._DatasetID__index_built==True
+        assert y.id._DatasetID__index_built
 
    
     with pyfive.File(DATASET_CHUNKED_HDF5_FILE) as hfile:
@@ -68,7 +68,7 @@ def test_get_chunk_info_chunked():
             open(DATASET_CHUNKED_HDF5_FILE, "rb") as f:
 
         ds = hfile.get_lazy_view('dataset1')
-        assert ds.id._DatasetID__index_built==False
+        assert not ds.id._DatasetID__index_built 
 
         si = StoreInfo((0,0), 0, 4016, 16)
         info = ds.id.get_chunk_info(0)
@@ -92,7 +92,7 @@ def test_get_chunk_methods_contiguous():
     with pyfive.File(NOT_CHUNKED_FILE) as hfile:
 
         ds = hfile.get_lazy_view('q')
-        assert ds.id._DatasetID__index_built==False
+        assert not ds.id._DatasetID__index_built
 
         with pytest.raises(TypeError):
             ds.id.get_chunk_info(0)
