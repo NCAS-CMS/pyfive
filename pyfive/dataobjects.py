@@ -527,7 +527,11 @@ class DataObjects(object):
             dims, address = struct.unpack_from(
                 '<BQ', self.msg_data, property_offset)
             data_offset = property_offset + struct.calcsize('<BQ')
-        assert (version >= 1) and (version <= 3)
+        supported_version = (version >= 1) and (version <= 3)
+        if not supported_version:
+            # Note that implementation of layout class version 4 will need to deal with
+            # assumption that btree is of type V1 (see chunk_btree = ... in h5d.py).
+            raise RuntimeError(f'Pyfive cannot yet read HDF5 files with layout class {version}')
 
         fmt = '<' + 'I' * (dims-1)
         chunk_shape = struct.unpack_from(fmt, self.msg_data, data_offset)
