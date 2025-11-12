@@ -5,7 +5,6 @@ from __future__ import division
 from collections import OrderedDict
 import struct
 import warnings
-from io import UnsupportedOperation
 
 import numpy as np
 
@@ -18,11 +17,12 @@ from pyfive.core import UNDEFINED_ADDRESS
 from pyfive.btree import BTreeV1Groups, BTreeV1RawDataChunks
 from pyfive.btree import BTreeV2GroupNames, BTreeV2GroupOrders
 from pyfive.btree import BTreeV2AttrCreationOrder, BTreeV2AttrNames
-from pyfive.btree import GZIP_DEFLATE_FILTER, SHUFFLE_FILTER, FLETCH32_FILTER
-from pyfive.misc_low_level import Heap, SymbolTable, GlobalHeap, FractalHeap, GLOBAL_HEAP_ID
-from pyfive.h5d import DatasetID
+from pyfive.btree import GZIP_DEFLATE_FILTER, SHUFFLE_FILTER, FLETCH32_FILTER, LZF_FILTER
+from pyfive.misc_low_level import Heap, SymbolTable, GlobalHeap, FractalHeap, GLOBAL_HEAP_ID, _decode_array, dtype_replace_refs_with_object
+from pyfive.p5t import P5Type, P5StringType, P5CompoundType, P5VlenStringType, P5ReferenceType, P5SequenceType, P5EnumType
 from pyfive.indexing import OrthogonalIndexer, ZarrArrayStub
 from pyfive.h5py import Empty
+from pyfive.h5d import DatasetID
 
 # these constants happen to have the same value...
 UNLIMITED_SIZE = UNDEFINED_ADDRESS
@@ -218,15 +218,13 @@ class DataObjects(object):
 
         # Read the datatype information
         try:
-            dtype = DatatypeMessage(buffer, offset).dtype
+            ptype = DatatypeMessage(buffer, offset).ptype
         except NotImplementedError:
-            if name == 'REFERENCE_LIST':
-                pass #suppress this one, no one actually cares about these as far as I know
-            else:
-                warnings.warn(
-                    f"Attribute {name} type not implemented, set to None."
-                )
+            warnings.warn(
+                f"Attribute {name} type not implemented, set to None."
+            )
             return name, None
+
         offset += _padded_size(attr_dict['datatype_size'], padding_multiple)
 
         # Read the dataspace information
@@ -234,14 +232,14 @@ class DataObjects(object):
 
         # detect Empty/NULL dataspace
         if shape is None:
-            value = Empty(dtype=dtype)
+            value = Empty(dtype=ptype.dtype)
         else:
             items = int(np.prod(shape))
 
             offset += _padded_size(attr_dict['dataspace_size'], padding_multiple)
 
             # Read the value(s)
-            value = self._attr_value(dtype, buffer, items, offset)
+            value = self._attr_value(ptype, buffer, items, offset)
 
         if shape == ():
             value = value[0]
@@ -255,42 +253,44 @@ class DataObjects(object):
 
         return name, value
 
-    def _attr_value(self, dtype, buf, count, offset):
+    def _attr_value(self, ptype, buf, count, offset):
         """ Retrieve an HDF5 attribute value from a buffer. """
 
-        # first handle ENUMERATION, we just extract the dtype
-        if isinstance(dtype, tuple):
-            if dtype[0] == "ENUMERATION":
-                dtype = np.dtype(dtype[1], metadata={'enum': dtype[2]})
-            elif dtype[0] == "COMPOUND":
-                dtype = np.dtype(dtype[1])
+        # numpy storage dtype
+        dtype = ptype.dtype
 
-        if isinstance(dtype, tuple):
-            dtype_class = dtype[0]
-            if dtype_class == 'VLEN_STRING':
-                fdtype = np.dtype('O', metadata={'h5py_encoding': 'utf-8'})
-            else:
-                fdtype=  np.dtype('O')
+        if isinstance(ptype, (P5SequenceType, P5ReferenceType, P5VlenStringType)):
+            # todo: check, if this can be done in the P5Type
+            # small hack to get Reference output ptype right
+            if isinstance(ptype, P5ReferenceType):
+                dtype = dtype_replace_refs_with_object(dtype)
 
-            value = np.empty(count, dtype=fdtype)
+            value = np.empty(count, dtype=dtype)
             for i in range(count):
-                if dtype_class == 'VLEN_STRING':
+                if isinstance(ptype, P5StringType):
                     _, vlen_data = self._vlen_size_and_data(buf, offset)
                     value[i] = vlen_data.decode('utf-8')
                     offset += 16
-                elif dtype_class == 'REFERENCE':
+                elif isinstance(ptype, P5ReferenceType):
                     address, = struct.unpack_from('<Q', buf, offset=offset)
                     value[i] = Reference(address)
                     offset += 8
-                elif dtype_class == "VLEN_SEQUENCE":
-                    base_dtype = dtype[1]
+                elif isinstance(ptype, P5SequenceType):
                     vlen, vlen_data = self._vlen_size_and_data(buf, offset)
-                    value[i] = self._attr_value(base_dtype, vlen_data, vlen, 0)
+                    value[i] = self._attr_value(ptype.base_dtype, vlen_data, vlen, 0)
                     offset += 16
                 else:
                     raise NotImplementedError
         else:
             value = np.frombuffer(buf, dtype=dtype, count=count, offset=offset)
+            if not ptype.is_atomic:
+                # todo: check for Enum etc types
+                value = value.view(dtype)
+                if isinstance(ptype, P5CompoundType):
+                    new_dtype = dtype_replace_refs_with_object(ptype.dtype)
+                    new_array = np.empty(value.shape, dtype=new_dtype)
+                    new_array[:] = value
+                    value = _decode_array(value, new_array)
         return value
 
     def _vlen_size_and_data(self, buf, offset):
@@ -358,27 +358,22 @@ class DataObjects(object):
             size = 0
 
         if size:
-            if isinstance(self.dtype, tuple):
-                if self.dtype[0] == 'VLEN_STRING':
-                    fillvalue = self._attr_value(self.dtype, self.msg_data, 1, offset)[0]
-                elif self.dtype[0] in ['ENUMERATION']:
-                    fillvalue = 0
-                else:
-                    raise ValueError(f'Unrecognised dtype [{self.dtype}]')
+            if isinstance(self.ptype, P5VlenStringType):
+                fillvalue = self._attr_value(self.ptype, self.msg_data, 1, offset)[0]
             else:
                 payload = self.msg_data[offset:offset+size]
-                fillvalue = np.frombuffer(payload, self.dtype, count=1)[0]
+                fillvalue = np.frombuffer(payload, self.ptype.dtype, count=1)[0]
         else:
             fillvalue = 0
         return fillvalue
 
     @property
-    def dtype(self):
+    def ptype(self):
         """ Datatype of the dataset. """
         msg = self.find_msg_type(DATATYPE_MSG_TYPE)[0]
         msg_offset = msg['offset_to_message']
-        dtype = DatatypeMessage(self.msg_data, msg_offset).dtype
-        return dtype
+        ptype = DatatypeMessage(self.msg_data, msg_offset).ptype
+        return ptype
        
     @property
     def chunks(self):
@@ -393,6 +388,8 @@ class DataObjects(object):
             return None
         if GZIP_DEFLATE_FILTER in self._filter_ids:
             return 'gzip'
+        elif LZF_FILTER in self._filter_ids:
+            return 'lzf'
         return None
 
     @property
@@ -530,7 +527,11 @@ class DataObjects(object):
             dims, address = struct.unpack_from(
                 '<BQ', self.msg_data, property_offset)
             data_offset = property_offset + struct.calcsize('<BQ')
-        assert (version >= 1) and (version <= 3)
+        supported_version = (version >= 1) and (version <= 3)
+        if not supported_version:
+            # Note that implementation of layout class version 4 will need to deal with
+            # assumption that btree is of type V1 (see chunk_btree = ... in h5d.py).
+            raise RuntimeError(f'Pyfive cannot yet read HDF5 files with layout class {version}')
 
         fmt = '<' + 'I' * (dims-1)
         chunk_shape = struct.unpack_from(fmt, self.msg_data, data_offset)

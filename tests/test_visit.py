@@ -6,7 +6,7 @@ import os
 import pyfive
 
 DIRNAME = os.path.dirname(__file__)
-GROUPS_HDF5_FILE = os.path.join(DIRNAME, 'groups.hdf5')
+GROUPS_HDF5_FILE = os.path.join(DIRNAME, 'data', 'groups.hdf5')
 
 
 def test_visit_method():

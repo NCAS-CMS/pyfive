@@ -1,6 +1,8 @@
 # tests the variables found in the file h5netcdf_test.hdf5,
 # which is produced by the write_h5netcdf test routine in the h5netcdf package
 #
+import os
+
 import pyfive
 import h5py
 import warnings
@@ -9,8 +11,9 @@ from pathlib import Path
 DIRNAME = Path(__file__).parent
 
 def test_file_contents():
-    p5file = pyfive.File(DIRNAME/'h5netcdf_test.hdf5') 
-    h5file = h5py.File(DIRNAME/'h5netcdf_test.hdf5')
+    fpath = os.path.join(DIRNAME, 'data', 'h5netcdf_test.hdf5')
+    p5file = pyfive.File(fpath) 
+    h5file = h5py.File(fpath)
 
     expected_variables = [
         "foo",
@@ -75,3 +78,10 @@ def test_file_contents():
     assert p5file["subgroup/y"].id == p5file[ref3].id
     assert str(p5file["subgroup/y"][:]) == str(p5file[ref3][:])
     assert p5file["y"].id != p5file[ref3].id
+
+    # tests for compound with nested REFERENCE
+    # see https://github.com/NCAS-CMS/pyfive/issues/119
+    ref4 = p5file["subgroup/y"].attrs["REFERENCE_LIST"][0]
+    assert ref4[1] == 0
+    assert p5file["subgroup/y_var"].id == p5file[ref4[0]].id
+    assert str(p5file["subgroup/y_var"][:]) == str(p5file[ref4[0]][:])

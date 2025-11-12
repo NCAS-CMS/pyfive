@@ -10,4 +10,5 @@
     API Reference <api_reference>
     Additional API Features <additional>
     Optimising Data Access Speed <optimising>
+    The p5dump utility <p5dump>
     Change Log <changelog>

@@ -9,7 +9,7 @@ import pyfive
 from pyfive.btree import BTreeV1RawDataChunks
 
 DIRNAME = os.path.dirname(__file__)
-DATASET_FLETCHER_HDF5_FILE = os.path.join(DIRNAME, 'fletcher32.hdf5')
+DATASET_FLETCHER_HDF5_FILE = os.path.join(DIRNAME, 'data', 'fletcher32.hdf5')
 
 
 def test_fletcher32_datasets():

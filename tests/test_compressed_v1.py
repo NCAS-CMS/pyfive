@@ -6,7 +6,7 @@ import numpy as np
 import pyfive
 
 DIRNAME = os.path.dirname(__file__)
-DATASET_COMPRESSED_HDF5_FILE = os.path.join(DIRNAME, 'compressed_v1.hdf5')
+DATASET_COMPRESSED_HDF5_FILE = os.path.join(DIRNAME, 'data', 'compressed_v1.hdf5')
 
 
 def test_compressed_v1_dataset():

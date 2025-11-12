@@ -1,3 +1,44 @@
+Version 1.0.0
+-------------
+
+**2025-11-12**
+
+* Added consolidated metadata functionality by `Ezequiel Cimadevilla <https://github.com/zequihg50>`_ in https://github.com/NCAS-CMS/pyfive/pull/145
+
+Version 0.9.0
+-------------
+
+**2025-10-17**
+
+* use pytest temporary dir factory to write some of the test hdf5 files and move all fixed hdf5 sample data files to `tests/data` by `Valeriu Predoi <https://github.com/valeriupredoi>`_ in https://github.com/NCAS-CMS/pyfive/pull/117
+* Install netcdf4 from conda-forge and pin netcdf4<1.7.3 in pyproject.toml by `Valeriu Predoi <https://github.com/valeriupredoi>`_ in https://github.com/NCAS-CMS/pyfive/pull/124
+* Support Python 3.14 by `Valeriu Predoi <https://github.com/valeriupredoi>`_ in https://github.com/NCAS-CMS/pyfive/pull/125
+* remove pin on netcdf4 by `Valeriu Predoi <https://github.com/valeriupredoi>`_ in https://github.com/NCAS-CMS/pyfive/pull/126
+* all changes above with review from `Kai Mühlbauer <https://github.com/kmuehlbauer>`_ and `David Hassell <https://github.com/davidhassell>`_
+
+Version 0.8.0
+-------------
+
+**2025-10-07**
+
+* Support for Opaque datasets by @bnlawrence in https://github.com/NCAS-CMS/pyfive/pull/114 with review from `Kai Mühlbauer <https://github.com/kmuehlbauer>`_
+
+Version 0.7.0
+-------------
+
+**2025-10-06**
+
+
+* add joss paper pdf conversion via gha by `Valeriu Predoi <https://github.com/valeriupredoi>`_ in https://github.com/NCAS-CMS/pyfive/pull/97
+* fix changelog to include Kai as contributor to v0.6.0 and change Brian L -> Bryan L (typos) by `Valeriu Predoi
+  <https://github.com/valeriupredoi>`_ in https://github.com/NCAS-CMS/pyfive/pull/96
+* New logo by `Valeriu Predoi <https://github.com/valeriupredoi>`_ in https://github.com/NCAS-CMS/pyfive/pull/98
+* fix Enum and Empty attributes by `Kai Mühlbauer <https://github.com/kmuehlbauer>`_ in https://github.com/NCAS-CMS/pyfive/pull/102
+* Fix user datatypes (enum, compound) by `Kai Mühlbauer <https://github.com/kmuehlbauer>`_ in https://github.com/NCAS-CMS/pyfive/pull/105
+* Added partial support for compact datasets. by `Ezequiel Cimadevilla <https://github.com/zequihg50>`_ in https://github.com/NCAS-CMS/pyfive/pull/107
+* fix handling of uninitialized vlen strings by `Kai Mühlbauer <https://github.com/kmuehlbauer>`_ in https://github.com/NCAS-CMS/pyfive/pull/110
+* add dataobjects.dtype to DatasetMeta by `Kai Mühlbauer <https://github.com/kmuehlbauer>`_ in https://github.com/NCAS-CMS/pyfive/pull/112
+
 Version 0.6.0
 -------------
 

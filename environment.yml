@@ -8,8 +8,11 @@ dependencies:
   - numpy
   - python >=3.10
   # testing
+  - h5py  # link to same hdf5 lib with netcdf4
+  - netcdf4  # has history of broken packages on PyPI
   - pytest
   - pytest-cov
+  - pytest-rerunfailures
   # documentation
   - autodocsumm
   - sphinx

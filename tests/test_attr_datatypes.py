@@ -3,6 +3,7 @@ import os
 import sys
 import subprocess
 
+import h5py
 import numpy as np
 from numpy.testing import assert_array_equal
 import pytest
@@ -10,9 +11,10 @@ import pytest
 import pyfive
 
 DIRNAME = os.path.dirname(__file__)
-ATTR_DATATYPES_HDF5_FILE = os.path.join(DIRNAME, 'attr_datatypes.hdf5')
+ATTR_DATATYPES_HDF5_FILE = os.path.join(DIRNAME, "data", 'attr_datatypes.hdf5')
 MAKE_ATTR_DATATYPES_SCRIPT = os.path.join(DIRNAME, 'make_attr_datatypes_file.py')
 ATTR_DATATYPES_HDF5_FILE_2 = os.path.join(DIRNAME, 'attr_datatypes_2.hdf5')
+MAKE_ATTR_DATATYPES_SCRIPT_2 = os.path.join(DIRNAME, 'make_attr_datatypes_file_2.py')
 
 
 @pytest.fixture(scope="module")
@@ -20,6 +22,14 @@ def attr_datatypes_hdf5(tmp_path_factory):
     tmp_dir = tmp_path_factory.mktemp("attr_datatypes")
     path = tmp_dir / "attr_datatypes.hdf5"
     subprocess.run([sys.executable, MAKE_ATTR_DATATYPES_SCRIPT, str(path)], check=True)
+    return str(path)
+
+
+@pytest.fixture(scope="module")
+def attr_datatypes_hdf5_2(tmp_path_factory):
+    tmp_dir = tmp_path_factory.mktemp("attr_datatypes")
+    path = tmp_dir / "attr_datatypes_2.hdf5"
+    subprocess.run([sys.executable, MAKE_ATTR_DATATYPES_SCRIPT_2, str(path)], check=True)
     return str(path)
 
 
@@ -112,7 +122,7 @@ def test_string_array_attr_datatypes(attr_datatypes_hdf5):
         assert hfile.attrs['vlen_str_array1'][1] == 'World!'
 
         assert hfile.attrs['vlen_str_array1'].dtype == np.dtype('O')
-        assert hfile.attrs['vlen_str_array1'].dtype.metadata == {'h5py_encoding': 'utf-8'}
+        assert hfile.attrs['vlen_str_array1'].dtype.metadata == {'vlen': bytes}
 
 
 def test_vlen_sequence_attr_datatypes():
@@ -156,12 +166,12 @@ def test_empty_string_datatypes(attr_datatypes_hdf5):
         assert enum_attr.dtype == np.dtype('|S1')
 
 
-def test_attributes_2():
+def test_attributes_2(attr_datatypes_hdf5_2):
 
     ascii = "ascii"
     unicode = "unicodé"
 
-    with pyfive.File(ATTR_DATATYPES_HDF5_FILE_2) as ds:
+    with pyfive.File(attr_datatypes_hdf5_2) as ds:
         foobar = "foobár"
         assert isinstance(ds.attrs["unicode"], str)
         assert ds.attrs["unicode"] == unicode

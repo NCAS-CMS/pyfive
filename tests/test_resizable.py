@@ -7,7 +7,7 @@ from numpy.testing import assert_array_equal
 import pyfive
 
 DIRNAME = os.path.dirname(__file__)
-DATASET_RESIZABLE_HDF5_FILE = os.path.join(DIRNAME, 'resizable.hdf5')
+DATASET_RESIZABLE_HDF5_FILE = os.path.join(DIRNAME, 'data', 'resizable.hdf5')
 
 
 def test_resizable_dataset():

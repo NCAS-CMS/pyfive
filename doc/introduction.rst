@@ -35,6 +35,8 @@ once a variable is instantiated (i.e. for an open ``pyfive.File`` instance ``f``
 the attributes and b-tree (chunk index) are read, and it is then possible to close the parent file (``f``), 
 but continue to use (``v``).
 
+The package includes a script ``p5dump`` which can be used to dump the contents of an HDF5 file to the terminal. 
+
 .. note::
 
     We have test coverage that shows that the usage of ``v`` in this way is thread-safe -  the test which demonstrates this is slow, 

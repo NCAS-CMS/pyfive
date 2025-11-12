@@ -27,6 +27,7 @@ classifiers = [
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
     "Topic :: Scientific/Engineering",
     "Topic :: Scientific/Engineering :: Atmospheric Science",
     "Topic :: Scientific/Engineering :: Physics",
@@ -43,11 +44,15 @@ license = {text = "BSD License, Version 3-Clause"}
 name = "pyfive"
 requires-python = ">=3.10"
 
+[project.scripts]
+p5dump = "pyfive.p5dump:main"
+
 [project.optional-dependencies]
 test = [
     "pytest>6.0.0",
     "pytest-cov>=2.10.1",
     "pytest-html!=2.1.0",
+    "pytest-rerunfailures",
     "pytest-xdist",
     "dask",
     "flake8",
@@ -57,7 +62,8 @@ test = [
     "h5py",
     "netCDF4",
     "moto",
-    "s3fs",
+    "python-lzf",
+    "s3fs>=2025.9.0",  # v-mismatch with boto3 results in ancient s3fs
 ]
 
 # needed for doc builds

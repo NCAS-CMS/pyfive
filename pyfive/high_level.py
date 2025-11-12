@@ -14,7 +14,6 @@ from pyfive.misc_low_level import SuperBlock
 from pyfive.h5py import Datatype
 
 
-
 class Group(Mapping):
     """
     An HDF5 Group which may hold attributes, datasets, or other groups.
@@ -60,7 +59,42 @@ class Group(Mapping):
         return obj
 
     def __getitem__(self, y):
-        """ x.__getitem__(y) <==> x[y] """
+        """ x.__getitem__(y) <==> x[y].
+        """
+        return self.__getitem_lazy_control(y, noindex=False)
+
+    def get_lazy_view(self, y):
+        """ 
+        This instantiates the object y, and if it is a 
+        chunked dataset, does so without reading the b-tree
+        index. This is useful for inspecting a variable
+        that you are not expecting to access. If you know you
+        want to access the data, and in particular, if you are 
+        going to hand the data to Dask or something else, you
+        almost certainly want to read the index now, so
+        just do x[y] rather than x.get_lazy_view(y).
+
+        This is a ``pyfive`` extension to the standard h5py API.
+        """
+
+        return self.__getitem_lazy_control(y, noindex=True)
+
+    def __getitem_lazy_control(self, y, noindex):
+        """ 
+        This is the routine which actually does the get item
+        but does it in such a way that we control how much laziness
+        is possible where we have chunked variables with b-trees.
+
+        We want to return y, but if y is a chunked dataset we
+        normally return it with a cached b-tree (noindex=false).
+        If noindex is True, we do not read the b-tree, and that 
+        will be done when data is first read - which is fine
+        in a single-threaded environment, but in a parallel
+        environment you only want to read the index once
+        (so use noindex=False, which you get via the 
+        normal getitem interface - x[y]).
+        """
+
         if isinstance(y, Reference):
             return self._dereference(y)
 
@@ -92,8 +126,8 @@ class Group(Mapping):
         if dataobjs.is_dataset:
             if additional_obj != '.':
                 raise KeyError('%s is a dataset, not a group' % (obj_name))
-            return Dataset(obj_name, DatasetID(dataobjs), self)
-       
+            return Dataset(obj_name, DatasetID(dataobjs, noindex=noindex), self)
+
         try:
             # if true, this may well raise a NotImplementedError, if so, we need
             # to warn the user, who may be able to use other parts of the data.
@@ -103,7 +137,7 @@ class Group(Mapping):
             is_datatype = True
 
         if is_datatype:
-            return Datatype(obj_name, self.file, dataobjs.dtype) 
+            return Datatype(obj_name, self.file, dataobjs.ptype)
         else:
             return Group(obj_name, dataobjs, self)[additional_obj]
 
@@ -125,7 +159,7 @@ class Group(Mapping):
         """
         return self.visititems(lambda name, obj: func(name))
 
-    def visititems(self, func):
+    def visititems(self, func, noindex=False):
         """
         Recursively visit all objects in this group and subgroups.
 
@@ -136,11 +170,26 @@ class Group(Mapping):
         Returning None continues iteration, return anything else stops and
         return that value from the visit method.
 
+        Use of the optional noindex=True will ensure that
+        all operations are not only lazy wrt data, but lazy
+        wrt to any chunked data indices. This keyword argument is a ``pyfive``
+        extension to the standard h5py API.
+
         """
         root_name_length = len(self.name)
         if not self.name.endswith('/'):
             root_name_length += 1
-        queue = deque(self.values())
+
+        # Use either normal access or lazy access:
+        if noindex:
+            # Avoid loading dataset indices
+            get_obj = self.get_lazy_view
+        else:
+            get_obj = self.__getitem__
+
+        # Initialize queue using the correct getter
+        queue = deque(get_obj(k) for k in self._links.keys())
+
         while queue:
             obj = queue.popleft()
             name = obj.name[root_name_length:]
@@ -211,6 +260,27 @@ class File(Group):
         self.userblock_size = 0
         super(File, self).__init__('/', dataobjects, self)
 
+    @property
+    def consolidated_metadata(self):
+        """Returns True if all B-tree nodes for chunked datasets are located before the first chunk in the file."""
+        is_consolidated = True
+        f = self
+
+        # for all chunked datasets, check if all btree nodes are located before any dataset chunk
+        max_btree, min_chunk = None, None
+        for ds in f:
+            if isinstance(f[ds], Dataset):
+                if f[ds].id.layout_class == 2:
+                    if max_btree is None or f[ds].id.btree_range[1] > max_btree:
+                        max_btree = f[ds].id.btree_range[1]
+                    if min_chunk is None or f[ds].id.first_chunk < min_chunk:
+                        min_chunk = f[ds].id.first_chunk
+
+        if max_btree is not None and min_chunk is not None:
+            is_consolidated = max_btree < min_chunk
+
+        return is_consolidated
+
     def __repr__(self):
         return '<HDF5 file "%s" (mode r)>' % (os.path.basename(self.filename))
 
@@ -218,7 +288,7 @@ class File(Group):
         """ Return the object pointed to by a given address. """
         if self._dataobjects.offset == obj_addr:
             return self
-        
+
         queue = deque([(self.name.rstrip('/'), self)])
         while queue:
             base, grp = queue.popleft()
@@ -236,6 +306,7 @@ class File(Group):
         """ Close the file. """
         if self._close:
             self._fh.close()
+
     __del__ = close
 
     def __enter__(self):
@@ -288,7 +359,6 @@ class Dataset(object):
         Group instance containing this dataset.
 
     """
-    
 
     def __init__(self, name, datasetid, parent):
         """ initalize. """
@@ -297,13 +367,14 @@ class Dataset(object):
         self.name = name
         self._attrs = None
         self._astype = None
-        self.id=datasetid
 
-        #horrible kludge for now,
-        #https://github.com/NCAS-CMS/pyfive/issues/13#issuecomment-2557121461
-        #we hide stuff we need here
+        self.id = datasetid
+        """ This is the DatasetID instance which provides the actual data access methods. """
+
+        # horrible kludge for now,
+        # https://github.com/NCAS-CMS/pyfive/issues/13#issuecomment-2557121461
+        # we hide stuff we need here
         self._dataobjects = self.id._meta
-   
 
     def __repr__(self):
         info = (os.path.basename(self.name), self.shape, self.dtype)
@@ -338,16 +409,15 @@ class Dataset(object):
     def len(self):
         """ Return the size of the first axis. """
         return self.shape[0]
-    
+
     def iter_chunks(self, *args):
         return self.id.iter_chunks(args)
-    
 
     @property
     def shape(self):
         """ shape attribute. """
         return self.id.shape
-    
+
     @property
     def maxshape(self):
         """ maxshape attribute. (None for unlimited dimensions) """
@@ -419,15 +489,17 @@ class Dataset(object):
     def attrs(self):
         """ attrs attribute. """
         return self.id._meta.attributes
-     
+
+
 class DimensionManager(Sequence):
     """ Represents a collection of dimensions associated with a dataset. """
+
     def __init__(self, dset):
         ndim = len(dset.shape)
-        dim_list = [[]]*ndim
+        dim_list = [[]] * ndim
         if 'DIMENSION_LIST' in dset.attrs:
             dim_list = dset.attrs['DIMENSION_LIST']
-        dim_labels = [b'']*ndim
+        dim_labels = [b''] * ndim
         if 'DIMENSION_LABELS' in dset.attrs:
             dim_labels = dset.attrs['DIMENSION_LABELS']
         self._dims = [
@@ -467,8 +539,9 @@ class AstypeContext(object):
     """
     Context manager which allows changing the type read from a dataset.
     """
-    #FIXME:ENUM should this allow a conversion from enum base types to values using dictionary?
-    #Probably not, as it would be additional functionality to the h5py interface???
+
+    # FIXME:ENUM should this allow a conversion from enum base types to values using dictionary?
+    # Probably not, as it would be additional functionality to the h5py interface???
 
     def __init__(self, dset, dtype):
         self._dset = dset
@@ -479,4 +552,3 @@ class AstypeContext(object):
 
     def __exit__(self, *args):
         self._dset._astype = None
-

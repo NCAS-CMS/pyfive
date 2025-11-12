@@ -106,3 +106,8 @@ def s3fs_s3(s3_base):
     s3.invalidate_cache()
 
     yield s3
+
+
+@pytest.fixture(scope="module")
+def modular_tmp_path(tmp_path_factory):
+    return tmp_path_factory.mktemp("temp")

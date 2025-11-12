@@ -4,7 +4,8 @@ from operator import mul
 from pyfive.indexing import OrthogonalIndexer, ZarrArrayStub
 from pyfive.btree import BTreeV1RawDataChunks
 from pyfive.core import Reference, UNDEFINED_ADDRESS
-from pyfive.misc_low_level import get_vlen_string_data_contiguous, get_vlen_string_data_from_chunk
+from pyfive.misc_low_level import get_vlen_string_data_contiguous, get_vlen_string_data_from_chunk, _decode_array, dtype_replace_refs_with_object
+from pyfive.p5t import P5Type, P5CompoundType, P5VlenStringType, P5EnumType, P5StringType, P5OpaqueType, P5ReferenceType, P5SequenceType
 from io import UnsupportedOperation
 
 import struct
@@ -12,6 +13,7 @@ import logging
 from importlib.metadata import version
 
 StoreInfo = namedtuple('StoreInfo',"chunk_offset filter_mask byte_offset size")
+ChunkIndex = namedtuple('ChunkIndex',"chunk_address chunk_dims")
 
 class DatasetID:
     """ 
@@ -27,10 +29,15 @@ class DatasetID:
     from the parent file access as both share underlying C-structures.*
 
     """
-    def __init__(self, dataobject, pseudo_chunking_size_MB=4):
+    def __init__(self, dataobject, noindex=False, pseudo_chunking_size_MB=4):
         """ 
         Instantiated with the ``pyfive`` ``datasetdataobject``, we copy and cache everything 
         we want so that the only file operations are now data accesses.
+
+        noindex provides a method for controlling how lazy the data load 
+        actually is. This version supports values of False (normal behaviour
+        index is read when datasetid first instantiated) or True (index
+        is only read when the data is accessed).
         
         if ``pseudo_chunking_size_MB`` is set to a value greater than zero, and
         if the storage is not local posix (and hence ``np.mmap``is not available) then 
@@ -55,19 +62,19 @@ class DatasetID:
             #  No file descriptor => Not Posix
             self.posix = False
             self.__fh = fh
-            self.pseudo_chunking_size = pseudo_chunking_size_MB*1024*1024
+            self.pseudo_chunking_size = pseudo_chunking_size_MB * 1024 * 1024
             try:
                 # maybe this is an S3File instance?
-                self._filename = getattr(fh,'path')
+                self._filename = getattr(fh, 'path')
             except:
                 # maybe a remote https file opened as bytes?
                 # failing that, maybe a memory file, return as None
-                self._filename = getattr(fh,'full_name','None')
+                self._filename = getattr(fh, 'full_name', 'None')
         else:
             # Has a file descriptor => Posix
             self.posix = True
             self._filename = fh.name
-            self.pseudo_chunking_size = 0 
+            self.pseudo_chunking_size = 0
 
         self.filter_pipeline = dataobject.filter_pipeline
         self.shape = dataobject.shape
@@ -84,19 +91,13 @@ class DatasetID:
         self._msg_offset, self.layout_class,self.property_offset = dataobject.get_id_storage_params()
         self._unique = (self._filename, self.shape, self._msg_offset)
 
-        if isinstance(dataobject.dtype, tuple):
-            if dataobject.dtype[0] == 'ENUMERATION':
-                self._dtype = np.dtype(dataobject.dtype[1], metadata={'enum':dataobject.dtype[2]})
-            elif dataobject.dtype[0] == 'COMPOUND':
-                self._dtype = np.dtype(dataobject.dtype[1])
-            else:
-                self._dtype = dataobject.dtype
-        else:
-            self._dtype = np.dtype(dataobject.dtype)
+        self._ptype = dataobject.ptype
 
         self._meta = DatasetMeta(dataobject)
 
-        self._index =  None
+        self._index = None
+        self.__index_built = False
+        self._index_params = None
         # throws a flake8 wobbly for Python<3.10; match is Py3.10+ syntax
         match self.layout_class:  # noqa
             case 0:  #compact storage
@@ -104,7 +105,11 @@ class DatasetID:
             case 1:  # contiguous storage
                 self.data_offset, = struct.unpack_from('<Q', dataobject.msg_data, self.property_offset)
             case 2:  # chunked storage
-                self._build_index(dataobject)
+                self._index_params = ChunkIndex(
+                    dataobject._chunk_address,
+                    dataobject._chunk_dims)
+                if not noindex: 
+                    self._build_index()
 
     def __hash__(self):
         """ The hash is based on assuming the file path, the location
@@ -120,37 +125,52 @@ class DatasetID:
         """
         return self._unique == other._unique
 
+    def __chunk_init_check(self):
+        """ 
+        Used by all the chunk methods to see if this dataset is
+        chunked, and if so, if the index is present, and if not,
+        build it. Otherwise handle errors etc.
+        """
+        if self.layout_class != 2:
+            raise TypeError('Dataset is not chunked ')
+        return not self.index == {}
+
+
     def get_chunk_info(self, index):
         """
         Retrieve storage information about a chunk specified by its index.
         """
-        if not self._index:
-            return None
-        else:
+        if self.__chunk_init_check():
             return self._index[self._nthindex[index]]
+        else:
+            return None
+
 
     def get_chunk_info_by_coord(self, coordinate_index):
         """
         Retrieve information about a chunk specified by the array address of the chunk’s 
         first element in each dimension.
         """
-        if not self._index:
-            return None
-        else:
+        if self.__chunk_init_check():
             return self._index[coordinate_index]
+        else:
+            return None
     
     def get_num_chunks(self):
         """ 
         Return total number of chunks in dataset
         """
-        return len(self._index)
+        if self.__chunk_init_check():
+            return len(self._index)
+        else:
+            return 0
     
     def read_direct_chunk(self, chunk_position, **kwargs):
         """
         Returns a tuple containing the filter_mask and the raw data storing this chunk as bytes.
         Additional arguments supported by ``h5py`` are not supported here.
         """
-        if not self.index:
+        if not self.__chunk_init_check():
             return None
         if chunk_position not in self._index:
             raise OSError("Chunk coordinates must lie on chunk boundaries")
@@ -159,39 +179,35 @@ class DatasetID:
 
     def get_data(self, args, fillvalue):
         """ Called by the dataset getitem method """
-        dtype = self._dtype
         # throws a flake8 wobbly for Python<3.10; match is Py3.10+ syntax
+        no_storage = False
         match self.layout_class:  # noqa
             case 0:  #compact storage
-                return self._read_compact_data(args, fillvalue)
+                if self._data is None:
+                    no_storage = True
+                else:
+                    return self._read_compact_data(args)
             case 1:  # contiguous storage
                 if self.data_offset == UNDEFINED_ADDRESS:
-                    # no storage is backing array, return an array of
-                    # fill values
-                    if isinstance(dtype, tuple):
-                        dtype = np.array(fillvalue).dtype
-
-                    # Note: We can improve this so only an array of
-                    #       the shape implied by 'args' is
-                    #       created. One for the future.
-                    return np.full(self.shape, fillvalue, dtype=dtype)[args]
+                    no_storage = True
                 else:
                     return self._get_contiguous_data(args, fillvalue)
             case 2:  # chunked storage
+                if not self.__index_built:
+                    self._build_index()
                 if not self._index:
-                    # no storage is backing array, return an array of
-                    # fill values
-                    if isinstance(dtype, tuple):
-                        dtype = np.array(fillvalue).dtype
-
-                    return np.full(self.shape, fillvalue, dtype=dtype)[args]
-
-                if isinstance(dtype, tuple) and dtype[0] == "REFERENCE":
-                    # references need to read all the chunks for now
-                    return self._get_selection_via_chunks(())[args]
+                    no_storage = True
                 else:
-                    # this is lazily reading only the chunks we need
-                    return self._get_selection_via_chunks(args)
+                    if isinstance(self._ptype, P5ReferenceType):
+                        # references need to read all the chunks for now
+                        return self._get_selection_via_chunks(())[args]
+                    else:
+                        # this is lazily reading only the chunks we need
+                        return self._get_selection_via_chunks(args)
+
+        if no_storage:
+            return np.full(self.shape, fillvalue, dtype=self.dtype)[args]
+
 
     def iter_chunks(self, args):
         """ 
@@ -202,9 +218,9 @@ class DatasetID:
         intersection of the given chunk with the selection area. 
         This can be used to read data in that chunk.
         """
-        if self.chunks is None:
-            raise TypeError('Dataset is not chunked')
-        
+        if not self.__chunk_init_check():
+            return None
+
         def convert_selection(tuple_of_slices):
             # while a slice of the form slice(a,b,None) is equivalent
             # in function to a slice of form (a,b,1) it is not the same.
@@ -231,7 +247,6 @@ class DatasetID:
             else:
                 yield convert_selection(out_selection)
 
-   
 
     ##### The following property is made available to support ActiveStorage
     ##### and to help those who may want to generate kerchunk indices and
@@ -239,10 +254,42 @@ class DatasetID:
     @property
     def index(self):
         """ Direct access to the chunk index, if there is one. This is a ``pyfive`` API extension. """
-        if self._index is None:
-            raise ValueError('No chunk index available for HDF layout class {self.layout}')
-        else:
-            return self._index
+        # can't use init_chunk_check because that would be an infinite regression
+        if self.layout_class != 2:
+            raise TypeError("Data is not chunked") 
+        if not self._index:
+            self._build_index()
+        return self._index
+        
+    ##### This property is made available to help understand object store performance
+    @property
+    def btree_range(self):
+        """ A tuple with the addresses of the first b-tree node
+        for this variable, and the address of the furthest away node
+        (Which may not be the last one in the chunk index). This property
+        may be of use in understanding the read performance of chunked
+        data in object stores.  ``btree_range`` is a ``pyfive`` API extension.
+        """
+        self.__chunk_init_check()
+        return (self._btree_start, self._btree_end)
+
+    ##### This property is made available to help understand object store performance
+    @property
+    def first_chunk(self):
+        """The integer address of the first data chunk for this variable.
+        
+        This property may be of use in understanding the read
+        performance of chunked data in object stores.  ``first_chunk``
+        is a ``pyfive`` API extension.
+
+        """
+        self.__chunk_init_check()
+        min_offset = None
+        for k in self._index:
+            if min_offset is None or self._index[k].byte_offset < min_offset:
+                min_offset = self._index[k].byte_offset
+        return min_offset
+
     #### The following method can be used to set pseudo chunking size after the 
     #### file has been closed and before data transactions. This is pyfive specific
     def set_pseudo_chunk_size(self, newsize_MB):
@@ -269,7 +316,7 @@ class DatasetID:
         is returned for the contiguous data as if it were one chunk.
         """
         if not self._index:
-            dummy =  StoreInfo(None, None, self.data_offset, self._dtype.itemsize*np.prod(self.shape))
+            dummy =  StoreInfo(None, None, self.data_offset, self.dtype.itemsize*np.prod(self.shape))
             return dummy
         else:
             coord_index = tuple(map(mul, chunk_coords, self.chunks))
@@ -280,7 +327,7 @@ class DatasetID:
     # third parties to use them. They are not H5Py methods.
     ######
 
-    def _build_index(self, dataobject):
+    def _build_index(self):
         """ 
         Build the chunk index if it doesn't exist. This is only 
         called for chunk data, and only when the variable is accessed.
@@ -292,20 +339,33 @@ class DatasetID:
         if self._index is not None: 
             return
         
+        if self._index_params is None:
+            raise RuntimeError('Attempt to build index with no chunk index parameters')
+
         # look out for an empty dataset, which will have no btree
-        if np.prod(self.shape) == 0 or dataobject._chunk_address == UNDEFINED_ADDRESS:
+        if np.prod(self.shape) == 0 or self._index_params.chunk_address == UNDEFINED_ADDRESS:
             self._index = {}
+            #FIXME: There are other edge cases for self._index = {} to handle
+            self._btree_end, self._btree_start = None, None
             return
         
         logging.info(f'Building chunk index in pyfive {version("pyfive")}')
        
+        #FIXME: How do we know it's a V1 B-tree?
+        # There are potentially five different chunk indexing options according to
+        # https://docs.hdfgroup.org/archive/support/HDF5/doc/H5.format.html#AppendixC
+
+        fh = self._fh
         chunk_btree = BTreeV1RawDataChunks(
-                dataobject.fh, dataobject._chunk_address, dataobject._chunk_dims)
-        
+                fh, self._index_params.chunk_address, self._index_params.chunk_dims)
+        if self.posix:
+            fh.close()
+
         self._index = {}
         self._nthindex = []
         
         for node in chunk_btree.all_nodes[0]:
+           
             for node_key, addr in zip(node['keys'], node['addresses']):
                 start = node_key['chunk_offset'][:-1]
                 key = start
@@ -313,41 +373,45 @@ class DatasetID:
                 filter_mask = node_key['filter_mask']
                 self._nthindex.append(key)
                 self._index[key] = StoreInfo(key, filter_mask, addr, size)
+               
+
+        self._btree_start=chunk_btree.offset
+        self._btree_end=chunk_btree.last_offset
+
+        self.__index_built=True
 
     def _get_contiguous_data(self, args, fillvalue):
 
-        if isinstance(self._dtype, tuple):
-            dtype_class = self._dtype[0]
-            if dtype_class == 'REFERENCE':
-                size = self._dtype[1]
-                if size != 8:
-                    raise NotImplementedError('Unsupported Reference type - size {size}')
+        if isinstance(self._ptype, P5ReferenceType):
+            size = self._ptype.size
+            if size != 8:
+                raise NotImplementedError(f'Unsupported Reference type - size {size}')
 
-                fh = self._fh
-                ref_addresses = np.memmap(
-                    fh, dtype=('<u8'), mode='c', offset=self.data_offset,
-                    shape=self.shape, order=self._order)
-                result = np.array([Reference(addr) for addr in ref_addresses])[args]
-                if self.posix:
-                    fh.close()
+            fh = self._fh
+            ref_addresses = np.memmap(
+                fh, dtype=('<u8'), mode='c', offset=self.data_offset,
+                shape=self.shape, order=self._order)
+            result = np.array([Reference(addr) for addr in ref_addresses])[args]
+            if self.posix:
+                fh.close()
 
-                return result
-            elif dtype_class == 'VLEN_STRING':
-                fh = self._fh
-                array = get_vlen_string_data_contiguous(
-                    fh,
-                    self.data_offset,
-                    self._global_heaps,
-                    self.shape,
-                    self._dtype,
-                    fillvalue,
-                )
-                if self.posix:
-                    fh.close()
+            return result
+        elif isinstance(self._ptype, P5VlenStringType):
+            fh = self._fh
+            array = get_vlen_string_data_contiguous(
+                fh,
+                self.data_offset,
+                self._global_heaps,
+                self.shape,
+                self._ptype,
+                fillvalue,
+            )
+            if self.posix:
+                fh.close()
 
-                return array.reshape(self.shape, order=self._order)[args]
-            else:
-                raise NotImplementedError(f'datatype not implemented - {dtype_class}')
+            return array.reshape(self.shape, order=self._order)[args]
+        elif isinstance(self._ptype, P5SequenceType):
+            raise NotImplementedError(f'datatype not implemented - {self._ptype.__class__.__name__}')
 
         if not self.posix:
             # Not posix
@@ -361,7 +425,7 @@ class DatasetID:
                 fh = self._fh
                 view = np.memmap(
                     fh,
-                    dtype=self._dtype,
+                    dtype=self.dtype,
                     mode='c',
                     offset=self.data_offset,
                     shape=self.shape,
@@ -371,6 +435,17 @@ class DatasetID:
                 result = view[args]
                 # Copy the data from disk to physical memory
                 result = result.view(type=np.ndarray)
+                if not self._ptype.is_atomic:
+                    # if we have a type which is not atomic
+                    # we have to get a view
+                    result = result.view(self.dtype)
+                    # and for compounds we have to wrap any References properly
+                    # todo: check for Enum etc types
+                    if isinstance(self._ptype, P5CompoundType):
+                        new_dtype = dtype_replace_refs_with_object(self.dtype)
+                        new_array = np.empty(result.shape, dtype=new_dtype)
+                        new_array[:] = result
+                        result = _decode_array(result, new_array)
                 fh.close()
                 return result
             except UnsupportedOperation:
@@ -396,19 +471,14 @@ class DatasetID:
             raise ValueError("Unknown layout version.")
         return data
 
-    def _read_compact_data(self, args, fillvalue):
-        if self._data is None:
-            if isinstance(self._dtype, tuple):
-                dtype = np.array(fillvalue).dtype
-            return np.full(self.shape, fillvalue, dtype=dtype)[args]
-        else:
-            view = np.frombuffer(
-                self._data,
-                dtype=self._dtype,
-            ).reshape(self.shape)
-            # Create the sub-array
-            result = view[args]
-            return result
+    def _read_compact_data(self, args):
+        view = np.frombuffer(
+            self._data,
+            dtype=self.dtype,
+        ).reshape(self.shape)
+        # Create the sub-array
+        result = view[args]
+        return result
 
 
     def _get_direct_from_contiguous(self, args=None):
@@ -422,7 +492,7 @@ class DatasetID:
         """
         def __get_pseudo_shape():
             """ Determine an appropriate chunk and stride for a given pseudo chunk size """
-            element_size = self._dtype.itemsize
+            element_size = self.dtype.itemsize
             chunk_shape = np.copy(self.shape)
             while True:
                 chunk_size = np.prod(chunk_shape) * element_size
@@ -451,7 +521,7 @@ class DatasetID:
             array = ZarrArrayStub(self.shape, chunk_shape)
             indexer = OrthogonalIndexer(args, array)
             out_shape = indexer.shape
-            out = np.empty(out_shape, dtype=self._dtype, order=self._order)
+            out = np.empty(out_shape, dtype=self.dtype, order=self._order)
             chunk_size = np.prod(chunk_shape)
 
             for chunk_coords, chunk_selection, out_selection in indexer:
@@ -459,10 +529,10 @@ class DatasetID:
                 index = int(index)
                 fh.seek(index)
                 chunk_buffer = fh.read(stride)
-                chunk_data = np.frombuffer(chunk_buffer, dtype=self._dtype).copy()
+                chunk_data = np.frombuffer(chunk_buffer, dtype=self.dtype).copy()
                 if len(chunk_data) < chunk_size:
                     # last chunk over end of file
-                    padded_chunk_data = np.zeros(chunk_size, dtype=self._dtype)
+                    padded_chunk_data = np.zeros(chunk_size, dtype=self.dtype)
                     padded_chunk_data[:len(chunk_data)] = chunk_data
                     chunk_data = padded_chunk_data
                 out[out_selection] = chunk_data.reshape(chunk_shape, order=self._order)[chunk_selection]
@@ -473,7 +543,7 @@ class DatasetID:
             return out
 
         else:
-            itemsize = np.dtype(self._dtype).itemsize
+            itemsize = self.dtype.itemsize
             num_elements = np.prod(self.shape, dtype=int)
             num_bytes = num_elements*itemsize
 
@@ -481,7 +551,7 @@ class DatasetID:
             # read the lot)
             fh.seek(self.data_offset)
             chunk_buffer = fh.read(num_bytes) 
-            chunk_data = np.frombuffer(chunk_buffer, dtype=self._dtype).copy()
+            chunk_data = np.frombuffer(chunk_buffer, dtype=self.dtype).copy()
             chunk_data = chunk_data.reshape(self.shape, order=self._order)
             chunk_data = chunk_data[args]
             if self.posix:
@@ -508,21 +578,14 @@ class DatasetID:
 
         """
         # need a local dtype as we may override it for a reference read.
-        dtype = self._dtype
-        if isinstance(self._dtype, tuple): 
+        dtype = self.dtype
+        if isinstance(self._ptype, P5ReferenceType):
             # this is a reference and we're returning that
-            true_dtype = tuple(dtype)
-            dtype_class = dtype[0]
-            if dtype_class == 'REFERENCE':
-                size = dtype[1]
-                dtype = '<u8'
-                if size != 8:
-                    raise NotImplementedError('Unsupported Reference type')
-            elif dtype_class == 'VLEN_STRING':
-                dtype = self.dtype
+            size = self._ptype.size
+            dtype = '<u8'
+            if size != 8:
+                raise NotImplementedError('Unsupported Reference type')
         else:
-            true_dtype = None
-            dtype_class = None
             if np.prod(self.shape) == 0:
                 return np.zeros(self.shape)
 
@@ -531,13 +594,12 @@ class DatasetID:
         out_shape = indexer.shape
         out = np.empty(out_shape, dtype=dtype, order=self._order)
 
-        if dtype_class == 'VLEN_STRING':
+        if isinstance(self._ptype, P5VlenStringType):
             fh = self._fh
             
             chunk_shape = self.chunks
             global_heaps = self._global_heaps
             index = self._index
-            _dtype = self._dtype
             for chunk_coords, chunk_selection, out_selection in indexer:
                 chunk_coords = tuple(map(mul, chunk_coords, self.chunks))
                 chunk_data = get_vlen_string_data_from_chunk(
@@ -545,7 +607,7 @@ class DatasetID:
                     index[chunk_coords].byte_offset,
                     global_heaps,
                     chunk_shape,
-                    _dtype
+                    self._ptype
                 )
                 chunk_data  = chunk_data.reshape(chunk_shape)
                 out[out_selection] = chunk_data[chunk_selection]
@@ -568,13 +630,13 @@ class DatasetID:
                         chunk_buffer,
                         filter_mask,
                         self.filter_pipeline,
-                        self._dtype.itemsize
+                        self.dtype.itemsize
                     )
                 chunk_data = np.frombuffer(chunk_buffer, dtype=dtype)
                 chunk_data = chunk_data.reshape(self.chunks, order=self._order)
                 out[out_selection] = chunk_data[chunk_selection]
 
-        if dtype_class == 'REFERENCE':
+        if isinstance(self._ptype, P5ReferenceType):
             to_reference = np.vectorize(Reference)
             out = to_reference(out)
 
@@ -608,11 +670,16 @@ class DatasetID:
 
     @property
     def dtype(self):
-        if isinstance(self._dtype, tuple):
-            if  self._dtype[0] == 'VLEN_STRING':
-                return np.dtype("O")
-        return self._dtype
+        """
+        Return numpy dtype of the dataset.
+        """
+        return self._ptype.dtype
 
+    def get_type(self):
+        """
+        Return pyfive type of the dataset.
+        """
+        return self._ptype
 
 
 class DatasetMeta:
@@ -630,7 +697,7 @@ class DatasetMeta:
         self.fletcher32 = dataobject.fletcher32
         self.fillvalue = dataobject.fillvalue
         self.attributes = dataobject.get_attributes()
-        self.datatype = dataobject.dtype
+        self.datatype = dataobject.ptype
 
         #horrible kludge for now, this isn't really the same sort of thing
         #https://github.com/NCAS-CMS/pyfive/issues/13#issuecomment-2557121461

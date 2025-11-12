@@ -26,7 +26,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: ["3.10", "3.11", "3.12", "3.13"]
+        python-version: ["3.10", "3.11", "3.12", "3.13", "3.14"]
 
     steps:
       - uses: actions/checkout@v4
@@ -53,6 +53,11 @@ jobs:
         run: |
           conda list
           pip list
+      - name: Test p5dump
+        run: |
+          which p5dump
+          p5dump tests/data/groups.hdf5
+          p5dump tests/data/issue23_A.nc
       - name: Test with pytest
         run: |
           # pytest tries to split test_threadsafe_data_access.py
