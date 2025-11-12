@@ -5,14 +5,14 @@ import pyfive
 import h5py
 
 
-def test_is_cloud_optim(name, name_co, data, vname):
+def test_consolidated_metadata(name, name_co, data, vname):
     # non cloud optimized
     with pyfive.File(name) as hfile:
-        assert ((hfile[vname].id.btree_range[1] > hfile[vname].id.first_chunk) and (not hfile.is_cloud_optimized))
+        assert ((hfile[vname].id.btree_range[1] > hfile[vname].id.first_chunk) and (not hfile.consolidated_metadata))
 
     # all btree nodes before first chunk
     with pyfive.File(name_co) as hfile:
-        assert ((hfile[vname].id.btree_range[1] < hfile[vname].id.first_chunk) and hfile.is_cloud_optimized)
+        assert ((hfile[vname].id.btree_range[1] < hfile[vname].id.first_chunk) and hfile.consolidated_metadata)
 
 
 @pytest.fixture(scope='module')

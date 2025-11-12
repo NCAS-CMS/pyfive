@@ -14,7 +14,6 @@ from pyfive.misc_low_level import SuperBlock
 from pyfive.h5py import Datatype
 
 
-
 class Group(Mapping):
     """
     An HDF5 Group which may hold attributes, datasets, or other groups.
@@ -64,7 +63,6 @@ class Group(Mapping):
         """
         return self.__getitem_lazy_control(y, noindex=False)
 
-
     def get_lazy_view(self, y):
         """ 
         This instantiates the object y, and if it is a 
@@ -80,7 +78,6 @@ class Group(Mapping):
         """
 
         return self.__getitem_lazy_control(y, noindex=True)
-
 
     def __getitem_lazy_control(self, y, noindex):
         """ 
@@ -130,7 +127,7 @@ class Group(Mapping):
             if additional_obj != '.':
                 raise KeyError('%s is a dataset, not a group' % (obj_name))
             return Dataset(obj_name, DatasetID(dataobjs, noindex=noindex), self)
-       
+
         try:
             # if true, this may well raise a NotImplementedError, if so, we need
             # to warn the user, who may be able to use other parts of the data.
@@ -264,7 +261,8 @@ class File(Group):
         super(File, self).__init__('/', dataobjects, self)
 
     @property
-    def is_cloud_optimized(self):
+    def consolidated_metadata(self):
+        """Returns True if all B-tree nodes for chunked datasets are located before the first chunk in the file."""
         is_co = True
         f = self
 
@@ -290,7 +288,7 @@ class File(Group):
         """ Return the object pointed to by a given address. """
         if self._dataobjects.offset == obj_addr:
             return self
-        
+
         queue = deque([(self.name.rstrip('/'), self)])
         while queue:
             base, grp = queue.popleft()
@@ -308,6 +306,7 @@ class File(Group):
         """ Close the file. """
         if self._close:
             self._fh.close()
+
     __del__ = close
 
     def __enter__(self):
@@ -360,7 +359,6 @@ class Dataset(object):
         Group instance containing this dataset.
 
     """
-    
 
     def __init__(self, name, datasetid, parent):
         """ initalize. """
@@ -369,15 +367,14 @@ class Dataset(object):
         self.name = name
         self._attrs = None
         self._astype = None
-        
-        self.id=datasetid
+
+        self.id = datasetid
         """ This is the DatasetID instance which provides the actual data access methods. """
 
-        #horrible kludge for now,
-        #https://github.com/NCAS-CMS/pyfive/issues/13#issuecomment-2557121461
-        #we hide stuff we need here
+        # horrible kludge for now,
+        # https://github.com/NCAS-CMS/pyfive/issues/13#issuecomment-2557121461
+        # we hide stuff we need here
         self._dataobjects = self.id._meta
-   
 
     def __repr__(self):
         info = (os.path.basename(self.name), self.shape, self.dtype)
@@ -412,16 +409,15 @@ class Dataset(object):
     def len(self):
         """ Return the size of the first axis. """
         return self.shape[0]
-    
+
     def iter_chunks(self, *args):
         return self.id.iter_chunks(args)
-    
 
     @property
     def shape(self):
         """ shape attribute. """
         return self.id.shape
-    
+
     @property
     def maxshape(self):
         """ maxshape attribute. (None for unlimited dimensions) """
@@ -493,15 +489,17 @@ class Dataset(object):
     def attrs(self):
         """ attrs attribute. """
         return self.id._meta.attributes
-     
+
+
 class DimensionManager(Sequence):
     """ Represents a collection of dimensions associated with a dataset. """
+
     def __init__(self, dset):
         ndim = len(dset.shape)
-        dim_list = [[]]*ndim
+        dim_list = [[]] * ndim
         if 'DIMENSION_LIST' in dset.attrs:
             dim_list = dset.attrs['DIMENSION_LIST']
-        dim_labels = [b'']*ndim
+        dim_labels = [b''] * ndim
         if 'DIMENSION_LABELS' in dset.attrs:
             dim_labels = dset.attrs['DIMENSION_LABELS']
         self._dims = [
@@ -541,8 +539,9 @@ class AstypeContext(object):
     """
     Context manager which allows changing the type read from a dataset.
     """
-    #FIXME:ENUM should this allow a conversion from enum base types to values using dictionary?
-    #Probably not, as it would be additional functionality to the h5py interface???
+
+    # FIXME:ENUM should this allow a conversion from enum base types to values using dictionary?
+    # Probably not, as it would be additional functionality to the h5py interface???
 
     def __init__(self, dset, dtype):
         self._dset = dset
@@ -553,4 +552,3 @@ class AstypeContext(object):
 
     def __exit__(self, *args):
         self._dset._astype = None
-
