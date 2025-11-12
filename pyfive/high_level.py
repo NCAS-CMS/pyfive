@@ -263,7 +263,7 @@ class File(Group):
     @property
     def consolidated_metadata(self):
         """Returns True if all B-tree nodes for chunked datasets are located before the first chunk in the file."""
-        is_co = True
+        is_consolidated = True
         f = self
 
         # for all chunked datasets, check if all btree nodes are located before any dataset chunk
@@ -277,9 +277,9 @@ class File(Group):
                         min_chunk = f[ds].id.first_chunk
 
         if max_btree is not None and min_chunk is not None:
-            is_co = max_btree < min_chunk
+            is_consolidated = max_btree < min_chunk
 
-        return is_co
+        return is_consolidated
 
     def __repr__(self):
         return '<HDF5 file "%s" (mode r)>' % (os.path.basename(self.filename))

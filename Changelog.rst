@@ -1,3 +1,10 @@
+Version 1.0.0
+-------------
+
+**2025-11-12**
+
+* Added consolidated metadata functionality by `Ezequiel Cimadevilla <https://github.com/zequihg50>`_ in https://github.com/NCAS-CMS/pyfive/pull/145
+
 Version 0.9.0
 -------------
 
