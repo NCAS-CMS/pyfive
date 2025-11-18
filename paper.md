@@ -59,12 +59,12 @@ With these extensions, coupled with thread safety, many of the limitations precl
 
 # Statement of need
 
-HDF5 is probably the most important data format in physical science, used across the piste. 
-It is particularly important in environmental science, particularly given the fact that NetCDF4 is HDF5 under the hood. 
+HDF5 [@FolEA11,@hdf5web] is probably the most important data format in physical science, used across the piste. 
+It is particularly important in environmental science, particularly given the fact that NetCDF4 [@Rew2006,@Rew2006] is HDF5 under the hood. 
 From satellite missions, to climate models and radar systems, the default binary format has been HDF5 for decades. 
 While newer formats are starting to get mindshare, there are petabytes, if not exabytes of existing HDF5, and there are still many good use-cases for creating new data in HDF5. 
 However, despite the history, there are few libraries for reading HDF5 file data that do not depend on the official HDF5 library maintained by the HDFGroup, and in particular, apart from pyfive, in Python there are none that cover the needs of environmental science. 
-While  the HDF5 c-library is reliable and performant, and battle-tested over decades, there are some caveats to depending upon it: 
+While the HDF5 c-library is reliable and performant, and battle-tested over decades, there are some caveats to depending upon it: 
 Firstly, it is not thread-safe,  secondly, the code is large and complex, and should anything happen to the financial stability of The HDF5group, it is not obvious the C-code could be maintained. 
 Finally, the code complexity also meant that it was not suitable for developing bespoke code for data recovery in the case of partially corrupt data. 
 From a long-term curation perspective both of these last two constraints are a concern. 
@@ -75,7 +75,7 @@ The lightweight deployment consequences of a pure-python HDF5 reader need no fur
 
 Thread safety has become a concern given the wide use of Dask in python based analysis workflows, and this, coupled with a lack of user knowledge about how to efficiently use HDF5, has led to a community perception that HDF5 is not fit for remote access (especially on cloud storage). 
 Issues with thread safety arise from the underlying HDF5 c-library, and cannot be resolved in any solution depending on that library, hence the desire for a pure python solution.
-Remote access has been bedevilled by the widespread need to access remotely data which has been chunked and compressed, combined with the use of HDF5 data which was left in the state it was when the data was produced - often with default unsuitable chunking and with interleaved chunk indexes and data.
+Remote access has been bedevilled by the widespread need to access remotely data which has been chunked and compressed, combined with the use of HDF5 data which was left in the state it was when the data was produced - often with default unsuitable chunking [@Rew2013] and with interleaved chunk indexes and data.
 Solutions have mainly consisted of reformatting the data (and rechunking it at the same time) or utilising kerchunk mediated direct access to chunked HDF5 data (https://fsspec.github.io/kerchunk/). 
 However, in practice using kerchunk requires the data provider to generate kerchunk indices to support remote users, and it leads to issues of synchronicity between indices and changing datasets. 
 
@@ -86,7 +86,9 @@ To help with this process, pyfive also includes extensions to expose information
 With these tools, index extraction with pyfive can be comparable in performance to obtaining a kerchunk index, and completely opaque to the user.
 
 With the use of pyfive, suitably repacked and rechunked HDF5 data can now be considered 'cloud-optimised", insofar as with lazy loading, improved index handling, and thread-safety, there are no "format-induced" constraints on performance during remote access. 
-To aid in discovering whether or not a given HDF5 dataset is cloud-optimised, pyfive also now provides a simple method to find out. 
+To aid in discovering whether or not a given HDF5 dataset is cloud-optimised, pyfive also now provides simple methods to expose information about file layout - both in API extensions, and in a new `p5dump' utility, 
+which provides (in the default view) functionality similar to ncdump, and when used with `p5dump -s`, information
+about storage characteristics.
 
 The issues of the dependency on a complex code maintained by one private company in the context of maintaining data access (over decades, and potentially centuries), can only be mitigated by ensuring that the data format is well documented, that data writers use only the documented features, and that public code exists which can be relatively easily maintained. 
 The HDF5group have provided good documentation for the core features of HDF5 which include all those of interest to the weather and climate community who motivated this reboot of pyfive, and while there is a community of developers beyond the HDF5 group (including some at the publicly funded Unidata institution), recent events suggest that given most of those developers and their existing funding are US based, some spreading of risk would be desirable. 
@@ -147,10 +149,50 @@ Metadata can be repacked to the front of the file and variables can be rechunked
 
 The HDF5 library provides a tool "h5repack" which can do this, provided it is driven with suitable informatin about required chunk shape and the expected size of metadata fields. This version of pyfive supports both method to query whether such repacking is necessary, and to extract necessary parameters.
 
-```python
+In the following example we compare and contrast the unpacked and repacked version of a particularly pathological file, and in doing so howcase some of the pyfive API extensions which help us understand why it is pathological, and how to address those issues for repacking.
 
+If we extract just a piece of the output of `p5dump -s` on this file (which has surface wind velocity at three hour intervals for one hundred years):
 ```
+ float64 time(time) ;
+                time:standard_name = "time" ;
+                time:_n_chunks = 292192 ;
+                time:_chunk_shape = (1,) ;
+                time:_btree_range = (31808, 19854095942) ;
+                time:_first_chunk = 9094 ;
 
+  float32 uas(time, lat, lon) ;
+                uas:_Storage = "Chunked" ;
+                uas:_n_chunks = 292192 ;
+                uas:_chunk_shape = (1, 143, 144) ;
+                uas:_btree_range = (28672, 19854809382) ;
+                uas:_first_chunk = 36520 ;
+```
+we can immediately see that this will be a problematic file!  The b-tree index is clearly interleaved with the data (compare the first chunk address with last index addresses of the two variables), and with a chunk dimension of (1,), any effort
+to use the time-dimension to locate data of interest will involve a ludicrous number of 1 number reads (all underying
+libraries read the data one chunk at a time). It would feel like waiting for the heat death of the universe if one
+was to attempt to manipulate this data stored on an object store! 
+
+It is relatively easy (albeith slow) to use h5repack to fix this (e.g, @HasCim25), after which we see
+```
+float64 time(time) ;
+                time:_Storage = "Chunked" ;
+                time:_n_chunks = 1 ;
+                time:_chunk_shape = (292192,) ;
+                time:_btree_range = (11861, 11861) ;
+                time:_first_chunk = 40989128 ;
+                time:_compression = "gzip(4)" ;
+float32 uas(time, lat, lon) ;
+                uas:_Storage = "Chunked" ;
+                uas:_n_chunks = 5844 ;
+                uas:_chunk_shape = (50, 143, 144) ;
+                uas:_btree_range = (18663, 347943) ;
+                uas:_first_chunk = 41041196 ;
+                uas:_compression = "gzip(4)" ;
+```
+Now data follows indexes, the time dimension is one chunk, and there is a more sensible number of actual data chunks. While
+this file would probably benefit from splitting, with a contigous set of indexes, it is now possible to exploit this data via S3.
+
+pyfive also provides a simple flag: `contiguous_metadata` for a file, which can take values of `True` or `False` for any given file, which simplifies at least the "is the index packed at the front of the file?" part of the optimisation question - though inspection of chunking is a key part of the workflow necessary to determine whether or not a file really is optmised for cloud usage.
 
 # Citations
 
