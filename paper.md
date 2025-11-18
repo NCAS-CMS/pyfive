@@ -175,7 +175,7 @@ to use the time-dimension to locate data of interest will involve a ludicrous nu
 libraries read the data one chunk at a time). It would feel like waiting for the heat death of the universe if one
 was to attempt to manipulate this data stored on an object store! 
 
-It is relatively easy (albeit slow) to use h5repack to fix this - e.g see @HasCim25 -  after which we see
+It is relatively easy (albeit slow) to use h5repack to fix this - e.g see @HasCim25 -  after which we see:
 ```
 float64 time(time) ;
                 time:_Storage = "Chunked" ;
