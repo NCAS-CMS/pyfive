@@ -134,14 +134,29 @@ class BTreeV1RawDataChunks(BTreeV1):
     def _read_node(self, offset, node_level):
         """ Return a single node in the b-tree located at a give offset. """
         node = self._read_node_header(offset, node_level)
+        
         keys = []
         addresses = []
-        for _ in range(node['entries_used']):
-            chunk_size, filter_mask = struct.unpack('<II', self.fh.read(8))
-            fmt = '<' + 'Q' * self.dims
-            fmt_size = struct.calcsize(fmt)
-            chunk_offset = struct.unpack(fmt, self.fh.read(fmt_size))
-            chunk_address = struct.unpack('<Q', self.fh.read(8))[0]
+
+        n_entries = node['entries_used']
+        entry_size = 8 + self.dims * 8 + 8   # chunk_size(4) + filter_mask(4) + offset(dims*8) + address(8)
+        read_size = n_entries * entry_size
+        node_data = self.fh.read(read_size)
+        mem_view = memoryview(node_data)
+
+        pos = 0
+        for _ in range(n_entries):
+
+            # chunk_size, filter_mask
+            chunk_size, filter_mask = struct.unpack_from("<II", mem_view, pos)
+            pos += 8
+            # chunk_offset dims × uint64
+            fmt = f"<{self.dims}Q"
+            chunk_offset = struct.unpack_from(fmt, mem_view, pos)
+            pos += self.dims * 8
+            # address
+            (chunk_address,) = struct.unpack_from("<Q", mem_view, pos)
+            pos += 8
 
             keys.append(OrderedDict((
                 ('chunk_size', chunk_size),
@@ -149,11 +164,11 @@ class BTreeV1RawDataChunks(BTreeV1):
                 ('chunk_offset', chunk_offset),
             )))
             addresses.append(chunk_address)
+
         node['keys'] = keys
         node['addresses'] = addresses
         self.last_offset=max(offset,self.last_offset)
         return node
-
 
     @classmethod
     def _filter_chunk(cls, chunk_buffer, filter_mask, filter_pipeline, itemsize):
