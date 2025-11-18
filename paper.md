@@ -80,8 +80,8 @@ Solutions have mainly consisted of reformatting the data (and rechunking it at t
 However, in practice using kerchunk requires the data provider to generate kerchunk indices to support remote users, and it leads to issues of synchronicity between indices and changing datasets. 
 
 This version of pyfive was developed with these use-cases in mind. There is now full support for lazy loading of chunked data, and methods are provided to give users all the benefits of using kerchunk, but without the need for a priori generation. Because pyfive can access and cache (in the client) the b-tree (index) on a variable-by-variable basis, most of the benefits of kerchunk are gained without any of the constraints. 
-Howver, the kerchunk index is always a contiguous object accessible with one get transaction, this is not necessarily the case with the b-tree, unless the source data has been repacked to ensure contiguous metadata using a tool like h5repack.  
-However, much of the community is unaware of the possibility of repacking the index metadata, and this together with relatively opaque information about the internal structure of files (and hence the necessity or other wise of such repacking), means that repacking is rarely done. 
+Howver, the kerchunk index is always a contiguous object accessible with one get transaction, this is not necessarily the case with the b-tree, unless the source data has been repacked to ensure contiguous metadata using a tool like h5repack. 
+Much of the community is unaware of the possibility of repacking the index metadata, and this together with relatively opaque information about the internal structure of files (and hence the necessity or other wise of such repacking), means that repacking is rarely done. 
 To help with this process, pyfive also includes extensions to expose information about how data and indexes are distributed in the files. 
 With these tools, index extraction with pyfive can be comparable in performance to obtaining a kerchunk index, and completely opaque to the user.
 
@@ -148,7 +148,7 @@ Metadata can be repacked to the front of the file and variables can be rechunked
 The HDF5 library provides a tool "h5repack" which can do this, provided it is driven with suitable informatin about required chunk shape and the expected size of metadata fields. This version of pyfive supports both method to query whether such repacking is necessary, and to extract necessary parameters.
 
 ```python
-EXAMPLES
+
 ```
 
 
