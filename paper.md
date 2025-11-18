@@ -88,13 +88,15 @@ With these tools, index extraction with pyfive can be comparable in performance 
 With the use of pyfive, suitably repacked and rechunked HDF5 data can now be considered 'cloud-optimised", insofar as with lazy loading, improved index handling, and thread-safety, there are no "format-induced" constraints on performance during remote access. 
 To aid in discovering whether or not a given HDF5 dataset is cloud-optimised, pyfive also now provides a simple method to find out. 
 
-
 The issues of the dependency on a complex code maintained by one private company in the context of maintaining data access (over decades, and potentially centuries), can only be mitigated by ensuring that the data format is well documented, that data writers use only the documented features, and that public code exists which can be relatively easily maintained. 
 The HDF5group have provided good documentation for the core features of HDF5 which include all those of interest to the weather and climate community who motivated this reboot of pyfive, and while there is a community of developers beyond the HDF5 group (including some at the publicly funded Unidata institution), recent events suggest that given most of those developers and their existing funding are US based, some spreading of risk would be desirable. 
 To that end, a pure-python code, which is relatively small and maintained by an international constituency, alongside the existing c-code, provides some assurance that the community can maintain HDF5 access for the foreseeable future. 
 A pure python code also makes it easier to develop scripts which can work around data and metadata damage should they occur. 
 
 # Examples
+
+## Remote Access
+
 
 A notable feature of the recent pyfive upgrade is that it was carried out with thread-safety and remote access using fsspec (filesystem-spec.readthedocs.io) in mind.  We provide two examples of using pyfive to access remote data, one in S3, and one behind a modern http web server:
 
@@ -130,22 +132,25 @@ with fs.open("https://site.com/myfile.nc", 'rb') as http_file:
     dataset = nc[var]
 ```
 
-# Mathematics
+## Cloud Optimisation
 
-Single dollars ($) are required for inline mathematics e.g. $f(x) = e^{\pi/x}$
+To be fully cloud optimised an HDF5 file needs to have a contiguous index for each variable, and the chunks for each variable need to be broadly contiguous within the file.  
+When these criteria are met, indexes can be read efficiently, and middleware such as fsspec can make sensible use
+of readahead caching strategies.
 
-Double dollars make self-standing equations:
+HDF5 data files direct from simulations and instruments are often not in this state as information about the number
+of variables, the number of chunks per variable, and the compressed size of those variables is not known as the data
+is being produced.  In such cases the data is also often not chunked along the dimensions being added to as the file is written (since it would have to be buffered first).
 
-$$\Theta(x) = \left\{\begin{array}{l}
-0\textrm{ if } x < 0\cr
-1\textrm{ else}
-\end{array}\right.$$
+Of course, once the file is produced, such information is available.
+Metadata can be repacked to the front of the file and variables can be rechunked and made continuous - which is effectively the same process undertaken when HDF5 data is reformmatted to other "so-called" cloud optimised formats.
 
-You can also use plain \LaTeX for equations
-\begin{equation}\label{eq:fourier}
-\hat f(\omega) = \int_{-\infty}^{\infty} f(x) e^{i\omega x} dx
-\end{equation}
-and refer to \autoref{eq:fourier} from text.
+The HDF5 library provides a tool "h5repack" which can do this, provided it is driven with suitable informatin about required chunk shape and the expected size of metadata fields. This version of pyfive supports both method to query whether such repacking is necessary, and to extract necessary parameters.
+
+```python
+EXAMPLES
+```
+
 
 # Citations
 
@@ -172,7 +177,9 @@ Figure sizes can be customized by adding an optional second parameter:
 
 # Acknowledgements
 
-We acknowledge contributions from Brigitta Sipocz, Syrtis Major, and Semyeong
-Oh, and support from Kathryn Johnston during the genesis of this project.
+Most of the developments outlined here that have occurred since V0.5 (primarily authored by JH) have been
+supported by the UK Met Office and UKRI via 1) UK Excalibur Exascale programme (project ExcaliWork),
+2) the UKRI Digital Research Infrastructure programme (project WacaSoft), and 3) the long term single centre science programme of the UK National Center for Atmospheric Science (NCAS). Ongoing maintenance of pyfive is expected to continue under the 
+auspices of NCAS national capability funding.
 
 # References
