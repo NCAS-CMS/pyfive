@@ -5,7 +5,7 @@ channels:
   - nodefaults
 
 dependencies:
-  - numpy
+  - numpy >=2
   - python >=3.10
   # testing
   - h5py  # link to same hdf5 lib with netcdf4
