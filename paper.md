@@ -12,23 +12,23 @@ authors:
     affiliations: [1,2]  # (Multiple affiliations must be quoted)
   - name: Ezequiel Cimadevilla
     orcid: 0000-0002-8437-2068
-    affiliation: 3
+    affiliations: [3]
   - name: Wout De Nolf
-    affiliation: 4
+    affiliations: [4]
     orcid: 0000-0003-2258-9402
   - name: David Hassell
     orcid: 0000-0002-5312-4950
-    affiliation2: [1,2]
+    affiliations: [1,2]
   - name: Jonathan Helmus
     affiliations: []
   - name: Brian Maranville
     orcid: 0000-0002-6105-8789
-    affiliation: 5
+    affiliation: [5]
   - name: Benjamin Hodel
     affiliations: []
   - name: Kai Mühlbauer
     orcid: 0000-0001-6599-1034
-    affiliation: 6
+    affiliations: [6]
   - name: Valeriu Predoi
     orcid: 0000-0002-9729-6578
     affiliation2: [1,2]
