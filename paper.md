@@ -20,12 +20,12 @@ authors:
     orcid: 0000-0002-5312-4950
     affiliation: "1,2"
   - name: Jonathan Helmus
-    affiliation: ""
+    affiliation: 7
   - name: Brian Maranville
     orcid: 0000-0002-6105-8789
     affiliation: 5
   - name: Benjamin Hodel
-    affiliation: ""
+    affiliation: 7
   - name: Kai Mühlbauer
     orcid: 0000-0001-6599-1034
     affiliation: 6
@@ -47,6 +47,8 @@ affiliations:
    index: 5
  - name: Institute of Geosciences, Meteorology Section, University of Bonn, Germany.
    index: 6
+ - name: No affiliation.
+   index: 7
 
 date: 9 December 2025
 bibliography: paper.bib
