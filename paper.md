@@ -23,7 +23,7 @@ authors:
     affiliations: []
   - name: Brian Maranville
     orcid: 0000-0002-6105-8789
-    affiliation: [5]
+    affiliations: [5]
   - name: Benjamin Hodel
     affiliations: []
   - name: Kai Mühlbauer
