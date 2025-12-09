@@ -14,13 +14,12 @@ authors:
     orcid: 0000-0002-8437-2068
     affiliation: 2
   - name: Wout De Nolf
-    affiliation: 6
+    affiliation: 3
     orcid: 0000-0003-2258-9402
   - name: David Hassell
     orcid: 0000-0002-5312-4950
     affiliation: 1
   - name: Jonathan Helmus
-    affiliation: 3
   - name: Brian Maranville
     orcid: 0000-0002-6105-8789
     affiliation: 4
@@ -36,14 +35,12 @@ affiliations:
    ror: 00hx57361
  - name: Instituto de Física de Cantabria (IFCA), CSIC-Universidad de Cantabria, Santander, Spain.
    index: 2
- - name: TBD
-   index: 3
  - name: NIST Center for Neutron Research
    index: 4
  - name: Institute of Geosciences, Meteorology Section, University of Bonn, Germany.
    index: 5
  - name:  European Synchrotron Radiation Facility (ESRF), Grenoble, France.
-   index: 6
+   index: 3
 date: 21 September 2025
 bibliography: paper.bib
 
