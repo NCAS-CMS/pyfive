@@ -20,10 +20,12 @@ authors:
     orcid: 0000-0002-5312-4950
     affiliation: 1
   - name: Jonathan Helmus
+    affiliation: []
   - name: Brian Maranville
     orcid: 0000-0002-6105-8789
     affiliation: 4
   - name: Benjamin Hodel
+    affiliation: []
   - name: Kai Mühlbauer
     orcid: 0000-0001-6599-1034
     affiliation: 5
