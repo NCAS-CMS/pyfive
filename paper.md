@@ -30,7 +30,7 @@ authors:
     orcid: 0000-0002-9729-6578
     affiliation: 1
 affiliations:
- - name: National Center for Atmospheric Science, Department of Meteorology, University of Reading, Reading, United Kingdom.
+ - name: National Center for Atmospheric Science (NCAS), Department of Meteorology, University of Reading, Reading, United Kingdom.
    index: 1
    ror: 00hx57361
  - name: Instituto de Física de Cantabria (IFCA), CSIC-Universidad de Cantabria, Santander, Spain.
