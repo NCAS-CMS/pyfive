@@ -55,18 +55,18 @@ bibliography: paper.bib
 While it is not a complete implementation of all the specifications and capabilities of HDF5, it includes all the core functionality necessary to read gridded datasets, whether stored contiguously or with chunks, and to carry out the necessary decompression for the standard options.
 All data access is fully lazy, the data is only read from storage when the numpy data arrays are manipulated. Originally developed some years ago, the package has recently been upgraded to support lazy access, and to add missing features necessary for handling all the environmental data known to the authors. 
 It is now a realistic option for production data access in environmental science and more widely. 
-The API is based on that of `h5py` (which is a Python shimmy over the HDF5 c-library, and hence is not thread-safe), with some API extensions to help optimise remote access. 
-With these extensions, coupled with thread safety, many of the limitations precluding the efficient use of HDF5 (and NetCDF4) on cloud storage have been removed.
+The API is based on that of `h5py` (which is a Python shimmy over the HDF5 C-library, and hence is not thread-safe), with some API extensions to help optimise remote access. 
+With these extensions, coupled with thread safety, many of the limitations precluding the efficient use of HDF5 (and netCDF4) on cloud storage have been removed.
 
 # Statement of need
 
 HDF5[^1][@FolEA11] is probably the most important data format in physical science, used across the piste. 
-It is particularly important in environmental science, particularly given the fact that NetCDF4[^2][@Rew06] is HDF5 under the hood. 
+It is particularly important in environmental science, particularly given the fact that netCDF4[^2][@Rew06] is HDF5 under the hood. 
 From satellite missions, to climate models and radar systems, the default binary format has been HDF5 for decades. 
 While newer formats are starting to get mindshare, there are petabytes, if not exabytes, of existing HDF5, and there are still many good use-cases for creating new data in HDF5. 
-However, despite the history, there are few libraries for reading HDF5 file data that do not depend on the official HDF5 library maintained by the HDFGroup, and in particular, apart from `pyfive`, in Python there are none that cover the needs of environmental science. 
+However, despite the history, there are few libraries for reading HDF5 file data that do not depend on the official HDF5 library maintained by the HDF Group, and in particular, apart from `pyfive`, in Python there are none that cover the needs of environmental science. 
 While the HDF5 c-library is reliable and performant, and battle-tested over decades, there are some caveats to depending upon it: 
-Firstly, it is not thread-safe,  secondly, the code is large and complex, and should anything happen to the financial stability of The HDF5group, it is not obvious the C-code could be maintained. 
+Firstly, it is not thread-safe,  secondly, the code is large and complex, and should anything happen to the financial stability of the HDF5 Group, it is not obvious the C-code could be maintained. 
 Finally, the code complexity also meant that it is not suitable for developing bespoke code for data recovery in the case of partially corrupt data. 
 From a long-term curation perspective both of these last two constraints are a concern. 
 
@@ -75,7 +75,7 @@ From a long-term curation perspective both of these last two constraints are a c
 
 The original implementation of `pyfive` (by JH), which included all the low-level functionality to deal with the internals of an HDF5 file was developed with POSIX access in mind. 
 The recent upgrades were developed with the use-case of performant remote access to curated data as the primary motivation, but with additional motivations of having a lightweight HDF5 reader capable of deploying in resource or operating-system constrained environments (such as mobile), and one that could be maintained long-term as a reference reader for curation purposes. 
-The lightweight deployment consequences of a pure-Python HDF5 reader need no further introduction, but as additional motivation we now expand on the issues around remote access and curation.
+The lightweight deployment consequences of a pure-Python HDF5 reader needs no further introduction, but as additional motivation we now expand on the issues around remote access and curation.
 
 Thread safety has become a concern given the wide use of Dask[^3] in Python based analysis workflows, and this, coupled with a lack of user knowledge about how to efficiently use HDF5, has led to a community perception that HDF5 is not fit for remote access (especially on cloud storage). 
 Issues with thread safety arise from the underlying HDF5 c-library, and cannot be resolved in any solution depending on that library, hence the desire for a pure Python solution.
@@ -99,7 +99,7 @@ which provides (in the default view) functionality similar to ncdump, and when u
 
 The issues of the dependency on a complex code maintained by one private company in the context of maintaining data access (over decades, and potentially centuries), can only be mitigated by ensuring that the data format is well documented, that data writers use only the documented features, and that public code exists which can be relatively easily maintained. 
 The HDF5group have provided good documentation for the core features of HDF5 which include all those of interest to the weather and climate community who motivated this reboot of `pyfive`, and while there is a community of developers beyond the HDF5 group (including some at the publicly funded Unidata institution), recent events suggest that given most of those developers and their existing funding are US based, some spreading of risk would be desirable. 
-To that end, a pure Python code, which is relatively small and maintained by an international constituency, alongside the existing c-code, provides some assurance that the community can maintain HDF5 access for the foreseeable future. 
+To that end, a pure Python code, which is relatively small and maintained by an international constituency, alongside the existing C-code, provides some assurance that the community can maintain HDF5 access for the foreseeable future. 
 A pure Python code also makes it easier to develop scripts which can work around data and metadata damage should they occur. 
 
 ## Examples
@@ -108,7 +108,7 @@ We now introduce three aspects of the new functionality that `pyfive` now provid
 
 ##  Remote Access
 
-A notable feature of the recent `pyfive` upgrade is that it was carried out with thread-safety and remote access using fsspec (filesystem-spec.readthedocs.io) in mind.  We provide two examples of using `pyfive` to access remote data, one in S3, and one behind a modern http web server:
+A notable feature of the recent `pyfive` upgrade is that it was carried out with thread-safety and remote access using fsspec (https://filesystem-spec.readthedocs.io) in mind.  We provide two examples of using `pyfive` to access remote data, one in S3, and one behind a modern http web server:
 
 For accessing the data on S3 storage, we will have to set up an ``s3fs`` virtual file system, then pass it to `pyfive`:
 
@@ -118,14 +118,14 @@ import s3fs
 # storage options for an anon S3 bucket
 # there are also caching options for the s3 middleware, not shown here
 storage_options = {
-    'anon': True,
-    'client_kwargs': {'endpoint_url': "https://s3server.ac.uk"}
+    "anon": True,
+    "client_kwargs": {"endpoint_url": "https://s3server.ac.uk"}
 }
 fs = s3fs.S3FileSystem(**storage_options)
 file_uri = "s3-bucket/myfile.nc"
-with fs.open(file_uri, 'rb') as s3_file:
+with fs.open(file_uri, "rb") as s3_file:
     nc = pyfive.File(s3_file)
-    dataset = nc[var]
+    dataset = nc["var"]
 ```
 
 for an HTTPS data server, the usage is similar:
@@ -134,8 +134,8 @@ for an HTTPS data server, the usage is similar:
 import fsspec
 import pyfive
 # there are also caching options for the fsspec middleware, not shown here
-fs = fsspec.filesystem('http')
-with fs.open("https://site.com/myfile.nc", 'rb') as http_file:
+fs = fsspec.filesystem("http")
+with fs.open("https://site.com/myfile.nc", "rb") as http_file:
     nc = pyfive.File(http_file)
     dataset = nc[var]
 ```
@@ -150,19 +150,19 @@ traffic between storage and the client application.
 However when this is coupled with the common pattern of 
 using Dask, some flexibility in what is loaded when is beneficial.
 
-By default when one inspects the contents of a file using `pyfive v1.0` nothing more is read from the file than
+By default when one inspects the contents of a file using `pyfive` nothing more is read from the file than
 the names of the variables ("datasets" in the language of HDF5): for example:
 ```python
-with pyfive.File('myfile.h5','r') as f:
+with pyfive.File("myfile.h5","r") as f:
   variables_in_file = [v for v in f]
 ```
 involves nothing more than getting a set of variable names. When one wishes to inspect these variables:
 ``` python
-with pyfive.File('myfile.h5','r') as f:
-  temp = f['temp']
+with pyfive.File("myfile.h5","r") as f:
+  temp = f["temp"]
 print(temp[1:10])
 ```
-the default in `pyfive v1.0` is to get only the metadata associated with each variable - but crucially at 
+the default in `pyfive` is to get only the metadata associated with each variable - but crucially at 
 this point the b-tree index is also loaded and the variable can now be accessed outside the context
 manager. 
 Data loading is now completely lazy and the variable instance (`temp`) has all the information
@@ -175,8 +175,8 @@ However, there are situations where loading the b-tree at variable instantation 
 is wanted is to be able to view all the variable attributes. 
 To support this option `pyfive` also offers the `get_lazy_view` file method, so one can do:
 ``` python
-with pyfive.File('myfile.h5','r') as f:
-  temp = f.get_lazy_view('temp')
+with pyfive.File("myfile.h5","r") as f:
+  temp = f.get_lazy_view("temp")
 print(temp.attrs())
 ```
 
@@ -201,7 +201,7 @@ Of course, once the file is produced, such information is available.
 Metadata can be repacked to the front of the file and variables can be rechunked and made contiguous - 
 which is effectively the same process undertaken when HDF5 data is reformatted to other cloud optimised formats.
 
-The HDF5 library provides a tool "h5repack" which can do this, provided it is driven with suitable information about required chunk shape and the expected size of metadata fields. Versions (>1.0) of `pyfive` supports both a method to query whether such repacking is necessary, and to extract necessary parameters.
+The HDF5 library provides a tool "h5repack" which can do this, provided it is driven with suitable information about required chunk shape and the expected size of metadata fields. `pyfive` supports both a method to query whether such repacking is necessary, and to extract necessary parameters.
 
 In the following example we compare and contrast the unpacked and repacked version of a particularly pathological file, and in doing so showcase some of the `pyfive` API extensions which help us understand why it is pathological, and how to address those issues for repacking.
 
