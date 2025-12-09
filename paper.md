@@ -9,35 +9,36 @@ tags:
 authors:
   - name: Bryan N. Lawrence
     orcid: 0000-0001-9262-7860
-    affiliations: [1,2]  # (Multiple affiliations must be quoted)
+    affiliation: "1,2"  # (Multiple affiliations must be quoted)
   - name: Ezequiel Cimadevilla
     orcid: 0000-0002-8437-2068
-    affiliations: [3]
+    affiliation: 3
   - name: Wout De Nolf
-    affiliations: [4]
+    affiliation: 4
     orcid: 0000-0003-2258-9402
   - name: David Hassell
     orcid: 0000-0002-5312-4950
-    affiliations: [1,2]
+    affiliation: "1,2"
   - name: Jonathan Helmus
-    affiliations: []
+    affiliation: ""
   - name: Brian Maranville
     orcid: 0000-0002-6105-8789
-    affiliations: [5]
+    affiliation: 5
   - name: Benjamin Hodel
-    affiliations: []
+    affiliation: ""
   - name: Kai Mühlbauer
     orcid: 0000-0001-6599-1034
-    affiliations: [6]
+    affiliation: 6
   - name: Valeriu Predoi
     orcid: 0000-0002-9729-6578
-    affiliations: [1,2]
+    affiliation: "1,2"
 affiliations:
  - name: National Center for Atmospheric Science (NCAS), United Kingdom.
    index: 1
+   ror: 01wwwe276
  - name: Department of Meteorology, University of Reading, Reading, United Kingdom.
    index: 2
-   ror: 03x94ew73
+   ror: 05v62cm79
  - name: Instituto de Física de Cantabria (IFCA), CSIC-Universidad de Cantabria, Santander, Spain.
    index: 3
  - name:  European Synchrotron Radiation Facility (ESRF), Grenoble, France.
