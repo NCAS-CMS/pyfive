@@ -7,7 +7,7 @@ tags:
   - Climate Model Data
   - Engineering
 authors:
-  - name: Bryan Lawrence
+  - name: Bryan N. Lawrence
     orcid: 0000-0001-9262-7860
     affiliation: 1  # (Multiple affiliations must be quoted)
   - name: Ezequiel Cimadevilla
@@ -23,6 +23,7 @@ authors:
   - name: Brian Maranville
     orcid: 0000-0002-6105-8789
     affiliation: 4
+  - name: Benjamin Hodel
   - name: Kai Mühlbauer
     orcid: 0000-0001-6599-1034
     affiliation: 5
@@ -246,11 +247,20 @@ this file would probably benefit from splitting, with a contiguous set of indexe
 
 All the metadata shown in this dump output arises from `pyfive` extensions to the `pyfive.h5t.DatasetID` class. `pyfive` also provides a simple flag: `consolidated_metadata` for a `File` instance, which can take values of `True` or `False` for any given file, which simplifies at least the "is the index packed at the front of the file?" part of the optimisation question - though inspection of chunking is a key part of the workflow necessary to determine whether or not a file really is optimised for cloud usage.
 
+## Author contributions
+
+JH designed and implemented the original software library, including all the fundamental infrastructure for working with low-level HDF artifacts.
+BM, WDN and BH made contributions to earlier versions of the library.
+BNL led the overall refresh of the library, designed and implemented the support for lazy loading of chunked data, cloud and other optimisations, and wrote the paper (with input from the other authors). 
+EC, DH, BM, KM and VP made contributions to the recent versions of the library.
+
+
 # Acknowledgements
 
-Most of the developments outlined here that have occurred since V0.5 (primarily authored by JH) have been
-supported by the UK Met Office and UKRI via 1) UK Excalibur Exascale programme (project ExcaliWork),
-2) the UKRI Digital Research Infrastructure programme (project WacaSoft), and 3) the national capability funding of the UK National Center for Atmospheric Science (NCAS). Ongoing maintenance of `pyfive` is expected to continue under the 
-auspices of that NCAS national capability funding.
+Most of the recent developments outlined have been supported by the UK Met Office and UKRI via 
+1) UK Excalibur Exascale programme (project ExcaliWork),
+2) the UKRI Digital Research Infrastructure programme (project WacaSoft), and 
+3) the national capability funding of the UK National Center for Atmospheric Science (NCAS). 
+Ongoing maintenance of `pyfive` is expected to continue under the auspices of NCAS national capability funding.
 
 # References
