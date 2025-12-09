@@ -30,18 +30,19 @@ authors:
     orcid: 0000-0002-9729-6578
     affiliation: 1
 affiliations:
- - name: NCAS-CMS, Meteorology Department, University of Reading, Reading, United Kingdom.
+ - name: National Center for Atmospheric Science, Department of Meteorology, University of Reading, Reading, United Kingdom.
    index: 1
    ror: 00hx57361
  - name: Instituto de Física de Cantabria (IFCA), CSIC-Universidad de Cantabria, Santander, Spain.
    index: 2
+ - name:  European Synchrotron Radiation Facility (ESRF), Grenoble, France.
+   index: 3
  - name: NIST Center for Neutron Research
    index: 4
  - name: Institute of Geosciences, Meteorology Section, University of Bonn, Germany.
    index: 5
- - name:  European Synchrotron Radiation Facility (ESRF), Grenoble, France.
-   index: 3
-date: 21 September 2025
+
+date: 9 December 2025
 bibliography: paper.bib
 
 ---
