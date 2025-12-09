@@ -31,7 +31,7 @@ authors:
     affiliations: [6]
   - name: Valeriu Predoi
     orcid: 0000-0002-9729-6578
-    affiliation2: [1,2]
+    affiliations: [1,2]
 affiliations:
  - name: National Center for Atmospheric Science (NCAS), United Kingdom.
    index: 1
