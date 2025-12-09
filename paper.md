@@ -9,41 +9,43 @@ tags:
 authors:
   - name: Bryan N. Lawrence
     orcid: 0000-0001-9262-7860
-    affiliation: 1  # (Multiple affiliations must be quoted)
+    affiliations: [1,2]  # (Multiple affiliations must be quoted)
   - name: Ezequiel Cimadevilla
     orcid: 0000-0002-8437-2068
-    affiliation: 2
-  - name: Wout De Nolf
     affiliation: 3
+  - name: Wout De Nolf
+    affiliation: 4
     orcid: 0000-0003-2258-9402
   - name: David Hassell
     orcid: 0000-0002-5312-4950
-    affiliation: 1
+    affiliation2: [1,2]
   - name: Jonathan Helmus
-    affiliation: []
+    affiliations: []
   - name: Brian Maranville
     orcid: 0000-0002-6105-8789
-    affiliation: 4
+    affiliation: 5
   - name: Benjamin Hodel
-    affiliation: []
+    affiliations: []
   - name: Kai Mühlbauer
     orcid: 0000-0001-6599-1034
-    affiliation: 5
+    affiliation: 6
   - name: Valeriu Predoi
     orcid: 0000-0002-9729-6578
-    affiliation: 1
+    affiliation2: [1,2]
 affiliations:
- - name: National Center for Atmospheric Science (NCAS), Department of Meteorology, University of Reading, Reading, United Kingdom.
+ - name: National Center for Atmospheric Science (NCAS), United Kingdom.
    index: 1
-   ror: 00hx57361
- - name: Instituto de Física de Cantabria (IFCA), CSIC-Universidad de Cantabria, Santander, Spain.
+ - name: Department of Meteorology, University of Reading, Reading, United Kingdom.
    index: 2
- - name:  European Synchrotron Radiation Facility (ESRF), Grenoble, France.
+   ror: 03x94ew73
+ - name: Instituto de Física de Cantabria (IFCA), CSIC-Universidad de Cantabria, Santander, Spain.
    index: 3
- - name: NIST Center for Neutron Research
+ - name:  European Synchrotron Radiation Facility (ESRF), Grenoble, France.
    index: 4
- - name: Institute of Geosciences, Meteorology Section, University of Bonn, Germany.
+ - name: NIST Center for Neutron Research
    index: 5
+ - name: Institute of Geosciences, Meteorology Section, University of Bonn, Germany.
+   index: 6
 
 date: 9 December 2025
 bibliography: paper.bib
