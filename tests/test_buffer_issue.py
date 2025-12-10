@@ -40,6 +40,6 @@ def test_buffer_issue():
 
 def test_buffer_issue_ukesm():
     """Test with yet another corner case file."""
-    fp = "data/noy_AERmonZ_UKESM1-0-LL_piControl_r1i1p1f2_gnz_200001-200012.nc"
+    fp = "tests/data/noy_AERmonZ_UKESM1-0-LL_piControl_r1i1p1f2_gnz_200001-200012.nc"
     with pyfive.File(fp) as pfile:
         print(pfile["noy"])
