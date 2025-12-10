@@ -36,3 +36,10 @@ def test_buffer_issue():
     print("File with issue da193a_25_6hr_t_pt_cordex__198807-198807.nc")
     print("Variable m01s30i111")
     _load_nc_file('m01s30i111')
+
+
+def test_buffer_issue_ukesm():
+    """Test with yet another corner case file."""
+    fp = "data/noy_AERmonZ_UKESM1-0-LL_piControl_r1i1p1f2_gnz_200001-200012.nc"
+    with pyfive.File(fp) as pfile:
+        print(pfile["noy"])
