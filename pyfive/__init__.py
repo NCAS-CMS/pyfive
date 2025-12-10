@@ -10,5 +10,16 @@ from pyfive.h5py import Datatype, Empty
 from importlib.metadata import version
 from pyfive.inspect import p5ncdump
 
-__version__ = '0.5.0.dev'
+from importlib.metadata import PackageNotFoundError, version
+
+try:
+    __version__ = version("pyfive")
+except PackageNotFoundError as exc:
+    msg = (
+        "pyfive package not found, please run `pip install -e .` before "
+        "importing the package."
+    )
+    raise PackageNotFoundError(
+        msg,
+    ) from exc
 

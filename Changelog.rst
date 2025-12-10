@@ -1,8 +1,17 @@
 Version 1.0.0
 -------------
 
-**2025-11-12**
+**2025-11-13**
 
+* fix fletcher32, add tests by `Kai Mühlbauer <https://github.com/kmuehlbauer>`_ in https://github.com/NCAS-CMS/pyfive/pull/133
+* add lzf decompress filter by `Kai Mühlbauer <https://github.com/kmuehlbauer>`_ in https://github.com/NCAS-CMS/pyfive/pull/136
+* introduce new H5 types to replace current type-tuples by `Kai Mühlbauer <https://github.com/kmuehlbauer>`_ in https://github.com/NCAS-CMS/pyfive/pull/122
+* mark ``test_hdf5_filters`` as flaky by `Valeriu Predoi <https://github.com/valeriupredoi>`_ in https://github.com/NCAS-CMS/pyfive/pull/141
+* add pytest reruns plugin ``pytest-rerunfailures`` and minimal settings by `Valeriu Predoi <https://github.com/valeriupredoi>`_ in https://github.com/NCAS-CMS/pyfive/pull/142
+* Optimise when we get access to b-tree by providing lazier view of datasets, access to b-tree location, and new p5dump by `Bryan Lawrence <https://github.com/bnlawrence>`_ in https://github.com/NCAS-CMS/pyfive/pull/138
+* Added btree v2 test but skipping it (#137) by `Ezequiel Cimadevilla <https://github.com/zequihg50>`_ in https://github.com/NCAS-CMS/pyfive/pull/143
+* ``p5dump`` examples by `David Hassell <https://github.com/davidhassell>`_ in https://github.com/NCAS-CMS/pyfive/pull/147
+* Milestone for v1.0.0 release by `Bryan Lawrence <https://github.com/bnlawrence>`_ in https://github.com/NCAS-CMS/pyfive/pull/148
 * Added consolidated metadata functionality by `Ezequiel Cimadevilla <https://github.com/zequihg50>`_ in https://github.com/NCAS-CMS/pyfive/pull/145
 
 Version 0.9.0
@@ -21,7 +30,7 @@ Version 0.8.0
 
 **2025-10-07**
 
-* Support for Opaque datasets by @bnlawrence in https://github.com/NCAS-CMS/pyfive/pull/114 with review from `Kai Mühlbauer <https://github.com/kmuehlbauer>`_
+* Support for Opaque datasets by `Bryan Lawrence <https://github.com/bnlawrence>`_ in https://github.com/NCAS-CMS/pyfive/pull/114 with review from `Kai Mühlbauer <https://github.com/kmuehlbauer>`_
 
 Version 0.7.0
 -------------
