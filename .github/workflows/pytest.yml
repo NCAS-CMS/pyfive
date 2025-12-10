@@ -43,6 +43,8 @@ jobs:
         run: |
           mamba install -c conda-forge pip
           pip install -e .[test]
+      - name: Run pip check
+        run: pip check
       - name: Lint with flake8
         run: |
           # stop the build if there are Python syntax errors or undefined names
