@@ -178,6 +178,10 @@ class DataObjects(object):
         adict = dict()
         for record in btree.iter_records():
             data = heap.get_data(record['heapid'])
+            # in the unlikely event of loss of data
+            # just move on
+            if data is None:
+                continue
             name, value = self._parse_attribute_msg(data,0)
             adict[name] = value
         return adict
