@@ -229,23 +229,48 @@ class FractalHeap(object):
         self.nobjects = header["managed_object_count"] + header["huge_object_count"] + header["tiny_object_count"]
 
         managed = []
+        # while iterating over direct and indirect blocks we keep track of the heap_offset
+        # thus, we are able to map this later back to an offset into our managed heap buffer
+        blocks = []
+        buffer_offset = 0
         root_address = header["root_block_address"]
         if root_address:
             nrows = header["indirect_current_rows_count"]
             if nrows:
-                for data in self._iter_indirect_block(fh, root_address, nrows):
+                for data, heap_offset, block_size in self._iter_indirect_block(fh, root_address, nrows):
                     managed.append(data)
+                    blocks.append((heap_offset, buffer_offset, block_size))
+                    buffer_offset += len(data)
             else:
-                data = self._read_direct_block(fh, root_address, start_block_size)
+                data, heap_offset = self._read_direct_block(fh, root_address, start_block_size)
                 managed.append(data)
+                blocks.append((heap_offset, buffer_offset, start_block_size))
+                buffer_offset += len(data)
+
         self.managed = b"".join(managed)
+        self.blocks = blocks
 
     def _read_direct_block(self, fh, offset, block_size):
+        """
+        Read FHDB - direct block - from heap and return data and heap offset
+        """
         fh.seek(offset)
         data = fh.read(block_size)
         header = _unpack_struct_from(self.direct_block_header, data)
-        header["signature"] == b"FHDB"
-        return data
+        assert header["signature"] == b"FHDB"
+        return data, int.from_bytes(header["block_offset"],
+                                                byteorder="little", signed=False)
+
+    def heapid_to_buffer_offset(self, heapid_offset):
+        """
+        Get offset into flat managed buffer from heapid offset
+        """
+        for heap_offset, buffer_offset, block_size in self.blocks:
+            if heap_offset <= heapid_offset < heap_offset + block_size:
+                relative = heapid_offset - heap_offset
+                return buffer_offset + relative
+
+        raise KeyError("HeapID offset not inside any heap block")
 
     def get_data(self, heapid):
         firstbyte = heapid[0]
@@ -262,7 +287,14 @@ class FractalHeap(object):
                 data_offset += nbytes
                 nbytes = self._managed_object_length_size
                 size = _unpack_integer(nbytes, heapid, data_offset)
-                return self.managed[offset:offset+size]
+
+                # map heap_id offset to flat buffer offset
+                offset = self.heapid_to_buffer_offset(offset)
+                if offset < len(self.managed):
+                    return self.managed[offset:offset + size]
+
+                return None
+
             case 1: # tiny
                 raise NotImplementedError
             case 2: # huge
@@ -296,7 +328,7 @@ class FractalHeap(object):
         for i in range(ndirect):
             address = struct.unpack('<Q', fh.read(8))[0]
             if address == UNDEFINED_ADDRESS:
-                break
+                continue
             block_size = self._calc_block_size(i)
             direct_blocks.append((address, block_size))
 
@@ -304,18 +336,18 @@ class FractalHeap(object):
         for i in range(ndirect, ndirect+nindirect):
             address = struct.unpack('<Q', fh.read(8))[0]
             if address == UNDEFINED_ADDRESS:
-                break
+                continue
             block_size = self._calc_block_size(i)
             nrows = self._iblock_nrows_from_block_size(block_size)
-            indirect_blocks.append((address, nrows))
+            indirect_blocks.append((address, block_size, nrows))
 
         for address, block_size in direct_blocks:
-            obj = self._read_direct_block(fh, address, block_size)
-            yield obj
+            obj, heap_offset = self._read_direct_block(fh, address, block_size)
+            yield obj, heap_offset, block_size
 
-        for address, nrows in indirect_blocks:
-            for obj in self._iter_indirect_block(fh, address, nrows):
-                yield obj
+        for address, block_size, nrows in indirect_blocks:
+            for obj, heap_offset in self._iter_indirect_block(fh, address, nrows):
+                yield obj, heap_offset, block_size
 
     def _calc_block_size(self, iblock):
         row = iblock//self.header["table_width"]
