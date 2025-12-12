@@ -261,7 +261,7 @@ class FractalHeap(object):
         return data, int.from_bytes(header["block_offset"],
                                                 byteorder="little", signed=False)
 
-    def heapid_to_buffer_offset(self, heapid_offset):
+    def _heapid_to_buffer_offset(self, heapid_offset):
         """
         Get offset into flat managed buffer from heapid offset
         """
@@ -289,7 +289,7 @@ class FractalHeap(object):
                 size = _unpack_integer(nbytes, heapid, data_offset)
 
                 # map heap_id offset to flat buffer offset
-                offset = self.heapid_to_buffer_offset(offset)
+                offset = self._heapid_to_buffer_offset(offset)
                 if offset < len(self.managed):
                     return self.managed[offset:offset + size]
 
