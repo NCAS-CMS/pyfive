@@ -20,15 +20,15 @@ authors:
     orcid: 0000-0002-5312-4950
     affiliation: "1,2"
   - name: Jonathan Helmus
-    affiliation: 7
-  - name: Brian Maranville
-    orcid: 0000-0002-6105-8789
     affiliation: 5
   - name: Benjamin Hodel
-    affiliation: 7
+    affiliation: 8
+  - name: Brian Maranville
+    orcid: 0000-0002-6105-8789
+    affiliation: 6
   - name: Kai Mühlbauer
     orcid: 0000-0001-6599-1034
-    affiliation: 6
+    affiliation: 7
   - name: Valeriu Predoi
     orcid: 0000-0002-9729-6578
     affiliation: "1,2"
@@ -43,14 +43,16 @@ affiliations:
    index: 3
  - name:  European Synchrotron Radiation Facility (ESRF), Grenoble, France.
    index: 4
- - name: NIST Center for Neutron Research
+ - name: Astral Software Inc
    index: 5
- - name: Institute of Geosciences, Meteorology Section, University of Bonn, Germany.
+ - name: NIST Center for Neutron Research
    index: 6
- - name: No affiliation.
+ - name: Institute of Geosciences, Meteorology Section, University of Bonn, Germany.
    index: 7
+ - name: No affiliation.
+   index: 8
 
-date: 9 December 2025
+date: 14 December 2025
 bibliography: paper.bib
 
 ---
