@@ -320,14 +320,17 @@ class FractalHeap(object):
     def _iter_indirect_block(self, fh, offset, nrows):
         fh.seek(offset)
         header = _unpack_struct_from_file(self.indirect_block_header, fh)
-        header["signature"] == b"FHIB"
+        assert header["signature"] == b"FHIB"
         header["block_offset"] = int.from_bytes(header["block_offset"], byteorder="little", signed=False)
+        # todo: this isn't really clear how the number of ndirect is deduced
+        # at least, we need to derive the correct number by iterating over below
         ndirect, nindirect = self._indirect_info(nrows)
 
         direct_blocks = list()
         for i in range(ndirect):
             address = struct.unpack('<Q', fh.read(8))[0]
             if address == UNDEFINED_ADDRESS:
+                # if there is no valid address, we move on to the next
                 continue
             block_size = self._calc_block_size(i)
             direct_blocks.append((address, block_size))
@@ -336,6 +339,7 @@ class FractalHeap(object):
         for i in range(ndirect, ndirect+nindirect):
             address = struct.unpack('<Q', fh.read(8))[0]
             if address == UNDEFINED_ADDRESS:
+                # same here, move on to the next address
                 continue
             block_size = self._calc_block_size(i)
             nrows = self._iblock_nrows_from_block_size(block_size)
@@ -346,8 +350,8 @@ class FractalHeap(object):
             yield obj, heap_offset, block_size
 
         for address, block_size, nrows in indirect_blocks:
-            for obj, heap_offset in self._iter_indirect_block(fh, address, nrows):
-                yield obj, heap_offset, block_size
+            for obj, heap_offset, _block_size in self._iter_indirect_block(fh, address, nrows):
+                yield obj, heap_offset, _block_size
 
     def _calc_block_size(self, iblock):
         row = iblock//self.header["table_width"]
@@ -362,7 +366,9 @@ class FractalHeap(object):
         table_width = self.header['table_width']
         nobjects = nrows * table_width
         ndirect_max = self._max_direct_nrows * table_width
-        if nrows <= ndirect_max:
+        # this info cannot tell the precise amount of blocks
+        # it can just tell us the maximum possible amount we should parse
+        if nobjects <= ndirect_max:
             ndirect = nobjects
             nindirect = 0
         else:
