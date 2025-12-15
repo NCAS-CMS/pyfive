@@ -154,9 +154,8 @@ moving to `pyfive` easy for users!
 ## Lazy Loading
 
 A key tenet of efficient remote access is that variable inspection is quick and involves the minimimum of network
-traffic between storage and the client application.  
-However when this is coupled with the common pattern of 
-using Dask, some flexibility in what is loaded when is beneficial.
+traffic between storage and the client application.
+However when this is coupled with the common pattern of using Dask, some flexibility in what is loaded when is beneficial.
 
 By default when one inspects the contents of a file using `pyfive` nothing more is read from the file than
 the names of the variables ("datasets" in the language of HDF5): for example:
@@ -202,7 +201,7 @@ and the chunks for each variable need to be sensibly chosen and broadly contiguo
 When these criteria are met, indexes can be read efficiently, and middleware such as fsspec can make sensible use of readahead caching strategies.
 
 HDF5 data files direct from simulations and instruments are often not in this state as information about the number
-of variables, the number of chunks per variable, and the compressed size of those variables is not known as the data is being produced.  
+of variables, the number of chunks per variable, and the compressed size of those variables is not known as the data is being produced.
 In such cases the data is also often not chunked along the dimensions being added to as the file is written (since it would have to be buffered first).
 
 Of course, once the file is produced, such information is available.
@@ -252,7 +251,7 @@ float32 uas(time, lat, lon) ;
                 uas:_compression = "gzip(4)" ;
 ```
 Now data follows indexes, the time dimension is one chunk, and there is a more sensible number of actual data chunks. While
-this file would probably benefit from splitting, with a contiguous set of indexes, it is now possible to exploit this data via S3.
+this file would probably benefit from splitting into single variable files, now it has a contiguous set of indexes it is possible to exploit this data via S3.
 
 All the metadata shown in this dump output arises from `pyfive` extensions to the `pyfive.h5t.DatasetID` class. `pyfive` also provides a simple flag: `consolidated_metadata` for a `File` instance, which can take values of `True` or `False` for any given file, which simplifies at least the "is the index packed at the front of the file?" part of the optimisation question - though inspection of chunking is a key part of the workflow necessary to determine whether or not a file really is optimised for cloud usage.
 
