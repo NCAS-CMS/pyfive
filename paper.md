@@ -81,7 +81,7 @@ From a long-term curation perspective both of these last two constraints are a c
 [^1]: https://www.hdfgroup.org/solutions/hdf5/
 [^2]: https://www.unidata.ucar.edu/software/netcdf
 
-The original implementation of `pyfive` (by Jonathan Helmus), which included all the low-level functionality to deal with the internals of an HDF5 file was developed with POSIX access in mind. 
+The original implementation of `pyfive` (by JH), which included all the low-level functionality to deal with the internals of an HDF5 file was developed with POSIX access in mind. 
 The recent upgrades were developed with the use-case of performant remote access to curated data as the primary motivation, but with additional motivations of having a lightweight HDF5 reader capable of deploying in resource or operating-system constrained environments (such as mobile), and one that could be maintained long-term as a reference reader for curation purposes. 
 The lightweight deployment consequences of a pure-Python HDF5 reader needs no further introduction, but as additional motivation we now expand on the issues around remote access and curation.
 
