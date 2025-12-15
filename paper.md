@@ -178,7 +178,7 @@ This is done so that in Dask applications, when one passes
 each Dask computational chunk a portion of the variable, each such Dask chunk has already got the 
 index, and when it does want to load data, it can be as efficient as possible.
 
-However, there are situations where loading the b-tree at variable instantation is not wanted, and all
+There are also situations where loading the b-tree at variable instantation is not wanted, and all
 is wanted is to be able to view all the variable attributes. 
 To support this option `pyfive` also offers the `get_lazy_view` file method, so one can do:
 ``` python
@@ -251,7 +251,7 @@ float32 uas(time, lat, lon) ;
                 uas:_compression = "gzip(4)" ;
 ```
 Now data follows indexes, the time dimension is one chunk, and there is a more sensible number of actual data chunks. While
-this file would probably benefit from splitting into single variable files, now it has a contiguous set of indexes it is possible to exploit this data via S3.
+this file would probably benefit from splitting into smaller files, now it has a contiguous set of indexes it is possible to exploit this data via S3.
 
 All the metadata shown in this dump output arises from `pyfive` extensions to the `pyfive.h5t.DatasetID` class. `pyfive` also provides a simple flag: `consolidated_metadata` for a `File` instance, which can take values of `True` or `False` for any given file, which simplifies at least the "is the index packed at the front of the file?" part of the optimisation question - though inspection of chunking is a key part of the workflow necessary to determine whether or not a file really is optimised for cloud usage.
 
