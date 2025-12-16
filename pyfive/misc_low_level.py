@@ -186,7 +186,7 @@ class FractalHeap(object):
     (i.e. inside a direct block, possibly indexed by one or more indirect blocks). 
 
     Which direct and indirect blocks contains the data, and the offset within the direct 
-    block can be calculated ly using the various parameters and algorithms described 
+    block can be calculated by using the various parameters and algorithms described 
     at the start of the fractal heap section. It is an array of blocks of increasing size 
     within a linear address space.
 
