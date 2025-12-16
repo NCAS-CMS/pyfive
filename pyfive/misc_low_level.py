@@ -12,9 +12,11 @@ from .core import _unpack_integer
 from .core import InvalidHDF5File
 from .core import UNDEFINED_ADDRESS
 from .core import Reference
-from .p5t import P5Type, P5CompoundType, P5EnumType, P5StringType, P5OpaqueType, P5ReferenceType, P5IntegerType, P5FloatType
 from math import prod
 import numpy as np
+
+# uncomment this and use as shown in the FractalHeap if I/O diagnostic is needed
+#from .utilities import Interceptor
 
 
 class SuperBlock(object):
@@ -168,11 +170,61 @@ class GlobalHeap(object):
 
 class FractalHeap(object):
     """
-    HDF5 Fractal Heap.
+    HDF5 Fractal Heap
+
+    The fractal heap implements the doubling table structure with indirect and direct blocks. 
+    Indirect blocks in the heap do not actually contain data for objects in the heap, 
+    their “size” is abstract - they represent the indexing structure for locating the direct blocks 
+    in the doubling table. Direct blocks contain the actual data for objects stored in the heap.
+    They could be scattered all over the file unless the metadata is stored at the front by 
+    carerful use of the HDF5 file creation properties.
+    
+    The fractal heap ID can refer to a “tiny”, “huge”, or “managed” object. 
+    If it's tiny, the ID contains the actual data and the heap itself does not need to be read from. 
+    If it's huge, the ID contains the address on disk of the data or a b-tree key that can be used to find this address. 
+    If it's managed, then it contains the offset and length within the virtual fractal heap address space 
+    (i.e. inside a direct block, possibly indexed by one or more indirect blocks). 
+
+    Which direct and indirect blocks contains the data, and the offset within the direct 
+    block can be calculated ly using the various parameters and algorithms described 
+    at the start of the fractal heap section. It is an array of blocks of increasing size 
+    within a linear address space.
+
+    Documentation lifted from the HDF5 file format documentation:
+
+    The number of rows of blocks, nrows, in an indirect block is calculated by the following expression:
+
+        nrows = (log2(iblock_size) - log2(<Starting Block Size>)) + 1 
+        
+    where block_size is the size of the block that the indirect block represents in the doubling table. 
+    For example, to represent a block with block_size equals to 1024, and Starting Block Size equals to 256, 
+    three rows are needed.
+
+    The maximum number of rows of direct blocks, max_dblock_rows, in any indirect block of a fractal heap
+    is given by the following expression:
+
+        max_dblock_rows = (log2(<Maximum Direct Block Size>) - log2(<Starting Block Size>)) + 2
+
+    Using the computed values for nrows and max_dblock_rows, along with the Width of the doubling table, 
+    the number of direct and indirect block entries (K and N in the indirect block description, below) in 
+    an indirect block can be computed:
+
+        K = MIN(nrows, max_dblock_rows) * Table Width
+
+    If nrows is less than or equal to max_dblock_rows, N is 0. Otherwise, N is simply computed:
+
+        N = K - (max_dblock_rows * Table Width)
+
+    The size of indirect blocks on disk is determined by the number of rows in the indirect block (computed above). 
+    The size of direct blocks on disk is exactly the size of the block in the doubling table.    
+    
     """
 
     def __init__(self, fh, offset):
-
+        """ 
+        Read the heap header and construct the linear block mapping 
+        """
+        #fh = Interceptor(fh)
         fh.seek(offset)
         header = _unpack_struct_from_file(FRACTAL_HEAP_HEADER, fh)
         assert header['signature'] == b'FRHP'
@@ -213,7 +265,7 @@ class FractalHeap(object):
         start_block_size = header['starting_block_size']
         table_width = header['table_width']
         if not start_block_size:
-            assert NotImplementedError
+            raise NotImplementedError
 
         log2_maximum_dblock_size = int(log2(maximum_dblock_size))
         assert 2**log2_maximum_dblock_size == maximum_dblock_size
@@ -223,6 +275,12 @@ class FractalHeap(object):
 
         log2_table_width = int(log2(table_width))
         assert 2**log2_table_width == table_width
+
+        # TODO: double check this calculation, the HDF5 docs say the 
+        # number of nblocks, nrows, in an indirect block is calculated by the following expression
+        # nrows = (log2(iblock_size) - log2(<Starting Block Size>)) + 1
+        # the question is, how is this used?
+
         self._indirect_nrows_sub = log2_table_width + log2_start_block_size - 1
 
         self.header = header
@@ -237,11 +295,13 @@ class FractalHeap(object):
         if root_address:
             nrows = header["indirect_current_rows_count"]
             if nrows:
+                # Address of root block points to an indirect block
                 for data, heap_offset, block_size in self._iter_indirect_block(fh, root_address, nrows):
                     managed.append(data)
                     blocks.append((heap_offset, buffer_offset, block_size))
                     buffer_offset += len(data)
             else:
+                # Address of root block points to a direct block
                 data, heap_offset = self._read_direct_block(fh, root_address, start_block_size)
                 managed.append(data)
                 blocks.append((heap_offset, buffer_offset, start_block_size))
@@ -613,8 +673,8 @@ FRACTAL_HEAP_HEADER = OrderedDict((
 
     ('managed_freespace_size', 'Q'),       # 8 byte addressing
     ('freespace_manager_address', 'Q'),    # 8 byte addressing
-    ('managed_space_size', 'Q'),           # 8 byte addressing
-    ('managed_alloc_size', 'Q'),           # 8 byte addressing
+    ('managed_space_size', 'Q'),           # 8 byte addressing; this is the upper bound in the heaps linear address space
+    ('managed_alloc_size', 'Q'),           # 8 byte addressing; this is how much of that that is currently allocated to the heap.
     ('next_directblock_iterator_address', 'Q'), # 8 byte addressing
 
     ('managed_object_count', 'Q'),         # 8 byte addressing
