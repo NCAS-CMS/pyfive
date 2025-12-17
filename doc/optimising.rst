@@ -101,6 +101,8 @@ file, which for HDF5 will be stored as one object, look like it is on a file sys
 memory so repeated reads can be more efficient.  The optimal caching strategy is dependent on the file layout
 and the expected access pattern, so ``s3fs`` provides a lot of flexibility as to how to configure that caching strategy.
 
+
+
 For ``pyfive`` the three most important variables to consider altering are the 
 ``default_block_size`` number, the ``default_cache_type`` option and the ``default_fill_cache`` boolean.
 
@@ -119,6 +121,7 @@ For ``pyfive`` the three most important variables to consider altering are the
     This is a boolean which determines whether ``s3fs`` will persistently cache the data that it reads.  
     If this is set to ``True``, then the blocks are cached persistently in memory, but if set to ``False``, then it only makes sense in conjunction with ``default_cache_type`` set to ``readahead`` or ``bytes`` to support streaming access to the data.
 
-
+Note that even with these strategies, it is possible that the file layout itself is such that access will be slow.  
+See the next section for more details of how to optimise your hDF5 files for cloud acccess.
 
 
