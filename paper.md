@@ -60,7 +60,7 @@ bibliography: paper.bib
 # Summary
 
 `pyfive` (<https://pyfive.readthedocs.io/en/latest/>) is an open-source thread-safe pure Python package for reading data stored in HDF5. 
-While it is not a complete implementation of all the specifications and capabilities of HDF5, it includes all the core functionality necessary to read gridded datasets, whether stored contiguously or with chunks, and to carry out the necessary decompression for the standard options.
+While it is not a complete implementation of all the specifications and capabilities of HDF5, it includes all the core functionality necessary to read gridded datasets, whether stored contiguously or with chunks.
 All data access is fully lazy, the data is only read from storage when the numpy data arrays are manipulated. Originally developed some years ago, the package has recently been upgraded to support lazy access, and to add missing features necessary for handling all the environmental data known to the authors. 
 It is now a realistic option for production data access in environmental science and more widely. 
 The API is based on that of `h5py` (which is a Python shimmy over the HDF5 C-library, and hence is not thread-safe), with some API extensions to help optimise remote access. 
@@ -93,23 +93,22 @@ A pure Python code also makes it easier to develop scripts which can work around
 The original implementation of `pyfive` (by JH), which included all the low-level functionality to deal with the internals of an HDF5 file was developed with POSIX access in mind. 
 The recent upgrades were developed with the use-cases of performant remote access to curated data as the primary motivation - including full support for lazy loading only parts of chunked datasets as they are needed.
 
-Thread safety has become a concern given the wide use of Dask[^3] in Python based analysis workflows, and this, coupled with a lack of user knowledge about how to efficiently use HDF5, has led to a community perception that HDF5 is not fit for remote access (especially on cloud storage).  
+Thread safety has become a concern given the wide use of Dask[^3] in Python based analysis workflows, and this, coupled with a lack of user knowledge about how to efficiently use HDF5, has led to a community perception that HDF5 is not fit for remote access (especially on cloud storage).
 ``pyfive`` addresses thread safety by bypassing the underlying HDF5 c-library and
-addresses some of the issues with remote access by, firstly optimising access to
-internal file metadata (and in particular the chunk indexes) and, secondly exposing information about internal file structure which allows informed decisions about how
-to make data cloud optimised[^4].
+addresses some of the issues with remote access by optimising access to
+internal file metadata (in particular, the chunk indexes) and by supporting the determination of whether or not a given file is cloud optimised. 
 
-`pyfive` now supports several levels of "laziness" for instantating chunked datasets (variables). The default method preloads internal indices to make parallellism more efficient, but a completely lazy option without index loading is possible. Neither load data until it is requested.
+To improve internal metadata access,`pyfive` now supports several levels of "laziness" for instantating chunked datasets (variables). The default method preloads internal indices to make parallellism more efficient, but a completely lazy option without index loading is possible. Neither load data until it is requested.
 
 To be fully cloud optimised, files needs sensible chunking, and variables need contiguous indices. Chunking has been, and is easy to determine.
-`pyfive` now also provides simple methods to expose information about file layout - both in API extensions, and via a new `p5dump` utility packaged with the `pyfive` library. Either method allows one to determine whether the key internal "b-tree" indices are contiguous in storage.
+`pyfive` now also provides simple methods to expose information about internal file layout - both in API extensions, and via a new `p5dump` utility packaged with the `pyfive` library[^4]. Either method allows one to determine whether the key internal "b-tree" indices are contiguous in storage, and to determine the parameters necessary to rewrite the data with contiguous indices.
 While `pyfive` itself cannot rewrite files to address chunking or layout, tools such as the HDF5 [repack](https://support.hdfgroup.org/documentation/hdf5/latest/_h5_t_o_o_l__r_p__u_g.html) utility, can do this very efficiently[@HasCim25].
 
 With the use of `pyfive`, suitably repacked and rechunked HDF5 data can now be considered "cloud-optimised", insofar as with lazy loading, 
 improved index handling, and thread-safety, there are no "format-induced" constraints on performance during remote access.
 
 [^3]: https://www.dask.org/
-[^4]: https://pyfive.readthedocs.io/cloud.html 
+[^4]: https://pyfive.readthedocs.io/ 
  
 # Acknowledgements
 
