@@ -7,7 +7,7 @@ Version 1.1.0
 * pin ``numpy>=2`` by `Valeriu Predoi <https://github.com/valeriupredoi>`_ in https://github.com/NCAS-CMS/pyfive/pull/157
 * add a ``pip check`` by `Valeriu Predoi <https://github.com/valeriupredoi>`_ in https://github.com/NCAS-CMS/pyfive/pull/159
 * Highlight: Test case for corner case file (buffer too small) and add bookkeeping for Fractal Heaps by `Kai Mühlbauer <https://github.com/kmuehlbauer>`_ in https://github.com/NCAS-CMS/pyfive/pull/160
-* update ``setutools`` pins by `Valeriu Predoi <https://github.com/valeriupredoi>`_ in https://github.com/NCAS-CMS/pyfive/pull/165
+* update ``setuptools`` pins by `Valeriu Predoi <https://github.com/valeriupredoi>`_ in https://github.com/NCAS-CMS/pyfive/pull/165
 * Fix display of ``p5dump`` global attributes by `Ezequiel Cimadevilla <https://github.com/zequihg50>`_ in https://github.com/NCAS-CMS/pyfive/pull/163
 
 Version 1.0.0
