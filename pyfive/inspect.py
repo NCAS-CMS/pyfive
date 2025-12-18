@@ -95,7 +95,7 @@ def gather_dimensions(obj, alldims, phonys, real_dimensions):
 def dump_header(obj, indent, real_dimensions, special):
     """ Pretty print a group within an HDF5 file (including the root group) """
 
-    def printattr(attrs, ommit=[]):
+    def printattr(name, attrs, ommit=[]):
         """ Pretty print a set of attributes """
         for k,v in attrs.items():
             if k not in ommit:
@@ -144,7 +144,7 @@ def dump_header(obj, indent, real_dimensions, special):
         ommit = ['CLASS','NAME','_Netcdf4Dimid',
                  'REFERENCE_LIST','DIMENSION_LIST','DIMENSION_LABELS','_Netcdf4Coordinates']
         
-        printattr(ds.attrs, ommit)
+        printattr(name, ds.attrs, ommit)
 
         if special:
             extras = {'_Storage':{0:'Compact',1:'Contiguous',2:'Chunked'}[ds.id.layout_class]}
@@ -156,16 +156,15 @@ def dump_header(obj, indent, real_dimensions, special):
                     extras['_first_chunk'] = ds.id.first_chunk
                 if ds.compression:
                     extras['_compression'] = ds.compression+f'({ds.compression_opts})'
-            printattr(extras,[])
+            printattr(name, extras,[])
 
-       
     if isinstance(obj, File):
         hstr='// global '
     elif isinstance(obj, Group):
         hstr=f'{indent}// group '
     if obj.attrs:
         safe_print(hstr+'attributes:')
-        printattr(obj.attrs, ['_NCProperties'])
+        printattr("", obj.attrs, ['_NCProperties'])
         
     if groups:
         for g,o in groups.items():
