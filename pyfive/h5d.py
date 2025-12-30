@@ -15,6 +15,7 @@ from importlib.metadata import version
 StoreInfo = namedtuple('StoreInfo',"chunk_offset filter_mask byte_offset size")
 ChunkIndex = namedtuple('ChunkIndex',"chunk_address chunk_dims")
 
+
 class DatasetID:
     """ 
     Implements an "HDF5 dataset identifier", which despite the name, actually
@@ -570,13 +571,16 @@ class DatasetID:
             fh.close()
 
         return out
-
+#ppp
     def _get_selection_via_chunks(self, args):
         """Use the zarr orthogonal indexer to extract data for a specfic
         selection within the dataset array and in doing so, only load
         the relevant chunks.
 
         """
+        args, squeeze_dims, flip_dims = self._parse_indices(args, self.shape)
+
+        print (args, squeeze_dims, flip_dims)
         # need a local dtype as we may override it for a reference read.
         dtype = self.dtype
         if isinstance(self._ptype, P5ReferenceType):
@@ -640,7 +644,141 @@ class DatasetID:
             to_reference = np.vectorize(Reference)
             out = to_reference(out)
 
+        if squeeze_dims:
+            # Squeeze dimensions that were indexed with an integer or
+            # 0-d numpy array.
+            out = np.squeeze(out, axis=squeeze_dims)
+
+        if flip_dims:
+            # Flip dimensions that were indexed with a negative-step
+            # slice
+            out = np.flip(out, axis=flip_dims)
+
         return out
+
+    def _parse_indices(self,indices, shape):
+        """Reformat the indices for assignment.
+
+        An int or scalar numpy array is recast as an a size 1, 1-d
+        numpy array. The dimensions in the output array for which this
+        has occurred are also returned so that they can be squeezed
+        later.
+        
+        A slice object that is decreasing (i.e. with a negative step),
+        is recast as an increasing slice (i.e. with a positive
+        step. For example ``slice(7,3,-1)`` would be cast as
+        ``slice(4,8,1)``. This is to facilitate finding which chunks
+        are touched by the index. The dimensions in the output array
+        for which this has occurred are also returned so that they can
+        be flipped later.
+
+        Parameters
+        ----------
+        indices : numpy-style indices
+            Indices to array defining the elements to be assigned.
+
+        shape : sequence of `int`
+            The shape of the array to be indexed.
+    
+        Returns
+        -------
+        modified_indices : `tuple`
+            The reformatted indices that give the correct subspace
+            after any output dimensions have been flipped or squeezed,
+            as appropriate.
+
+        squeeze_dims : `tuple`
+            The positions in the output array of any size 1 dimensions
+            that will need squeezing.
+        
+        flip_dims : `tuple`
+            The positions in the output array of any dimensions that
+            will need flipping.
+    
+        Examples
+        --------
+        >>> _parse_indices((slice(1, -1),), (8,))
+        ((slice(1, 7, 1),), [])
+    
+        >>> _parse_indices(([1, 2, 6, 5],), (8,))
+        ((array([1, 2, 6, 5]),), [])
+    
+        >>> _parse_indices((slice(-1, 2, -1), 3), (7, 8))
+        ((slice(3, 8, 1), 3), [0])
+    
+        >>> _parse_indices((3, slice(-1, 2, -1)), (7, 8))
+        ((3, slice(3, 8, 1)), [0])
+    
+        >>> _parse_indices(([3], slice(-1, 2, -1)), (7, 8))
+        (([3], slice(3, 8, 1)), [1])
+    
+        >>> _parse_indices(([1, 2], [3], slice(-1, 2, -1)), (7, 8, 9))
+        (([1, 2], [3], slice(3, 7, 1)), [2])
+
+        """
+        if not isinstance(indices, tuple):
+            indices = (indices,)
+
+        # Initialize output variables
+        parsed_indices = []
+        squeeze_dims = []
+        flip_dims = []
+
+        # Number of output array dimensinons        
+        n_out_dims = 0
+        
+        for index, size in zip(indices, shape):
+            if isinstance(index, slice):
+                start, stop, step = index.indices(size)
+                if step < 0 and stop == -1:
+                    stop = None
+    
+                index = slice(start, stop, step)
+    
+                if step < 0:
+                    # When the slice step is negative, transform the
+                    # original slice to a new slice with a positive
+                    # step such that the result of the new slice is
+                    # the reverse of the result of the original slice.
+                    #
+                    # For example, if the original slice is
+                    # slice(6,0,-2) then the new slice will be
+                    # slice(2,7,2):
+                    #
+                    # >>> a = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
+                    # >>> a[slice(6, 0, -2)]
+                    # [6, 4, 2]
+                    # >>> a[slice(2, 7, 2)]
+                    # [2, 4, 6]
+                    # >>> a[slice(6, 0, -2)] == list(reversed(a[slice(2, 7, 2)]))
+                    # True
+                    start, stop, step = index.indices(size)
+                    step *= -1
+                    div, mod = divmod(start - stop - 1, step)
+                    div_step = div * step
+                    start -= div_step
+                    stop = start + div_step + 1
+    
+                    index = slice(start, stop, step)
+                    flip_dims.append(n_out_dims)
+ 
+                n_out_dims += 1
+                
+            elif isinstance(index, list):
+                n_out_dims += 1
+                
+            elif isinstance(index, (int, np.ndarray)):
+                ndim = np.ndim(index)
+                if not ndim:
+                    index = np.expand_dims(index, 0)
+                    squeeze_dims.append(n_out_dims)
+                    n_out_dims += 1
+                else:
+                    n_out_dims += ndim
+                    
+            parsed_indices.append(index)
+    
+        return tuple(parsed_indices), tuple(squeeze_dims), tuple(flip_dims)
 
     @property
     def _fh(self):
