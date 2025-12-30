@@ -386,6 +386,13 @@ class Dataset(object):
             return data
         return data.astype(self._astype)
 
+    @property
+    def __orthogonal_indexing__(self):
+        """Flag to indicate whether indexing is orthogonal.
+
+        """
+        return self.id.chunks is not None
+
     def read_direct(self, array, source_sel=None, dest_sel=None):
         """
         Read from a HDF5 dataset directly into a NumPy array.

@@ -1,52 +1,66 @@
-""" Test pyfive's abililty to index Datasets. """
+""" Test pyfive's abililty to index Datasets."""
 import os
 
 import numpy as np
 from numpy.testing import assert_array_equal
+import pytest
 
 import pyfive
 
 DIRNAME = os.path.dirname(__file__)
-DATASET_MULTIDIM_HDF5_FILE = os.path.join(DIRNAME, 'data/dataset_multidim.hdf5')
+DATASET_CONTIGUOUS_FILE = os.path.join(DIRNAME, 'data/dataset_multidim.hdf5')
+DATASET_CHUNKED_FILE = os.path.join(DIRNAME, 'data/chunked.hdf5')
+
+# Define a fixture that opens the chunked file once
+@pytest.fixture(scope="module")
+def chunked_file():
+    with pyfive.File(DATASET_CHUNKED_FILE) as hfile:
+        yield hfile 
+
+def test_dataset_indexing_contiguous():
+    with pyfive.File(DATASET_CONTIGUOUS_FILE) as hfile:
+        assert hfile['d'].__orthogonal_indexing__ is False
 
 
-def test_dataset_indexing():
+@pytest.mark.parametrize(
+    "index", [
+        (slice(None, None, -1), slice(None, None, -1)),
+        (slice(None), slice(None, None, -2)),
+        (..., slice(None, None, -2)),
+        (slice(None, None, -2), ...),
+        (slice(-1, None, -3), ...),
+        (slice(-1, None, -3), 0),
+        (slice(-1, None, -3), [1, 2, 4]),
+        (0, [1, 2, 4]),
+        ([1, 2, 4], 1),
+        (0, 1),
+     ]
+)
+def test_dataset_indexing_chunked_1(chunked_file, index):
+    """Test chunked indexing with -ve step slices and single lists"""
+    d = chunked_file['dataset1']
+    assert d.__orthogonal_indexing__ is True
+    assert d.shape == (21, 16)
+    
+    array = d[...]
+    assert array.shape == d.shape
+    
+    assert_array_equal(d[index], array[index])
 
-    with pyfive.File(DATASET_MULTIDIM_HDF5_FILE) as hfile:
+def test_dataset_indexing_chunked_2(chunked_file):
+    """Test orthogonal chunked indexing with ints/lists"""
+    d = chunked_file['dataset1']
+    assert d.__orthogonal_indexing__ is True
+    assert d.shape == (21, 16)
 
-        # check shape
-        assert hfile['d'][:].shape == (2, 3, 4, 5)
+    array = d[...]
+    assert array.shape == d.shape
+  
+    assert_array_equal(d[[0, 1], [1, 2, 3]],
+                       array[:2, 1:4])
 
-        d = hfile['d']  # pyfive Dataset
-        array = d[...]  # numpy array 
+    assert_array_equal(d[[0], [1, 2, 3]],
+                       array[0:1, [1, 2, 3]])
 
-        # Check one dimension at a time with a -ve step slice
-        index0 = [slice(None)] * d.ndim
-        for i in range(len(index0)):
-            index = index0[:]
-            index[i] = slice(None, None, -1)            
-            assert_array_equal(d[tuple(index)], array[tuple(index)])
-
-        # Check 1, 2, ... dimensions with -ve step slices (overwriting
-        # index0)
-        for i in range(len(index0)):
-            index0[i] = slice(None, None, -1)
-            assert_array_equal(d[tuple(index0)], array[tuple(index0)])
-
-        # Check one scalar index with two list indices
-        index0 = [0] * d.ndim
-        index0[2] = [1, 2]
-        index0[3] = [1, 4]
-        for i in (0, 1):
-            index[i] = i
-            assert_array_equal(d[tuple(index)], array[tuple(index)])
-
-        # Check multiple scalar index multiple scalar index with two
-        # list indices
-        for i in  (0, 1):
-            index0[i] = 0
-            assert_array_equal(d[tuple(index0)], array[tuple(index0)])
-
-        # Check all everything at once
-        index0 = [slice(None,), 0, [1, 2], slice(5, None, -2)]
-        assert_array_equal(d[tuple(index0)], array[tuple(index0)])
+    assert_array_equal(d[0, [1, 2, 3]],
+                       array[0, [1, 2, 3]])

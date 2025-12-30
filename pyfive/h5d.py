@@ -187,37 +187,59 @@ class DatasetID:
                 if self._data is None:
                     no_storage = True
                 else:
-                    return self._read_compact_data(args)
+                    out = self._read_compact_data(args)
+
             case 1:  # contiguous storage
                 if self.data_offset == UNDEFINED_ADDRESS:
                     no_storage = True
                 else:
-                    return self._get_contiguous_data(args, fillvalue)
+                    out = self._get_contiguous_data(args, fillvalue)
+
             case 2:  # chunked storage
                 if not self.__index_built:
                     self._build_index()
+
                 if not self._index:
                     no_storage = True
                 else:
+                    args, squeeze_dims, flip_dims = (
+                        self._parse_indices_for_chunks(args)
+                    )
+
                     if isinstance(self._ptype, P5ReferenceType):
                         # references need to read all the chunks for now
-                        return self._get_selection_via_chunks(())[args]
+                        out = self._get_selection_via_chunks(())[args]
                     else:
                         # this is lazily reading only the chunks we need
-                        return self._get_selection_via_chunks(args)
+                        out = self._get_selection_via_chunks(args)
+
+                    if flip_dims:
+                        # Flip dimensions that were indexed with a
+                        # negative-step slice
+                        out = np.flip(out, axis=flip_dims)
+
+                    if squeeze_dims:
+                        # Squeeze dimensions that were indexed with an
+                        # integer or 0-d numpy array.
+                        out = np.squeeze(out, axis=squeeze_dims)
 
         if no_storage:
-            return np.full(self.shape, fillvalue, dtype=self.dtype)[args]
+            out = np.full(self.shape, fillvalue, dtype=self.dtype)[args]
 
+        return out
 
     def iter_chunks(self, args):
-        """ 
-        Iterate over chunks in a chunked dataset. 
-        The optional sel argument is a slice or tuple of slices that defines the region to be used. 
-        If not set, the entire dataspace will be used for the iterator.
-        For each chunk within the given region, the iterator yields a tuple of slices that gives the
-        intersection of the given chunk with the selection area. 
-        This can be used to read data in that chunk.
+        """Iterate over chunks in a chunked dataset.
+
+        The args argument is a (possibly empty) sequence of indices
+        that defines the region to be used. If an empty sequence then
+        the entire dataspace will be used for the iterator.
+
+        For each chunk within the given region, the iterator yields a
+        tuple of indices that gives the intersection of the given
+        chunk with the selection area. This can be used to read data
+        in that chunk.
+
         """
         if not self.__chunk_init_check():
             return None
@@ -382,7 +404,6 @@ class DatasetID:
         self.__index_built=True
 
     def _get_contiguous_data(self, args, fillvalue):
-
         if isinstance(self._ptype, P5ReferenceType):
             size = self._ptype.size
             if size != 8:
@@ -448,6 +469,7 @@ class DatasetID:
                         new_array[:] = result
                         result = _decode_array(result, new_array)
                 fh.close()
+                print (999)
                 return result
             except UnsupportedOperation:
                 return self._get_direct_from_contiguous(args)
@@ -571,16 +593,13 @@ class DatasetID:
             fh.close()
 
         return out
-#ppp
+
     def _get_selection_via_chunks(self, args):
         """Use the zarr orthogonal indexer to extract data for a specfic
         selection within the dataset array and in doing so, only load
         the relevant chunks.
 
         """
-        args, squeeze_dims, flip_dims = self._parse_indices(args, self.shape)
-
-        print (args, squeeze_dims, flip_dims)
         # need a local dtype as we may override it for a reference read.
         dtype = self.dtype
         if isinstance(self._ptype, P5ReferenceType):
@@ -644,42 +663,28 @@ class DatasetID:
             to_reference = np.vectorize(Reference)
             out = to_reference(out)
 
-        if squeeze_dims:
-            # Squeeze dimensions that were indexed with an integer or
-            # 0-d numpy array.
-            out = np.squeeze(out, axis=squeeze_dims)
-
-        if flip_dims:
-            # Flip dimensions that were indexed with a negative-step
-            # slice
-            out = np.flip(out, axis=flip_dims)
-
         return out
 
-    def _parse_indices(self,indices, shape):
-        """Reformat the indices for assignment.
+    def _parse_indices_for_chunks(self, indices):
+        """Reformat the indices for orthogonal indexing on chunks.
 
         An int or scalar numpy array is recast as an a size 1, 1-d
         numpy array. The dimensions in the output array for which this
-        has occurred are also returned so that they can be squeezed
-        later.
-        
+        has occurred are returned so that they can be squeezed later.
+
         A slice object that is decreasing (i.e. with a negative step),
         is recast as an increasing slice (i.e. with a positive
         step. For example ``slice(7,3,-1)`` would be cast as
         ``slice(4,8,1)``. This is to facilitate finding which chunks
         are touched by the index. The dimensions in the output array
-        for which this has occurred are also returned so that they can
-        be flipped later.
+        for which this has occurred are returned so that they can be
+        flipped later.
 
         Parameters
         ----------
         indices : numpy-style indices
             Indices to array defining the elements to be assigned.
 
-        shape : sequence of `int`
-            The shape of the array to be indexed.
-    
         Returns
         -------
         modified_indices : `tuple`
@@ -695,39 +700,49 @@ class DatasetID:
             The positions in the output array of any dimensions that
             will need flipping.
     
-        Examples
-        --------
-        >>> _parse_indices((slice(1, -1),), (8,))
-        ((slice(1, 7, 1),), [])
-    
-        >>> _parse_indices(([1, 2, 6, 5],), (8,))
-        ((array([1, 2, 6, 5]),), [])
-    
-        >>> _parse_indices((slice(-1, 2, -1), 3), (7, 8))
-        ((slice(3, 8, 1), 3), [0])
-    
-        >>> _parse_indices((3, slice(-1, 2, -1)), (7, 8))
-        ((3, slice(3, 8, 1)), [0])
-    
-        >>> _parse_indices(([3], slice(-1, 2, -1)), (7, 8))
-        (([3], slice(3, 8, 1)), [1])
-    
-        >>> _parse_indices(([1, 2], [3], slice(-1, 2, -1)), (7, 8, 9))
-        (([1, 2], [3], slice(3, 7, 1)), [2])
-
         """
+        shape = self.shape
+        
         if not isinstance(indices, tuple):
             indices = (indices,)
-
+            
+        # Expand any Ellipsis objects into the appropriate number of
+        # slice(None)
+        expanded_indices = []
+        length = len(indices)
+        n = len(shape)
+        ndim = n
+        for i, index in enumerate(indices):
+            if index is Ellipsis:
+                m = n - length + 1
+                try:
+                    if indices[i + 1] is np.newaxis:
+                        m += 1
+                except IndexError:
+                    pass
+    
+                expanded_indices.extend([slice(None)] * m)
+                n -= m
+            else:
+                expanded_indices.append(index)
+                if index is np.newaxis:
+                    ndim += 1
+                    length += 1
+                else:
+                    n -= 1
+    
+            length -= 1
+            
         # Initialize output variables
         parsed_indices = []
         squeeze_dims = []
         flip_dims = []
 
-        # Number of output array dimensinons        
-        n_out_dims = 0
-        
-        for index, size in zip(indices, shape):
+        # Count the output array dimensinons        
+        dim = 0
+
+        # Parse the indices
+        for dim, (index, size) in enumerate(zip(expanded_indices, shape)):
             if isinstance(index, slice):
                 start, stop, step = index.indices(size)
                 if step < 0 and stop == -1:
@@ -760,21 +775,16 @@ class DatasetID:
                     stop = start + div_step + 1
     
                     index = slice(start, stop, step)
-                    flip_dims.append(n_out_dims)
- 
-                n_out_dims += 1
-                
-            elif isinstance(index, list):
-                n_out_dims += 1
-                
+                    flip_dims.append(dim)
+                                 
             elif isinstance(index, (int, np.ndarray)):
-                ndim = np.ndim(index)
-                if not ndim:
+                if not np.ndim(index):
                     index = np.expand_dims(index, 0)
-                    squeeze_dims.append(n_out_dims)
-                    n_out_dims += 1
-                else:
-                    n_out_dims += ndim
+                    squeeze_dims.append(dim)
+
+                # Note: If index has is N-d (N>1), then this will get
+                #       trapped as an IndexError in
+                #       BoolArrayDimIndexer
                     
             parsed_indices.append(index)
     
