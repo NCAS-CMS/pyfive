@@ -1,7 +1,7 @@
 import numpy as np
 from collections import namedtuple
 from operator import mul
-from pyfive.indexing import OrthogonalIndexer, ZarrArrayStub
+from pyfive.indexing import OrthogonalIndexer, ZarrArrayStub, parse_indices_for_chunks
 from pyfive.btree import BTreeV1RawDataChunks
 from pyfive.core import Reference, UNDEFINED_ADDRESS
 from pyfive.misc_low_level import get_vlen_string_data_contiguous, get_vlen_string_data_from_chunk, _decode_array, dtype_replace_refs_with_object
@@ -202,10 +202,11 @@ class DatasetID:
                 if not self._index:
                     no_storage = True
                 else:
-                    args, squeeze_dims, flip_dims = (
-                        self._parse_indices_for_chunks(args)
+                    print(args)
+                    args, flip_dims = parse_indices_for_chunks(
+                        args, self.shape
                     )
-
+                    print(args, flip_dims)
                     if isinstance(self._ptype, P5ReferenceType):
                         # references need to read all the chunks for now
                         out = self._get_selection_via_chunks(())[args]
@@ -217,11 +218,6 @@ class DatasetID:
                         # Flip dimensions that were indexed with a
                         # negative-step slice
                         out = np.flip(out, axis=flip_dims)
-
-                    if squeeze_dims:
-                        # Squeeze dimensions that were indexed with an
-                        # integer or 0-d numpy array.
-                        out = np.squeeze(out, axis=squeeze_dims)
 
         if no_storage:
             out = np.full(self.shape, fillvalue, dtype=self.dtype)[args]
@@ -664,131 +660,6 @@ class DatasetID:
             out = to_reference(out)
 
         return out
-
-    def _parse_indices_for_chunks(self, indices):
-        """Reformat the indices for orthogonal indexing on chunks.
-
-        An int or scalar numpy array is recast as an a size 1, 1-d
-        numpy array. The dimensions in the output array for which this
-        has occurred are returned so that they can be squeezed later.
-
-        A slice object that is decreasing (i.e. with a negative step),
-        is recast as an increasing slice (i.e. with a positive
-        step. For example ``slice(7,3,-1)`` would be cast as
-        ``slice(4,8,1)``. This is to facilitate finding which chunks
-        are touched by the index. The dimensions in the output array
-        for which this has occurred are returned so that they can be
-        flipped later.
-
-        Parameters
-        ----------
-        indices : numpy-style indices
-            Indices to array defining the elements to be assigned.
-
-        Returns
-        -------
-        modified_indices : `tuple`
-            The reformatted indices that give the correct subspace
-            after any output dimensions have been flipped or squeezed,
-            as appropriate.
-
-        squeeze_dims : `tuple`
-            The positions in the output array of any size 1 dimensions
-            that will need squeezing.
-        
-        flip_dims : `tuple`
-            The positions in the output array of any dimensions that
-            will need flipping.
-    
-        """
-        shape = self.shape
-        
-        if not isinstance(indices, tuple):
-            indices = (indices,)
-            
-        # Expand any Ellipsis objects into the appropriate number of
-        # slice(None)
-        expanded_indices = []
-        length = len(indices)
-        n = len(shape)
-        ndim = n
-        for i, index in enumerate(indices):
-            if index is Ellipsis:
-                m = n - length + 1
-                try:
-                    if indices[i + 1] is np.newaxis:
-                        m += 1
-                except IndexError:
-                    pass
-    
-                expanded_indices.extend([slice(None)] * m)
-                n -= m
-            else:
-                expanded_indices.append(index)
-                if index is np.newaxis:
-                    ndim += 1
-                    length += 1
-                else:
-                    n -= 1
-    
-            length -= 1
-            
-        # Initialize output variables
-        parsed_indices = []
-        squeeze_dims = []
-        flip_dims = []
-
-        # Count the output array dimensinons        
-        dim = 0
-
-        # Parse the indices
-        for dim, (index, size) in enumerate(zip(expanded_indices, shape)):
-            if isinstance(index, slice):
-                start, stop, step = index.indices(size)
-                if step < 0 and stop == -1:
-                    stop = None
-    
-                index = slice(start, stop, step)
-    
-                if step < 0:
-                    # When the slice step is negative, transform the
-                    # original slice to a new slice with a positive
-                    # step such that the result of the new slice is
-                    # the reverse of the result of the original slice.
-                    #
-                    # For example, if the original slice is
-                    # slice(6,0,-2) then the new slice will be
-                    # slice(2,7,2):
-                    #
-                    # >>> a = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
-                    # >>> a[slice(6, 0, -2)]
-                    # [6, 4, 2]
-                    # >>> a[slice(2, 7, 2)]
-                    # [2, 4, 6]
-                    # >>> a[slice(6, 0, -2)] == list(reversed(a[slice(2, 7, 2)]))
-                    # True
-                    start, stop, step = index.indices(size)
-                    step *= -1
-                    div, mod = divmod(start - stop - 1, step)
-                    div_step = div * step
-                    start -= div_step
-                    stop = start + div_step + 1
-    
-                    index = slice(start, stop, step)
-                    flip_dims.append(dim)
-                                 
-            elif isinstance(index, (int, np.ndarray)):
-                if not np.ndim(index):
-                    index = np.expand_dims(index, 0)
-                    squeeze_dims.append(dim)
-
-                # Note: If index has is N-d (N>1), then this will get
-                #       trapped as an IndexError in
-                #       BoolArrayDimIndexer
-                    
-            parsed_indices.append(index)
-    
-        return tuple(parsed_indices), tuple(squeeze_dims), tuple(flip_dims)
 
     @property
     def _fh(self):
