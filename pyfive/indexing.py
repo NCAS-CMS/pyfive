@@ -1018,6 +1018,95 @@ def make_slice_selection(selection):
             ls.append(dim_selection)
     return ls
 
+def parse_indices_for_chunks(indices, shape):
+    """Reformat the indices for indexing on chunks.
+
+    A slice object that is decreasing (i.e. with a negative step), is
+    recast as an increasing slice (i.e. with a positive step. For
+    example ``slice(7,3,-1)`` would be cast as ``slice(4,8,1)``. This
+    is to facilitate finding which chunks are touched by the
+    index. The dimensions in the indexed array for which this has
+    occurred are returned so that they can be flipped later.
+
+    All other indices are unchanged.
+
+    Parameters
+    ----------
+    indices : numpy-style indices
+        Indices to an array of the given shape.
+
+    shape : tuple of `int`
+        The shape of the array.
+
+    Returns
+    -------
+    parsed_indices : `tuple`
+        The reformatted indices that give the correct subspace after
+        output dimensions have been flipped, as appropriate.
+
+    flip_dims : `tuple`
+        The positions in the output array of dimensions that will need
+        flipping. The tuple wll be empty if there were no decsreasing
+        slices.
+
+    """
+    indices = replace_ellipsis(indices, shape)
+
+    # Initialize outputs
+    parsed_indices = []
+    flip_dims = []
+
+    # Dimension positions of the array *after* indexing (some
+    # dimensions might get dropped by integer indices)
+    dim = 0
+
+    # Parse the indices
+    for index, size in zip(indices, shape):
+        if isinstance(index, slice):
+            start, stop, step = index.indices(size)
+            if step < 0 and stop == -1:
+                stop = None
+
+            index = slice(start, stop, step)
+
+            if step < 0:
+                # When the slice step is negative, transform the
+                # original slice to a new slice with a positive step
+                # such that the result of the new slice is the reverse
+                # of the result of the original slice.
+                #
+                # For example, if the original slice is slice(6,0,-2)
+                # then the new slice will be slice(2,7,2):
+                #
+                # >>> a = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
+                # >>> a[slice(6, 0, -2)]
+                # [6, 4, 2]
+                # >>> a[slice(2, 7, 2)]
+                # [2, 4, 6]
+                # >>> a[slice(6, 0, -2)] == list(reversed(a[slice(2, 7, 2)]))
+                # True
+                start, stop, step = index.indices(size)
+                step *= -1
+                div, mod = divmod(start - stop - 1, step)
+                div_step = div * step
+                start -= div_step
+                stop = start + div_step + 1
+
+                index = slice(start, stop, step)
+                flip_dims.append(dim)
+
+        elif isinstance(index, int):
+            dim -= 1
+
+        elif isinstance(index, np.ndarray):
+           if not index.ndim:
+               dim -= 1
+
+        dim += 1
+
+        parsed_indices.append(index)
+
+    return tuple(parsed_indices), tuple(flip_dims)
 
 class PartialChunkIterator:
     """Iterator to retrieve the specific coordinates of requested data
@@ -1113,94 +1202,3 @@ class PartialChunkIterator:
             for i, sl in enumerate(partial_out_selection):
                 start += sl.start * np.prod(self.arr_shape[i + 1 :], dtype=int)
             yield start, nitems, partial_out_selection
-
-def parse_indices_for_chunks(indices, shape):
-    """Reformat the indices for indexing on chunks.
-
-    A slice object that is decreasing (i.e. with a negative step), is
-    recast as an increasing slice (i.e. with a positive step. For
-    example ``slice(7,3,-1)`` would be cast as ``slice(4,8,1)``. This
-    is to facilitate finding which chunks are touched by the
-    index. The dimensions in the output array for which this has
-    occurred are returned so that they can be flipped later.
-
-    All other indices are unchanged.
-
-    Parameters
-    ----------
-    indices : numpy-style indices
-        Indices to an array of the given shape.
-
-    shape : tuple of `int`
-        The shape of the array.
-
-    Returns
-    -------
-    parsed_indices : `tuple`
-        The reformatted indices that give the correct subspace after
-        output dimensions have been flipped, as appropriate.
-
-    flip_dims : `tuple`
-        The positions in the output array of dimensions that will need
-        flipping. The tuple wll be empty if there were no descreasing
-        slices.
-
-    """
-    indices = replace_ellipsis(indices, shape)
-        
-    # Initialize outputs
-    parsed_indices = []
-    flip_dims = []
-
-    # Dimension positions of the array *after* indexing (some
-    # dimensions might get dropped by integer indices)
-    dim = 0
-    
-    # Parse the indices
-    for index, size in zip(indices, shape):
-        if isinstance(index, slice):
-            start, stop, step = index.indices(size)
-            if step < 0 and stop == -1:
-                stop = None
-
-            index = slice(start, stop, step)
-
-            if step < 0:
-                # When the slice step is negative, transform the
-                # original slice to a new slice with a positive step
-                # such that the result of the new slice is the reverse
-                # of the result of the original slice.
-                #
-                # For example, if the original slice is slice(6,0,-2)
-                # then the new slice will be slice(2,7,2):
-                #
-                # >>> a = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
-                # >>> a[slice(6, 0, -2)]
-                # [6, 4, 2]
-                # >>> a[slice(2, 7, 2)]
-                # [2, 4, 6]
-                # >>> a[slice(6, 0, -2)] == list(reversed(a[slice(2, 7, 2)]))
-                # True
-                start, stop, step = index.indices(size)
-                step *= -1
-                div, mod = divmod(start - stop - 1, step)
-                div_step = div * step
-                start -= div_step
-                stop = start + div_step + 1
-
-                index = slice(start, stop, step)
-                flip_dims.append(dim)
-                    
-        elif isinstance(index, int):
-            dim -= 1
-               
-        elif isinstance(index, np.ndarray):
-           if not index.ndim:
-               dim -= 1
-
-        dim += 1
-        
-        parsed_indices.append(index)
-
-    return tuple(parsed_indices), tuple(flip_dims)
-

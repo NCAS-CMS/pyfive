@@ -15,7 +15,6 @@ from importlib.metadata import version
 StoreInfo = namedtuple('StoreInfo',"chunk_offset filter_mask byte_offset size")
 ChunkIndex = namedtuple('ChunkIndex',"chunk_address chunk_dims")
 
-
 class DatasetID:
     """ 
     Implements an "HDF5 dataset identifier", which despite the name, actually
@@ -187,26 +186,21 @@ class DatasetID:
                 if self._data is None:
                     no_storage = True
                 else:
-                    out = self._read_compact_data(args)
-
+                    return self._read_compact_data(args)
             case 1:  # contiguous storage
                 if self.data_offset == UNDEFINED_ADDRESS:
                     no_storage = True
                 else:
-                    out = self._get_contiguous_data(args, fillvalue)
-
+                    return self._get_contiguous_data(args, fillvalue)
             case 2:  # chunked storage
                 if not self.__index_built:
                     self._build_index()
-
                 if not self._index:
                     no_storage = True
                 else:
-                    print(args)
                     args, flip_dims = parse_indices_for_chunks(
                         args, self.shape
                     )
-                    print(args, flip_dims)
                     if isinstance(self._ptype, P5ReferenceType):
                         # references need to read all the chunks for now
                         out = self._get_selection_via_chunks(())[args]
@@ -215,14 +209,16 @@ class DatasetID:
                         out = self._get_selection_via_chunks(args)
 
                     if flip_dims:
-                        # Flip dimensions that were indexed with a
-                        # negative-step slice
+                        # Flip dimensions that were intended to be
+                        # indexed with a negative-step slice, but were
+                        # actually indexed with an equivalent
+                        # positive-step slice.
                         out = np.flip(out, axis=flip_dims)
 
-        if no_storage:
-            out = np.full(self.shape, fillvalue, dtype=self.dtype)[args]
+                    return out
 
-        return out
+        if no_storage:
+            return np.full(self.shape, fillvalue, dtype=self.dtype)[args]
 
     def iter_chunks(self, args):
         """Iterate over chunks in a chunked dataset.
@@ -465,7 +461,6 @@ class DatasetID:
                         new_array[:] = result
                         result = _decode_array(result, new_array)
                 fh.close()
-                print (999)
                 return result
             except UnsupportedOperation:
                 return self._get_direct_from_contiguous(args)
