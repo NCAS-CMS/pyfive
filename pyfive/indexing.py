@@ -1069,7 +1069,7 @@ def replace_negative_slices(selection, shape):
 
     Returns
     -------
-    parsed_selection : `tuple`
+    modified_selection : `tuple`
         The reformatted indices that give the will correct subspace
         after output dimensions have been reversed, as appropriate.
 
@@ -1081,15 +1081,15 @@ def replace_negative_slices(selection, shape):
     """
     indices = replace_ellipsis(selection, shape)
 
-    # Initialize outputs
-    parsed_selection = []
+    # Initialise outputs
+    modified_selection = []
     reverse_dims = []
 
     # Dimension positions of the array *after* indexing (some
     # dimensions might get dropped by integer indices)
     dim = 0
 
-    # Parse the indices
+    # Replace a negative slice index with its reversed version
     for index, size in zip(selection, shape):
         if isinstance(index, slice):
             start, stop, step = index.indices(size)
@@ -1140,9 +1140,9 @@ def replace_negative_slices(selection, shape):
 
         dim += 1
 
-        parsed_selection.append(index)
+        modified_selection.append(index)
 
-    return tuple(parsed_selection), tuple(reverse_dims)
+    return tuple(modified_selection), tuple(reverse_dims)
 
 class PartialChunkIterator:
     """Iterator to retrieve the specific coordinates of requested data
