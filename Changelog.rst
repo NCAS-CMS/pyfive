@@ -3,7 +3,7 @@ Version ?.?.?
 
 **2026-??-??**
 
-* Allow negative slices when indexing chunked data by `David Hassell <https://github.com/davidhassell>`_ in https://github.com/NCAS-CMS/pyfive/pull/???
+* Allow negative slices when indexing chunked data by `David Hassell <https://github.com/davidhassell>`_ in https://github.com/NCAS-CMS/pyfive/pull/170
 
 Version 1.0.1
 -------------

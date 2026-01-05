@@ -1,7 +1,7 @@
 import numpy as np
 from collections import namedtuple
 from operator import mul
-from pyfive.indexing import OrthogonalIndexer, ZarrArrayStub, parse_indices_for_chunks
+from pyfive.indexing import OrthogonalIndexer, ZarrArrayStub
 from pyfive.btree import BTreeV1RawDataChunks
 from pyfive.core import Reference, UNDEFINED_ADDRESS
 from pyfive.misc_low_level import get_vlen_string_data_contiguous, get_vlen_string_data_from_chunk, _decode_array, dtype_replace_refs_with_object
@@ -198,24 +198,12 @@ class DatasetID:
                 if not self._index:
                     no_storage = True
                 else:
-                    args, flip_dims = parse_indices_for_chunks(
-                        args, self.shape
-                    )
                     if isinstance(self._ptype, P5ReferenceType):
                         # references need to read all the chunks for now
-                        out = self._get_selection_via_chunks(())[args]
+                        return self._get_selection_via_chunks(())[args]
                     else:
                         # this is lazily reading only the chunks we need
-                        out = self._get_selection_via_chunks(args)
-
-                    if flip_dims:
-                        # Flip dimensions that were intended to be
-                        # indexed with a negative-step slice, but were
-                        # actually indexed with an equivalent
-                        # positive-step slice.
-                        out = np.flip(out, axis=flip_dims)
-
-                    return out
+                        return self._get_selection_via_chunks(args)
 
         if no_storage:
             return np.full(self.shape, fillvalue, dtype=self.dtype)[args]

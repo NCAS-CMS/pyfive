@@ -47,10 +47,6 @@ class VindexInvalidSelectionError(_BaseZarrIndexError):
 class BoundsCheckError(_BaseZarrIndexError):
     _msg = "index out of bounds for dimension with length {0}"
 
-class NegativeStepError(IndexError):
-    def __init__(self):
-        super().__init__("only slices with step >= 1 are supported")
-
 # And the rest of the code is the original file.
 
 def is_integer(x):
@@ -207,8 +203,6 @@ class SliceDimIndexer:
     def __init__(self, dim_sel, dim_len, dim_chunk_len):
         # normalize
         self.start, self.stop, self.step = dim_sel.indices(dim_len)
-        if self.step < 1:
-            raise NegativeStepError()
 
         # store attributes
         self.dim_len = dim_len
@@ -631,6 +625,11 @@ class OrthogonalIndexer:
         # normalize list to array
         selection = replace_lists(selection)
 
+        # Reverse negative slices
+        selection, reverse_dims = replace_negative_slices(
+            selection, array._shape
+        )
+
         # setup per-dimension indexers
         dim_indexers = []
         for dim_sel, dim_len, dim_chunk_len in zip(selection, array._shape, array._chunks):
@@ -659,6 +658,8 @@ class OrthogonalIndexer:
         self.dim_indexers = dim_indexers
         self.shape = tuple(s.nitems for s in self.dim_indexers if not isinstance(s, IntDimIndexer))
         self.is_advanced = not is_basic_selection(selection)
+        self.reverse_dims = reverse_dims
+
         if self.is_advanced:
             self.drop_axes = tuple(
                 i
@@ -687,6 +688,34 @@ class OrthogonalIndexer:
                 # special case for non-monotonic indices
                 if not is_basic_selection(out_selection):
                     out_selection = ix_(out_selection, self.shape)
+
+            if self.reverse_dims:
+                # A requested negative slice was changed to a positive
+                # slice (e.g.`slice(7,3,-1)` -> `slice(4,8,1)`), so
+                # modify the index to the output array to ensure that
+                # the chunk selection goes in the correct place and in
+                # the correct order.
+                #
+                # E.g. For an output array axis of size 7:
+                #        `slice(0, 1)` -> `slice(6, 5, -1)`
+                #        `slice(1, 4)` -> `slice(5, 2, -1)`
+                #        `slice(4, 7)` -> `slice(2, None, -1)`
+                #
+                # Note that the step for the modified output array
+                # slice is always -1
+                out_selection = list(out_selection)
+                for i in self.reverse_dims:
+                    size = self.shape[i]
+                    start, stop, step = out_selection[i].indices(size)
+
+                    start = size - start - 1
+                    stop = size - stop - 1
+                    if stop < 0:
+                        stop = None
+
+                    out_selection[i] = slice(start, stop, -1)
+
+                out_selection = tuple(out_selection)
 
             yield ChunkProjection(chunk_coords, chunk_selection, out_selection)
 
@@ -1018,21 +1047,21 @@ def make_slice_selection(selection):
             ls.append(dim_selection)
     return ls
 
-def parse_indices_for_chunks(indices, shape):
-    """Reformat the indices for indexing on chunks.
+def replace_negative_slices(selection, shape):
+    """Replace negative slices with positve slices.
 
     A slice object that is decreasing (i.e. with a negative step), is
     recast as an increasing slice (i.e. with a positive step. For
     example ``slice(7,3,-1)`` would be cast as ``slice(4,8,1)``. This
     is to facilitate finding which chunks are touched by the
     index. The dimensions in the indexed array for which this has
-    occurred are returned so that they can be flipped later.
+    occurred are returned so that they can be reversed later.
 
     All other indices are unchanged.
 
     Parameters
     ----------
-    indices : numpy-style indices
+    selection : numpy-style indices
         Indices to an array of the given shape.
 
     shape : tuple of `int`
@@ -1040,34 +1069,30 @@ def parse_indices_for_chunks(indices, shape):
 
     Returns
     -------
-    parsed_indices : `tuple`
-        The reformatted indices that give the correct subspace after
-        output dimensions have been flipped, as appropriate.
+    parsed_selection : `tuple`
+        The reformatted indices that give the will correct subspace
+        after output dimensions have been reversed, as appropriate.
 
-    flip_dims : `tuple`
+    reverse_dims : `tuple`
         The positions in the output array of dimensions that will need
-        flipping. The tuple wll be empty if there were no decsreasing
+        reversing. The tuple wll be empty if there were no negative
         slices.
 
     """
-    indices = replace_ellipsis(indices, shape)
+    indices = replace_ellipsis(selection, shape)
 
     # Initialize outputs
-    parsed_indices = []
-    flip_dims = []
+    parsed_selection = []
+    reverse_dims = []
 
     # Dimension positions of the array *after* indexing (some
     # dimensions might get dropped by integer indices)
     dim = 0
 
     # Parse the indices
-    for index, size in zip(indices, shape):
+    for index, size in zip(selection, shape):
         if isinstance(index, slice):
             start, stop, step = index.indices(size)
-            if step < 0 and stop == -1:
-                stop = None
-
-            index = slice(start, stop, step)
 
             if step < 0:
                 # When the slice step is negative, transform the
@@ -1085,7 +1110,12 @@ def parse_indices_for_chunks(indices, shape):
                 # [2, 4, 6]
                 # >>> a[slice(6, 0, -2)] == list(reversed(a[slice(2, 7, 2)]))
                 # True
+                if stop == -1:
+                    stop = None
+
+                index = slice(start, stop, step)
                 start, stop, step = index.indices(size)
+
                 step *= -1
                 div, mod = divmod(start - stop - 1, step)
                 div_step = div * step
@@ -1093,7 +1123,7 @@ def parse_indices_for_chunks(indices, shape):
                 stop = start + div_step + 1
 
                 index = slice(start, stop, step)
-                flip_dims.append(dim)
+                reverse_dims.append(dim)
 
         elif isinstance(index, int):
             dim -= 1
@@ -1102,11 +1132,17 @@ def parse_indices_for_chunks(indices, shape):
            if not index.ndim:
                dim -= 1
 
+        elif index == Ellipsis:
+            raise ValueError(
+                "replace_negative_slices doesn't work when selection "
+                "contains Ellipsis. Consider running replace_ellipsis first"
+            )
+
         dim += 1
 
-        parsed_indices.append(index)
+        parsed_selection.append(index)
 
-    return tuple(parsed_indices), tuple(flip_dims)
+    return tuple(parsed_selection), tuple(reverse_dims)
 
 class PartialChunkIterator:
     """Iterator to retrieve the specific coordinates of requested data
