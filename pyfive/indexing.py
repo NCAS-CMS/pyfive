@@ -691,15 +691,15 @@ class OrthogonalIndexer:
 
             if self.reverse_dims:
                 # A requested negative slice was changed to a positive
-                # slice (e.g.`slice(7,3,-1)` -> `slice(4,8,1)`), so
+                # slice (e.g. slice(7, 3, -1) -> slice(4, 8, 1)), so
                 # modify the index to the output array to ensure that
                 # the chunk selection goes in the correct place and in
                 # the correct order.
                 #
                 # E.g. For an output array axis of size 7:
-                #        `slice(0, 1)` -> `slice(6, 5, -1)`
-                #        `slice(1, 4)` -> `slice(5, 2, -1)`
-                #        `slice(4, 7)` -> `slice(2, None, -1)`
+                #        slice(0, 1) -> slice(6, 5, -1)
+                #        slice(1, 4) -> slice(5, 2, -1)
+                #        slice(4, 7) -> slice(2, None, -1)
                 #
                 # Note that the step for the modified output array
                 # slice is always -1
