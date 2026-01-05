@@ -490,6 +490,13 @@ class Dataset(object):
         """ attrs attribute. """
         return self.id._meta.attributes
 
+    @property
+    def __orthogonal_indexing__(self):
+        """Flag to indicate whether indexing is orthogonal.
+
+        """
+        return self.id.chunks is not None
+
 
 class DimensionManager(Sequence):
     """ Represents a collection of dimensions associated with a dataset. """
