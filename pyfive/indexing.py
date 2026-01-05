@@ -1134,8 +1134,10 @@ def replace_negative_slices(selection, shape):
 
         elif index == Ellipsis:
             raise ValueError(
-                "replace_negative_slices doesn't work when selection "
-                "contains Ellipsis. Consider running replace_ellipsis first"
+                "replace_negative_slices(selection, shape) doesn't work "
+                "when selection contains Ellipsis. Consider doing "
+                "selection=pyfive.indexing.replace_ellipsis(selection, shape) "
+                "first"
             )
 
         dim += 1
