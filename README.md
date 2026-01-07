@@ -16,15 +16,16 @@ pyfive : A pure Python HDF5 file reader
 pure Python (no C extensions). The package is still in development and not all
 features of HDF5 files are supported.
 
-``pyfive`` aims to support the same API as [`h5py`](https://github.com/h5py/h5py)
-for reading files. Cases where a file uses a feature that is supported by ``h5py``
-but not ``pyfive`` are considered bug and should be reported in our [Issues](https://github.com/NCAS-CMS/pyfive/issues).
-Writing HDF5 is not a goal of ``pyfive`` and portions of the API which apply only to writing will not be implemented.
+``pyfive`` aims to support the same API as [`h5py`](https://github.com/h5py/h5py) for reading files.
+Cases where a file uses a feature that is supported by ``h5py`` but not ``pyfive`` are considered bugs
+and should be reported in our [Issues](https://github.com/NCAS-CMS/pyfive/issues).
+Writing HDF5 output is not a goal of ``pyfive`` and portions of the API which apply only to writing will not be implemented.
 
 Dependencies
 ============
 
-``pyfive`` is tested against Python versions 3.10 to 3.13.  It may also work with other Python versions.
+``pyfive`` is tested against Python versions 3.10 to 3.14.
+It may also work with other Python versions.
 
 The only dependencies to run the software besides Python is ``numpy``.
 
@@ -75,6 +76,6 @@ Test coverage assessement is done using [codecov](https://app.codecov.io/gh/NCAS
 Documentation
 =============
 
-Build locally with Sphinx::
+Build locally with Sphinx:
 
-    sphinx-build -Ea doc doc/build
+    $ sphinx-build -Ea doc doc/build

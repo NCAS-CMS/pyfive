@@ -32,7 +32,7 @@ aligned with the array order on disk and use them for data access.
 
 There are optimisations to support cloud usage, the most important of which is that 
 once a variable is instantiated (i.e. for an open ``pyfive.File`` instance ``f``, when you do ``v=f['variable_name']``) 
-the attributes and b-tree (chunk index) are read, and it is then possible to close the parent file (``f``), 
+the attributes and `b-tree`` (chunk index) are read, and it is then possible to close the parent file (``f``), 
 but continue to use (``v``).
 
 The package also includes a command line tool (``p5dump``) which can be used to dump the contents of an HDF5 file to the terminal. 

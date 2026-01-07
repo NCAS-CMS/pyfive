@@ -2,11 +2,11 @@ p5dump
 ******
 
 ``pyfive`` includes a command line tool ``p5dump`` which can be used to dump the contents of an HDF5 file to the 
-terminal (e.g ``p5dump myfile.hdf5``). This is similar to the ``ncdump`` tool included with the NetCDF library, or the ``h5dump`` tool included 
+terminal (e.g. ``p5dump myfile.hdf5``). This is similar to the ``ncdump`` tool included with the NetCDF library, or the ``h5dump`` tool included 
 with the HDF5 library, but like the rest of ``pyfive``, is implemented in pure Python without any dependencies on the HDF5 C library.
 
 ``p5dump`` is not identical to either of these tools, though the default output is very close to that of ``ncdump``.
-When called with the ``"-s"`` flag (e.g ``p5dump -s myfile.hdf5``) the output provides extra information for chunked
+When called with the ``"-s"`` flag (e.g. ``p5dump -s myfile.hdf5``) the output provides extra information for chunked
 datasets, including the locations of the start and end of the chunk index `b-tree` 
 and the location of the first data chunk for that variable. This extra information is useful for understanding
 the performance of data access for chunked variables, particularly when accessing data in object stores such as

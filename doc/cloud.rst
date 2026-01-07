@@ -49,7 +49,7 @@ If we look at some of the output of `p5dump -s` on this file
                     uas:_first_chunk = 36520 ;
 
 
-We can immediately see that this will be a problematic file! The b-tree index is clearly interleaved with the data 
+We can immediately see that this will be a problematic file! The `b-tree` index is clearly interleaved with the data 
 (compare the first chunk address with last index addresses of the two variables), and with a chunk dimension of ``(1,)``, 
 any effort to use the time-dimension to locate data of interest will involve a ludicrous number of one number reads 
 (all underlying libraries read the data one chunk at a time). 
