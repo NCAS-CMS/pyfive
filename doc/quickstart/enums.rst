@@ -1,27 +1,28 @@
 Enumerations
 ------------
 
-HDF5 has the concept of an enumeration data type, where integer values are stored in an array, but where those integer
-values should be interpreted as the indexes to some string values.  So, for example, one could have
-an enumeration dictionary (`enum_dict`) defined as 
+HDF5 has the concept of an "`enumeration data type`", where integer values are stored in an array, but where those integer
+values should be interpreted as the indexes to some string values. 
+
+For example, one could have an enumeration dictionary (`enum_dict`) defined as:
 
 .. code-block:: python
 
- clouds = ['stratus','strato-cumulus','missing','nimbus','cumulus','longcloudname']
- enum_dict =  {v:k for k,v in enumerate(clouds)}
- enum_dict['missing'] = 255
+    clouds = ['stratus','strato-cumulus','missing','nimbus','cumulus','longcloudname']
+    enum_dict =  {v:k for k,v in enumerate(clouds)}
+    enum_dict['missing'] = 255
 
 And an array of data which looked something like
 
 .. code-block:: python
 
- cloud_cover = [0,3,4,4,4,1,255,1,1]
+    cloud_cover = [0,3,4,4,4,1,255,1,1]
 
 Which one would expect to interpret as 
 
 .. code-block:: python
 
- actual_cloud_cover = ['stratus','nimbus','cumulus','cumulus','cumulus',
+    actual_cloud_cover = ['stratus','nimbus','cumulus','cumulus','cumulus',
                         'stratus','missing','strato-cumulus','strato-cumulus']
 
 These data are stored in HDF5 using a combination of an integer
@@ -44,27 +45,29 @@ in the following example:
 
 .. code-block:: python
 
- with pyfive.File('myfile.h5') as pfile:
+    with pyfive.File('myfile.h5') as pfile:
    
-    evar = pfile['evar']
-    edict = pyfive.check_enum_dtype(evar.dtype)
-    if edict is None:
-        pass # not an enumeration
-    else:
-        # for some reason HDF5 defines these in what seems to be the wrong way around,
-        # with the string values as keys to the integer indices.
-        edict_reverse = {v:k for k,v in edict.items()}
-        # assuming evar data is a one dimensional array of integers
-        edata = [edict_reverse[k] for k in evar[:]]
+        evar = pfile['evar']
+        edict = pyfive.check_enum_dtype(evar.dtype)
+        if edict is None:
+            pass # not an enumeration
+        else:
+            # for some reason HDF5 defines these in what seems to be the wrong way around,
+            # with the string values as keys to the integer indices.
+            edict_reverse = {v:k for k,v in edict.items()}
+            # assuming evar data is a one dimensional array of integers
+            edata = [edict_reverse[k] for k in evar[:]]
 
-In this instance, `edata` would now be a array of strings indexed from the enumeration dictionary using
-the `evar` data as the index values.
+In this instance, ``edata`` would now be a array of strings indexed from the enumeration dictionary using
+the ``evar`` data as the index values.
 
-(`h5py` and hence `pyfive` have both used an internal numpy dtype metadata feature to implement enumerations.
-Numpy is not clear on the future of this feature, and doesn't promise to transfer metadata with all operations,
-so the output of operations on this integer array may lose the direct link to the enumeration via the dtype. 
-Meanwhile, as well as using the `check_enum_dtype`, you can also get to this dictionary directly yourself, 
-it's available at ``evar.dtype.metadata['enum']``.)
+.. note::
+
+    ``h5py`` and hence ``pyfive`` have both used an internal numpy dtype metadata feature to implement enumerations.
+    ``numpy`` is not clear on the future of this feature, and doesn't promise to transfer metadata with all operations,
+    so the output of operations on this integer array may lose the direct link to the enumeration via the dtype. 
+    Meanwhile, as well as using the `check_enum_dtype`, you can also get to this dictionary directly yourself, 
+    it is available at ``evar.dtype.metadata['enum']``.
 
 
 

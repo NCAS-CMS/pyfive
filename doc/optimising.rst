@@ -121,7 +121,9 @@ For ``pyfive`` the three most important variables to consider altering are the
     This is a boolean which determines whether ``s3fs`` will persistently cache the data that it reads.  
     If this is set to ``True``, then the blocks are cached persistently in memory, but if set to ``False``, then it only makes sense in conjunction with ``default_cache_type`` set to ``readahead`` or ``bytes`` to support streaming access to the data.
 
-Note that even with these strategies, it is possible that the file layout itself is such that access will be slow.  
-See the next section for more details of how to optimise your hDF5 files for cloud acccess.
+.. note::
+
+    Even with these strategies, it is possible that the file layout itself is such that access will be slow.  
+    See the next section for more details of how to optimise your hDF5 files for cloud acccess.
 
 

@@ -12,38 +12,36 @@
 pyfive : A pure Python HDF5 file reader
 =======================================
 
-pyfive is an open source library for reading HDF5 files written using
+``pyfive`` is an open source library for reading HDF5 files written using
 pure Python (no C extensions). The package is still in development and not all
 features of HDF5 files are supported.
 
-pyfive aims to support the same API as [`h5py`](https://github.com/h5py/h5py)
-for reading files. Cases where a file uses a feature that is supported by `h5py`
-but not pyfive are considered bug and should be reported in our [Issues](https://github.com/NCAS-CMS/pyfive/issues).
-Writing HDF5 is not a goal of pyfive and portions of the API which apply only to writing will not be
-implemented.
+``pyfive`` aims to support the same API as [`h5py`](https://github.com/h5py/h5py)
+for reading files. Cases where a file uses a feature that is supported by ``h5py``
+but not ``pyfive`` are considered bug and should be reported in our [Issues](https://github.com/NCAS-CMS/pyfive/issues).
+Writing HDF5 is not a goal of ``pyfive`` and portions of the API which apply only to writing will not be implemented.
 
 Dependencies
 ============
 
-pyfive is tested to work with Python 3.10 to 3.13.  It may also work
-with other Python versions.
+``pyfive`` is tested against Python versions 3.10 to 3.13.  It may also work with other Python versions.
 
-The only dependencies to run the software besides Python is NumPy.
+The only dependencies to run the software besides Python is ``numpy``.
 
 Install
 =======
 
-pyfive can be installed using pip using the command::
+pyfive can be installed using ``pip`` using the command::
 
     pip install pyfive
 
-conda package are also available from conda-forge which can be installed::
+``conda`` packages are also available from conda-forge::
 
     conda install -c conda-forge pyfive
 
 To install from source in your home directory use::
 
-    python setup.py install --user
+    pip install --user ./pyfive
 
 The library can also be imported directly from the source directory.
 
@@ -54,21 +52,20 @@ Development
 git
 ---
 
-You can check out the latest pyfive souces with the command::
+You can check out the latest ``pyfive`` souces with the command::
 
     git clone https://github.com/NCAS-CMS/pyfive.git
 
 testing
 -------
 
-pyfive comes with a test suite in the ``tests`` directory.  These tests can be
-exercised using the commands ``pytest`` from the root directory assuming the
-``pytest`` package is installed.
+``pyfive`` comes with a test suite in the ``tests`` directory.
+These tests can be exercised using the ``pytest`` command from the root directory (requires installation of the ``pytest`` package).
 
-Conda-feedstock
-===============
+Conda-forge feedstock
+=====================
 
-Package repository at [conda feedstock](https://github.com/conda-forge/pyfive-feedstock)
+Package repository [conda-forge feedstock](https://github.com/conda-forge/pyfive-feedstock)
 
 Codecov
 =======
