@@ -1,0 +1,48 @@
+# See https://pre-commit.com for more information
+# See https://pre-commit.com/hooks.html for more hooks
+---
+ci:
+  autofix_prs: false
+
+exclude: |
+  (?x)
+  ^doc/conf.py|
+  ^esmvalcore/cmor/tables/|
+  ^esmvalcore/preprocessor/ne_masks/|
+  ^esmvalcore/preprocessor/shapefiles/
+
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: check-added-large-files
+      - id: check-ast
+      - id: check-case-conflict
+      - id: check-merge-conflict
+      - id: debug-statements
+      - id: end-of-file-fixer
+      - id: trailing-whitespace
+        args: [--markdown-linebreak-ext=md]
+  - repo: https://github.com/adrienverge/yamllint
+    rev: 'v1.37.1'
+    hooks:
+      - id: yamllint
+  - repo: https://github.com/codespell-project/codespell
+    rev: 'v2.4.1'
+    hooks:
+      - id: codespell
+        additional_dependencies: [tomli]  # required for Python 3.10
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: "v0.14.9"
+    hooks:
+      - id: ruff-check
+        args: [--fix]
+      - id: ruff-format
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: 'v1.19.1'
+    hooks:
+      - id: mypy
+        additional_dependencies:
+          - 'types-PyYAML'
+          - 'types-requests'
+          - 'numpy'
