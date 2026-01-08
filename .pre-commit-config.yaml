@@ -6,10 +6,8 @@ ci:
 
 exclude: |
   (?x)
-  ^doc/conf.py|
-  ^esmvalcore/cmor/tables/|
-  ^esmvalcore/preprocessor/ne_masks/|
-  ^esmvalcore/preprocessor/shapefiles/
+  ^doc/|
+  ^tests/
 
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
