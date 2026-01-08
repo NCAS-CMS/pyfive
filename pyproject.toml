@@ -115,8 +115,6 @@ exclude_lines = [
     "if TYPE_CHECKING:",
 ]
 
-[tool.ruff]
-line-length = 100
 [tool.ruff.lint]
 select = ["ALL"]
 ignore = [
@@ -144,23 +142,12 @@ ignore = [
     "S603",     # Uncheckable
     "TD002",    # Missing author in TODO: can be seen from git history
     "TRY003",   # Fixing this would require many exceptions
+    "D400",     # First line should end with a period
+    "D401",
+    "D404",     # three superficial complaints about docstrings (imperative, punctuation etc)
 ]
 future-annotations = true
-[tool.ruff.lint.per-file-ignores]
-"tests/**.py" = [
-    "ARG",      # Fixtures that set up some state are wrongly identified as unused arguments.
-    "S101",     # Use of assert in tests code is required.
-    "T20",      # Printing things can help with debugging tests.
-    "SLF001",   # Testing private members is ok
-    "PLR2004",  # Magic values in tests are fine.
-    # Docstrings in tests are only needed if the code is not self-explanatory.
-    "D100",     # Missing docstring in public module
-    "D101",     # Missing docstring in public class
-    "D102",     # Missing docstring in public method
-    "D103",     # Missing docstring in public function
-    "D104",     # Missing docstring in public package
-    "PT013",    # Allow importing fixtures from pytest to avoid repeating 'pytest' many times
-]
+
 [tool.ruff.lint.flake8-annotations]
 allow-star-arg-any = true
 ignore-fully-untyped = true
