@@ -5,15 +5,26 @@ channels:
   - nodefaults
 
 dependencies:
+  # core dependencies
   - numpy >=2
   - python >=3.10
-  # testing
+  # testing dependencies
+  - dask
+  - flake8
+  - flask
+  - flask-cors
+  - h5netcdf
   - h5py  # link to same hdf5 lib with netcdf4
+  - moto
   - netcdf4  # has history of broken packages on PyPI
   - pytest
   - pytest-cov
+  - pytest-html
   - pytest-rerunfailures
-  # documentation
+  - pytest-xdist
+  - python-lzf
+  - s3fs >=2025.9.0
+  # documentation dependencies
   - autodocsumm
   - sphinx
   - sphinx_rtd_theme
