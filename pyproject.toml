@@ -145,6 +145,7 @@ ignore = [
     "D400",     # First line should end with a period
     "D401",
     "D404",     # three superficial complaints about docstrings (imperative, punctuation etc)
+    "T201",     # `print` found - leave it
 ]
 future-annotations = true
 
