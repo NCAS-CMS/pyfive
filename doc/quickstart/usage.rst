@@ -1,11 +1,11 @@
 .. _usage:
 
-*******
+*****
 Usage
-*******
+*****
 
-In the main, one uses ``pyfive`` exactly as one would use ``h5py`` so the documentation for ``h5py`` is also relevant. However,
-``pyfive`` has some additional API features and optimisations which are noted in the section on "Additional API Features".
+In the main, one uses ``pyfive`` exactly as one would use ``h5py`` so the documentation for ``h5py`` is also relevant.
+However, ``pyfive`` has some additional API features and optimisations which are noted in the section on "Additional API Features".
 
 .. note:: 
 
@@ -50,8 +50,7 @@ Here is a simple example of how to open an HDF5 file and read its contents using
 
 In this example:
 
-* ``pyfive.File`` opens the file, returning a file object that behaves like a
-  Python dictionary.
+* ``pyfive.File`` opens the file, returning a file object that behaves like a Python dictionary.
 * Groups (``Group`` objects) can be accessed using dictionary-like keys.
 * Datasets (``Dataset`` objects) expose attributes like ``shape`` and
   ``dtype`` which are loaded when you list them, but the data itself is not loaded from stroage into numpy arrays until you access it. 
@@ -60,9 +59,9 @@ In this example:
 
 .. note::
 
-    If you are used to working with NetCDF4 files (and maybe `netcdf4-python <https://unidata.github.io/netcdf4-python/>`_) the concept of a ``File`` in ``pyfive`` corresponds to
-    a NetCDF4 ``Dataset`` (both are read from an actual file), and the ``HDF5``/``pyfive``/``h5py`` concept of a ``Dataset`` corresponds to a NetCDF ``Variable``.
-    (At least the notion of a group is semantically similar in both cases! )
+    If you are used to working with NetCDF4 files (and maybe `netcdf4-python <https://unidata.github.io/netcdf4-python/>`_), the concept of a ``File`` in ``pyfive`` corresponds to
+    a NetCDF4 ``Dataset`` (both are read from an actual file), and the ``HDF5``/``pyfive``/``h5py`` concept of a ``Dataset`` corresponds to a NetCDF ``Variable``
+    (the notion of a group is semantically similar in both cases!).
 
 Working with datasets
 =====================
@@ -100,9 +99,9 @@ working with large datasets in a parallel environment where you might want to cl
 Using S3/Object Storage 
 =======================
 
-``pyfive`` is designed to work seamlessly with both local filesystems and S3-compatible object storage (and probably any remote storage that supports
+``pyfive`` is designed to work seamlessly with both local filesystems and `S3`-compatible object storage (and probably any remote storage that supports
 the `fsspec <https://filesystem-spec.readthedocs.io/en/latest/>`_ API). However, there are some additional considerations when working with S3, the 
-most important of which is the need to use the `s3fs` library to provide a filesystem interface to S3.
+most important of which is the need to use the ``s3fs`` library to provide a filesystem interface to S3.
 
 Here is a simple example of how to open an HDF5 file stored in S3 and read its contents using ``pyfive``:
 
@@ -133,19 +132,10 @@ Here is a simple example of how to open an HDF5 file stored in S3 and read its c
 
 .. note::
 
-    The best `s3fs` parameters to use (`s3params`) will depend on what you are actually doing with the file, as
-    discussed in the section on "Optimising Access Speed". The parameters above worked well for accessing 
+    The ideal ``s3fs`` parameters to use (``s3params``) will depend on what you are actually doing with the file, as
+    discussed in the section on "Optimising Access Speed". The parameters shown above work well for accessing 
     small amounts of data from a large file, but you may need to adjust them for your specific use case.
 
+# FIXME: Check if the following is still accurate
 This example also shows that while it is possible to close the file access context manager and still access the datasets,
-you will need to ensure that the S3 filesystem is still available. ** TBD: CHECK IF THAT IS STILL TRUE** 
-
-
-
-
-
-
-
-
-
-
+you will need to ensure that the S3 filesystem is still available.

@@ -26,6 +26,7 @@ Dataset
 
 DatasetID
 ----------
+
 .. autoclass:: pyfive.h5d.DatasetID
    :members:
    :noindex:
@@ -41,7 +42,7 @@ Datatype
 The h5t module
 --------------
 
-Partial implementation of some of the lower level h5py API, needed
+Partial implementation of some of the lower level ``h5py`` API, needed
 to support enumerations, variable length strings, and opaque datatypes.
 
 .. autofunction:: pyfive.h5t.check_enum_dtype

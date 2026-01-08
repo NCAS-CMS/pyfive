@@ -67,6 +67,7 @@ autodoc_default_options = {
     'autosummary': True,
 }
 
+# FIXME: These libraries are not found in the documentation
 autodoc_mock_imports = [
     'cartopy',
     'cf_units',
@@ -164,7 +165,6 @@ html_short_title = "Pyfive {0}".format(release)
 
 # The name of an image file (relative to this directory) to place at the top
 # of the sidebar.
-# FIXME add a logo
 html_logo = "figures/Pyfive-logo.png"
 
 # The name of an image file (within the static path) to use as favicon of the
