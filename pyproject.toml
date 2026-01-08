@@ -135,6 +135,7 @@ ignore = [
     "TRY400",   # Uses of `logging.error` instead of `logging.exception` when logging an exception
     # Really ignore:
     "F401",     # Need to keep unused imports (from pyfive.h5d import DatasetID)
+    "F841",     # Local variable assigned to but never used
     "D105",     # Disable missing docstring in magic method as these are well defined.
     "D107",     # Disable Missing docstring in `__init__`
     "E501",     # Disable line-too-long as this is taken care of by the formatter.
