@@ -9,3 +9,4 @@ test-reports/
 <_io.Bytes*>
 pyfive/__pycache__/
 tests/btreev2-generated.hdf5
+tests/__pycache__
