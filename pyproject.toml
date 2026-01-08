@@ -57,6 +57,7 @@ test = [
     "h5py",
     "moto",
     "netCDF4",
+    "pre-commit",
     "pytest",
     "pytest-cov",
     "pytest-html",
