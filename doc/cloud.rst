@@ -88,4 +88,4 @@ part of the optimisation question - though inspection of chunking is a key part 
 determine whether or not a file really is optimised for cloud usage.
 
 .. [#] Stern et.al. (2022): *Pangeo Forge: Crowdsourcing Analysis-Ready, Cloud Optimized Data Production*,  https://dx.doi.org/10.3389/fclim.2021.782909. 
-.. [#] Hassel and Cimadevilla Alvarez (2025): *Cmip7repack: Repack CMIP7 netCDF-4 Datasets*, https://dx.doi.org/10.5281/zenodo.17550920.
+.. [#] Hassell and Cimadevilla Alvarez (2025): *Cmip7repack: Repack CMIP7 netCDF-4 Datasets*, https://dx.doi.org/10.5281/zenodo.17550920.

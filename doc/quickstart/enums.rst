@@ -8,7 +8,7 @@ For example, one could have an enumeration dictionary (`enum_dict`) defined as:
 
 .. code-block:: python
 
-    clouds = ['stratus','strato-cumulus','missing','nimbus','cumulus','longcloudname']
+    clouds = ['stratus', 'strato-cumulus', 'missing', 'nimbus', 'cumulus', 'longcloudname']
     enum_dict =  {v:k for k,v in enumerate(clouds)}
     enum_dict['missing'] = 255
 
@@ -16,14 +16,14 @@ And an array of data which looked something like
 
 .. code-block:: python
 
-    cloud_cover = [0,3,4,4,4,1,255,1,1]
+    cloud_cover = [0, 3, 4, 4, 4, 1, 255, 1, 1]
 
 Which one would expect to interpret as 
 
 .. code-block:: python
 
-    actual_cloud_cover = ['stratus','nimbus','cumulus','cumulus','cumulus',
-                        'stratus','missing','strato-cumulus','strato-cumulus']
+    actual_cloud_cover = ['stratus', 'nimbus', 'cumulus', 'cumulus', 'cumulus',
+                          'stratus', 'missing', 'strato-cumulus', 'strato-cumulus']
 
 These data are stored in HDF5 using a combination of an integer
 valued array and a stored dictionary which is used for the enumeration.

@@ -67,4 +67,4 @@ We adhere to `Scientific Python SPEC-0 <https://scientific-python.org/specs/spec
 
 .. note::
 
-    ``pyfive`` is fully compatible with ``numpy >=2.0.0``.
+    ``pyfive`` is fully compatible with ``numpy >= 2.0.0``.
