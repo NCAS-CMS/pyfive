@@ -1,6 +1,7 @@
 #! /usr/bin/env python
 
-""" Create a HDF5 file with all the supported attribute types (2)"""
+"""Create a HDF5 file with all the supported attribute types (2)"""
+
 import sys
 
 import h5py
@@ -10,7 +11,7 @@ from pathlib import Path
 
 
 def create_file(fpath):
-    with h5py.File(fpath, 'w') as ds:
+    with h5py.File(fpath, "w") as ds:
         dt = h5py.string_dtype("utf-8")
         unicode = "unicodé"
         ds.attrs["unicode"] = unicode
@@ -43,7 +44,7 @@ def create_file(fpath):
         ds.attrs["unicode_fixed_arrary"] = np.array(
             [unicode.encode("utf-8"), "foobár".encode()], dtype=dt
         )
-    
+
         dt = h5py.string_dtype("ascii", 10)
         ascii = "ascii"
         ds.attrs["ascii_fixed"] = np.array(ascii, dtype=dt)

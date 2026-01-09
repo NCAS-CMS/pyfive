@@ -1,4 +1,5 @@
-""" Test new style groups in pyfive. """
+"""Test new style groups in pyfive."""
+
 import os
 import pyfive
 

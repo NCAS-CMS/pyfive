@@ -1,11 +1,13 @@
 """Test the p5dump executable via p5ncdump utility."""
+
 import os
 import shutil
 import pyfive
-import subprocess 
+import subprocess
 import tempfile
 
 DIRNAME = os.path.dirname(__file__)
+
 
 def test_which_p5dump():
     """Run the basic which p5dump."""
@@ -20,16 +22,15 @@ def test_p5dump_cmd():
     line but breaks inside visual studio code with a wierd
     numpy error. This lengthy version is en route to debugging
     """
-    
+
     p5dump = shutil.which("p5dump")
     assert p5dump, "p5dump not found in PATH"
     assert os.access(p5dump, os.X_OK), f"{p5dump} is not executable"
 
-    dfile = os.path.join(os.path.dirname(__file__), 'data', 'groups.hdf5')
+    dfile = os.path.join(os.path.dirname(__file__), "data", "groups.hdf5")
     assert os.path.exists(dfile), f"Test file does not exist: {dfile}"
 
     with tempfile.TemporaryDirectory() as tmpdir:
-
         # Copy environment and remove PYTHONPATH to avoid NumPy source tree detection
         env = os.environ.copy()
         env.pop("PYTHONPATH", None)
@@ -40,7 +41,7 @@ def test_p5dump_cmd():
             stderr=subprocess.PIPE,
             text=True,
             cwd=tmpdir,
-            env=env
+            env=env,
         )
 
         print("cmd:", result.args)
@@ -53,12 +54,12 @@ def test_p5dump_cmd():
 
 def test_hdf5(capsys):
     """Run p5dump on a local HDF5 file."""
-    hdf5_file = DIRNAME+'/data/groups.hdf5'
+    hdf5_file = DIRNAME + "/data/groups.hdf5"
     pyfive.p5ncdump(hdf5_file)
 
     captured = capsys.readouterr()
-    assert ('File: groups.hdf5' in captured.out)
-    assert ('group: sub_subgroup3' in captured.out)
+    assert "File: groups.hdf5" in captured.out
+    assert "group: sub_subgroup3" in captured.out
 
 
 def test_nc(capsys):
@@ -67,6 +68,6 @@ def test_nc(capsys):
     pyfive.p5ncdump(nc_file)
 
     captured = capsys.readouterr()
-    assert ('File: issue23_A.nc' in captured.out)
-    assert ('q:cell_methods = "area: mean"' in captured.out)
-    assert (':Conventions = "CF-1.12"' in captured.out)
+    assert "File: issue23_A.nc" in captured.out
+    assert 'q:cell_methods = "area: mean"' in captured.out
+    assert ':Conventions = "CF-1.12"' in captured.out

@@ -3,18 +3,19 @@
 ### htnetcdf which expects to see these H5PY classes.
 
 
-from pyfive.datatype_msg import DatatypeMessage
 from pyfive.h5t import TypeID, TypeEnumID, TypeCompoundID
 from pyfive.p5t import P5EnumType, P5CompoundType
 
 import numpy as np
 from pathlib import PurePosixPath
 
+
 class Datatype:
-    """ 
-    Provides a minimal instantiation of an h5py DataType 
+    """
+    Provides a minimal instantiation of an h5py DataType
     suitable for use with enumerations, compounds and other types.
     """
+
     def __init__(self, name, hfile, raw_dtype):
         # raw_dtype is P5Type
         if isinstance(raw_dtype, P5EnumType):
@@ -26,7 +27,7 @@ class Datatype:
         self.id = id
         path = PurePosixPath(name)
         self.name = path.name
-        self.parent = str(path.parent) if str(path.parent) != '' else '/'
+        self.parent = str(path.parent) if str(path.parent) != "" else "/"
         self.file = hfile
 
     @property
@@ -35,11 +36,9 @@ class Datatype:
 
     def __str__(self):
         return f'<HDF5 named type "{self.name}" (dtype {self.id.kind})>'
-    
-    
+
 
 class Empty:
-
     """
     Proxy object to represent empty/null dataspaces (a.k.a H5S_NULL).
     This can have an associated dtype, but has no shape or data. This is not
@@ -47,6 +46,7 @@ class Empty:
     with the H5Py API to support h5netcdf. In pyfive this is used to wrap
     attributes associated with null dataspaces.
     """
+
     shape = None
     size = None
 

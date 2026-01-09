@@ -65,8 +65,8 @@ Version 0.6.0
 
 **2025-09-16**
 
-* Enumeration Support (https://github.com/NCAS-CMS/pyfive/issues/85 by 
-  `Bryan Lawrence <https://github.com/bnlawrence>`_, 
+* Enumeration Support (https://github.com/NCAS-CMS/pyfive/issues/85 by
+  `Bryan Lawrence <https://github.com/bnlawrence>`_,
   `Kai Mühlbauer <https://github.com/kmuehlbauer>`_,
   `Brian Maranville <https://github.com/bmaranville>`_))
 
@@ -208,7 +208,7 @@ Version 0.3.0
 * Support for complex attribute datatypes
   (https://github.com/NCAS-CMS/pyfive/pull/26 by `Jonathan Helmus
   <https://github.com/jjhelmus>`_)
-* Refactor attribute value retrival
+* Refactor attribute value retrieval
   (https://github.com/NCAS-CMS/pyfive/pull/25 by `Jonathan Helmus
   <https://github.com/jjhelmus>`_)
 * Dataset.ndim attribute (https://github.com/NCAS-CMS/pyfive/pull/24
@@ -266,4 +266,3 @@ Version 0.1.0
 **2016-07-26**
 
 * First release by `Jonathan Helmus <https://github.com/jjhelmus>`_
-
