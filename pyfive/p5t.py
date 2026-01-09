@@ -32,21 +32,21 @@ class P5Type:
 
 
 class P5IntegerType(P5Type):
-    type_id = 0
+    type_id = 0  # type: ignore[assignment]
 
     def __init__(self, dtype):
         super().__init__(dtype=np.dtype(dtype))
 
 
 class P5FloatType(P5Type):
-    type_id = 1
+    type_id = 1  # type: ignore[assignment]
 
     def __init__(self, dtype):
         super().__init__(dtype=np.dtype(dtype))
 
 
 class P5ReferenceType(P5Type):
-    type_id = 7
+    type_id = 7  # type: ignore[assignment]
 
     def __init__(self, size, storage_dtype):
         super().__init__()
@@ -60,7 +60,7 @@ class P5ReferenceType(P5Type):
 
 
 class P5EnumType(P5Type):
-    type_id = 8
+    type_id = 8  # type: ignore[assignment]
 
     def __init__(self, base_dtype, mapping):
         super().__init__()
@@ -73,7 +73,7 @@ class P5EnumType(P5Type):
 
 
 class P5OpaqueType(P5Type):
-    type_id = 5
+    type_id = 5  # type: ignore[assignment]
 
     def __init__(self, dtype_spec: str, size: int):
         super().__init__()
@@ -89,7 +89,7 @@ class P5OpaqueType(P5Type):
 
 
 class P5SequenceType(P5Type):
-    type_id = 9
+    type_id = 9  # type: ignore[assignment]
 
     def __init__(self, base_dtype):
         super().__init__()
@@ -101,7 +101,7 @@ class P5SequenceType(P5Type):
 
 
 class P5StringType(P5Type):
-    type_id = 3
+    type_id = 3  # type: ignore[assignment]
     CHARACTER_SETS = {
         0: "ASCII",
         1: "UTF-8",
@@ -142,7 +142,7 @@ class P5FixedStringType(P5StringType):
 
 
 class P5VlenStringType(P5StringType):
-    type_id = 9
+    type_id = 9  # type: ignore[assignment]
 
     def __init__(self, character_set=1):
         super().__init__(character_set)
@@ -163,7 +163,7 @@ class P5CompoundField:
 
 
 class P5CompoundType(P5Type):
-    type_id = 6
+    type_id = 6  # type: ignore[assignment]
 
     def __init__(self, fields, size=None):
         super().__init__()

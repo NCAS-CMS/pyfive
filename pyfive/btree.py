@@ -75,7 +75,7 @@ class BTreeV1(AbstractBTree):
             ("left_sibling", "Q"),  # 8 byte addressing
             ("right_sibling", "Q"),  # 8 byte addressing
         )
-    )
+    )  # type: ignore[assignment]
 
     def _read_node_header(self, offset, node_level):
         """Return a single node header in the b-tree located at a give offset."""
@@ -93,7 +93,7 @@ class BTreeV1Groups(BTreeV1):
     HDF5 version 1 B-Tree storing group nodes (type 0).
     """
 
-    NODE_TYPE = 0
+    NODE_TYPE = 0  # type: ignore[assignment]
 
     def _read_node(self, offset, node_level):
         """Return a single node in the B-Tree located at a given offset."""
@@ -124,7 +124,7 @@ class BTreeV1RawDataChunks(BTreeV1):
     HDF5 version 1 B-Tree storing raw data chunk nodes (type 1).
     """
 
-    NODE_TYPE = 1
+    NODE_TYPE = 1  # type: ignore[assignment]
 
     def __init__(self, fh, offset, dims):
         """initalize."""
@@ -250,7 +250,7 @@ class BTreeV2(AbstractBTree):
             ("version", "B"),
             ("node_type", "B"),
         )
-    )
+    )  # type: ignore[assignment]
 
     def _read_root_node(self):
         h = self._read_tree_header(self.offset)
@@ -390,7 +390,7 @@ class BTreeV2GroupNames(BTreeV2):
     HDF5 version 2 B-Tree storing group names (type 5).
     """
 
-    NODE_TYPE = 5
+    NODE_TYPE = 5  # type: ignore[assignment]
 
     def _parse_record(self, record):
         namehash = struct.unpack_from("<I", record, 0)[0]
@@ -402,7 +402,7 @@ class BTreeV2GroupOrders(BTreeV2):
     HDF5 version 2 B-Tree storing group creation orders (type 6).
     """
 
-    NODE_TYPE = 6
+    NODE_TYPE = 6  # type: ignore[assignment]
 
     def _parse_record(self, record):
         creationorder = struct.unpack_from("<Q", record, 0)[0]
@@ -415,7 +415,7 @@ class BTreeV2AttrCreationOrder(BTreeV2):
     See the Type 9 Record Layout, note the different ordering from type 6.
     """
 
-    NODE_TYPE = 9
+    NODE_TYPE = 9  # type: ignore[assignment]
 
     def _parse_record(self, record):
         return _unpack_struct_from(V2_BTREE_NODE_TYPE_9_LAYOUT, record)
@@ -426,7 +426,7 @@ class BTreeV2AttrNames(BTreeV2):
     HDF5 version 2 B-Tree storing attribute names (type 8).
     """
 
-    NODE_TYPE = 8
+    NODE_TYPE = 8  # type: ignore[assignment]
 
     def _parse_record(self, record):
         return _unpack_struct_from(V2_BTREE_NODE_TYPE_8_LAYOUT, record)
