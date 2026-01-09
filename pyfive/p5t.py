@@ -1,21 +1,22 @@
-
 import numpy as np
 from dataclasses import dataclass
 
 ref_dtype = np.dtype("O")
 complex_dtype_map = {
-                '>f4': '>c8',
-                '<f4': '<c8',
-                '>f8': '>c16',
-                '<f8': '<c16',
-               }
+    ">f4": ">c8",
+    "<f4": "<c8",
+    ">f8": ">c16",
+    "<f8": "<c16",
+}
+
 
 class P5Type:
     """Base class for P5 types within pyfive."""
+
     is_atomic = True
     type_id = None
 
-    def __init__(self, dtype = None):
+    def __init__(self, dtype=None):
         self._dtype = np.dtype(dtype) if dtype is not None else None
 
     @property
@@ -32,18 +33,21 @@ class P5Type:
 
 class P5IntegerType(P5Type):
     type_id = 0
+
     def __init__(self, dtype):
         super().__init__(dtype=np.dtype(dtype))
 
 
 class P5FloatType(P5Type):
     type_id = 1
+
     def __init__(self, dtype):
         super().__init__(dtype=np.dtype(dtype))
 
 
 class P5ReferenceType(P5Type):
     type_id = 7
+
     def __init__(self, size, storage_dtype):
         super().__init__()
         self.size = size
@@ -57,6 +61,7 @@ class P5ReferenceType(P5Type):
 
 class P5EnumType(P5Type):
     type_id = 8
+
     def __init__(self, base_dtype, mapping):
         super().__init__()
         self.base_dtype = np.dtype(base_dtype)
@@ -64,33 +69,35 @@ class P5EnumType(P5Type):
         self.is_atomic = True
 
     def _build_dtype(self):
-        return np.dtype(self.base_dtype, metadata={'enum': self.mapping})
+        return np.dtype(self.base_dtype, metadata={"enum": self.mapping})
 
 
 class P5OpaqueType(P5Type):
     type_id = 5
+
     def __init__(self, dtype_spec: str, size: int):
         super().__init__()
         self.dtype_spec = dtype_spec
         self.size = size
 
     def _build_dtype(self):
-        if self.dtype_spec.startswith('NUMPY:'):
-            dtype = np.dtype(self.dtype_spec[6:], metadata={'h5py_opaque': True})
+        if self.dtype_spec.startswith("NUMPY:"):
+            dtype = np.dtype(self.dtype_spec[6:], metadata={"h5py_opaque": True})
         else:
-            dtype = np.dtype(f'V{self.size}', metadata={'h5py_opaque': True})
+            dtype = np.dtype(f"V{self.size}", metadata={"h5py_opaque": True})
         return dtype
 
 
 class P5SequenceType(P5Type):
     type_id = 9
+
     def __init__(self, base_dtype):
         super().__init__()
         self.base_dtype = base_dtype
         self.is_atomic = False
 
     def _build_dtype(self):
-        return np.dtype('O', metadata={'vlen': self.base_dtype.dtype})
+        return np.dtype("O", metadata={"vlen": self.base_dtype.dtype})
 
 
 class P5StringType(P5Type):
@@ -114,9 +121,9 @@ class P5FixedStringType(P5StringType):
     def __init__(
         self,
         fixed_size,
-        padding = None,
-        character_set = 0,
-        null_terminated = False,
+        padding=None,
+        character_set=0,
+        null_terminated=False,
     ):
         super().__init__(character_set)
         self.fixed_size = fixed_size
@@ -125,22 +132,23 @@ class P5FixedStringType(P5StringType):
 
     def _build_dtype(self):
         if self.character_set == 0:  # ASCII
-            base_dtype = np.dtype(f'S{self.fixed_size}')
+            base_dtype = np.dtype(f"S{self.fixed_size}")
         elif self.character_set == 1:  # UTF-8
-            base_dtype = np.dtype(f'<U{self.fixed_size}')
+            base_dtype = np.dtype(f"<U{self.fixed_size}")
         else:
             raise ValueError(f"Unknown character_set: {self.character_set}")
 
-        return np.dtype(base_dtype, metadata={'h5py_encoding': self.encoding.lower()})
+        return np.dtype(base_dtype, metadata={"h5py_encoding": self.encoding.lower()})
 
 
 class P5VlenStringType(P5StringType):
     type_id = 9
-    def __init__(self, character_set = 1):
+
+    def __init__(self, character_set=1):
         super().__init__(character_set)
 
     def _build_dtype(self):
-        return np.dtype('O', metadata={'vlen': str if self.character_set else bytes})
+        return np.dtype("O", metadata={"vlen": str if self.character_set else bytes})
 
 
 @dataclass
@@ -156,6 +164,7 @@ class P5CompoundField:
 
 class P5CompoundType(P5Type):
     type_id = 6
+
     def __init__(self, fields, size=None):
         super().__init__()
         self.fields = fields
@@ -184,9 +193,11 @@ class P5CompoundType(P5Type):
         formats = [f.ptype.dtype for f in self.fields]
         offsets = [f.offset for f in self.fields]
 
-        return np.dtype({
-            'names': names,
-            'formats': formats,
-            'offsets': offsets,
-            'itemsize': self.size,
-        })
+        return np.dtype(
+            {
+                "names": names,
+                "formats": formats,
+                "offsets": offsets,
+                "itemsize": self.size,
+            }
+        )
