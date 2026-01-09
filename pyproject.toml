@@ -116,40 +116,10 @@ exclude_lines = [
 ]
 
 [tool.ruff.lint]
-select = ["ALL"]
-ignore = [
-    # Ignore until someone has time to fix this:
-    "DTZ",      # add tzinfo to datetimes
-    "FBT",      # avoid boolean positional arguments
-    "N818",     # Exception name should be named with an Error suffix
-    "PERF",     # Use comprehensions
-    "PGH003",   # Use specific rule codes when ignoring type issues
-    "PLR2004",  # Don't use magic values
-    "PT009",    # Use a regular `assert` instead of unittest-style `assertListEqual`
-    "PT011",    # pytest.raises without match argument
-    "PT027",    # Use `pytest.raises` instead of unittest-style `assertRaises`
-    "PTH",      # Use pathlib everywhere
-    "SIM102",   # Use a single `if` statement instead of nested `if` statements
-    "SIM117",   # Use a single `with` statement with multiple contexts instead of nested `with` statements
-    "TD003",    # Missing issue link on the line following this TODO
-    "TRY400",   # Uses of `logging.error` instead of `logging.exception` when logging an exception
-    # Really ignore:
-    "F401",     # Need to keep unused imports (from pyfive.h5d import DatasetID)
-    "F841",     # Local variable assigned to but never used
-    "D105",     # Disable missing docstring in magic method as these are well defined.
-    "D107",     # Disable Missing docstring in `__init__`
-    "E501",     # Disable line-too-long as this is taken care of by the formatter.
-    "FIX002",   # TODOs can be useful when something cannot be done immediately.
-    "PLW1641",  # Implementing __hash__ on mutable objects may be more confusing than not doing it.
-    "S603",     # Uncheckable
-    "TD002",    # Missing author in TODO: can be seen from git history
-    "TRY003",   # Fixing this would require many exceptions
-    "D400",     # First line should end with a period
-    "D401",
-    "D404",     # three superficial complaints about docstrings (imperative, punctuation etc)
-    "S101",     # Use of `assert` detected
-    "SLF001",   # Testing private members is ok
-    "T201",     # `print` found - leave it
+select = [
+    "E",    # pycodestyle errors
+    "W",    # pycodestyle warnings
+    "F",    # Pyflakes
 ]
 future-annotations = true
 
