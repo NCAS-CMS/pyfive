@@ -12,7 +12,7 @@ EARLIEST_HDF5_FILE = os.path.join(DIRNAME, "data", "earliest.hdf5")
 
 # Polygot string type for representing unicode
 try:
-    string_type = unicode
+    string_type = unicode  # type: ignore[name-defined]
 except NameError:
     string_type = str
 
