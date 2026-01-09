@@ -4,6 +4,7 @@ from collections import deque
 from collections.abc import Mapping, Sequence
 import os
 import posixpath
+import typing
 import warnings
 
 import numpy as np
@@ -31,7 +32,9 @@ class Group(Mapping):
 
     """
 
-    def __init__(self, name, dataobjects, parent):
+    def __init__(
+        self, name: str, dataobjects: DataObjects, parent
+    ):  # need type for parent
         """initalize."""
 
         self.parent = parent
@@ -237,7 +240,7 @@ class File(Group):
 
     """
 
-    def __init__(self, filename, mode="r"):
+    def __init__(self, filename: str | typing.BinaryIO, mode="r") -> None:
         """initalize."""
         if mode != "r":
             raise NotImplementedError(
@@ -263,7 +266,7 @@ class File(Group):
         super(File, self).__init__("/", dataobjects, self)
 
     @property
-    def consolidated_metadata(self):
+    def consolidated_metadata(self) -> bool:
         """Returns True if all B-tree nodes for chunked datasets are located before the first chunk in the file."""
         is_consolidated = True
         f = self
@@ -283,10 +286,10 @@ class File(Group):
 
         return is_consolidated
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return '<HDF5 file "%s" (mode r)>' % (os.path.basename(self.filename))
 
-    def _get_object_by_address(self, obj_addr):
+    def _get_object_by_address(self, obj_addr: typing.BinaryIO):
         """Return the object pointed to by a given address."""
         if self._dataobjects.offset == obj_addr:
             return self
