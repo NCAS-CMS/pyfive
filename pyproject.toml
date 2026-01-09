@@ -116,13 +116,15 @@ exclude_lines = [
 ]
 
 [tool.ruff.lint]
-line-length = 100
 select = [
     "E",    # pycodestyle errors
     "W",    # pycodestyle warnings
     "F",    # Pyflakes
 ]
 future-annotations = true
+
+[tool.ruff.lint.pycodestyle]
+max-line-length = 150
 
 [tool.ruff.lint.flake8-annotations]
 allow-star-arg-any = true
