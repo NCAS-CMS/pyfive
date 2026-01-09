@@ -116,6 +116,7 @@ exclude_lines = [
 ]
 
 [tool.ruff.lint]
+line-length = 100
 select = [
     "E",    # pycodestyle errors
     "W",    # pycodestyle warnings
