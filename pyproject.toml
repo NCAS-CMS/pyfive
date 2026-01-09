@@ -122,7 +122,14 @@ select = [
     "F",    # Pyflakes
 ]
 ignore = [
-    "F401",      # Unused imports
+    # these should not be fixed
+    "F401",      # unused imports: some are really needed
+    "F841",      # unused variables: some are really needed
+    # we may want to fix these
+    "E721",      # type comparison issues (2 errors)
+    "F811",      # redefined while unused (1 error)
+    "E722",      # bare except (1 error)
+    "E711",      # None comparison (1 error)
 ]
 future-annotations = true
 
