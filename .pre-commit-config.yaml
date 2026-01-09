@@ -6,6 +6,7 @@ ci:
 
 exclude: |
   (?x)
+  ^.github/|
   ^doc/|
   ^tests/
 
