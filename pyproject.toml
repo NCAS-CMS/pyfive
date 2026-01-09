@@ -121,6 +121,9 @@ select = [
     "W",    # pycodestyle warnings
     "F",    # Pyflakes
 ]
+ignore = [
+    "F401",      # Unused imports
+]
 future-annotations = true
 
 [tool.ruff.lint.pycodestyle]
