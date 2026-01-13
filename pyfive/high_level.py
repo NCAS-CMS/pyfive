@@ -1,5 +1,6 @@
 """High-level classes for reading HDF5 files."""
 
+from __future__ import annotations
 from collections import deque
 from collections.abc import Mapping, Sequence
 import os
@@ -32,7 +33,7 @@ class Group(Mapping):
 
     """
 
-    def __init__(self, name: str, dataobjects: DataObjects, parent: "Group"):
+    def __init__(self, name: str, dataobjects: DataObjects, parent: "Group") -> None:
         """initalize."""
 
         self.parent = parent
@@ -63,7 +64,9 @@ class Group(Mapping):
         """x.__getitem__(y) <==> x[y]."""
         return self.__getitem_lazy_control(y, noindex=False)
 
-    def get_lazy_view(self, y):
+    def get_lazy_view(
+        self, y: object
+    ) -> object | Dataset | Datatype | "Group" | File | None:
         """
         This instantiates the object y, and if it is a
         chunked dataset, does so without reading the b-tree
