@@ -151,7 +151,7 @@ class Group(Mapping):
         for k in self._links.keys():
             yield k
 
-    def visit(self, func: Callable) -> None | Callable:
+    def visit(self, func: Callable) -> object | None:
         """
         Recursively visit all names in the group and subgroups.
 
@@ -165,7 +165,7 @@ class Group(Mapping):
         """
         return self.visititems(lambda name, obj: func(name))
 
-    def visititems(self, func: Callable, noindex: bool = False):
+    def visititems(self, func: Callable, noindex: bool = False) -> object | None:
         """
         Recursively visit all objects in this group and subgroups.
 
