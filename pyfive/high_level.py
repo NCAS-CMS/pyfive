@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 from collections import deque
+from collections.abc import Callable
 from collections.abc import Mapping, Sequence
 import os
 import posixpath
@@ -150,7 +151,7 @@ class Group(Mapping):
         for k in self._links.keys():
             yield k
 
-    def visit(self, func):
+    def visit(self, func: Callable) -> None | Callable:
         """
         Recursively visit all names in the group and subgroups.
 
@@ -164,7 +165,7 @@ class Group(Mapping):
         """
         return self.visititems(lambda name, obj: func(name))
 
-    def visititems(self, func, noindex=False):
+    def visititems(self, func: Callable, noindex: bool = False):
         """
         Recursively visit all objects in this group and subgroups.
 
@@ -197,7 +198,7 @@ class Group(Mapping):
 
         while queue:
             obj = queue.popleft()
-            name = obj.name[root_name_length:]
+            name = obj.name[root_name_length:]  # type: ignore[attr-defined]
             ret = func(name, obj)
             if ret is not None:
                 return ret
@@ -366,7 +367,7 @@ class Dataset(object):
 
     """
 
-    def __init__(self, name, datasetid, parent):
+    def __init__(self, name: str, datasetid: DatasetID, parent: Group) -> None:
         """initalize."""
         self.parent = parent
         self.file = parent.file
@@ -392,7 +393,12 @@ class Dataset(object):
             return data
         return data.astype(self._astype)
 
-    def read_direct(self, array, source_sel=None, dest_sel=None):
+    def read_direct(
+        self,
+        array: np.ndarray,
+        source_sel: None | tuple = None,
+        dest_sel: None | tuple = None,
+    ) -> None:
         """
         Read from a HDF5 dataset directly into a NumPy array.
 
@@ -404,7 +410,7 @@ class Dataset(object):
         """
         array[dest_sel] = self[source_sel]
 
-    def astype(self, dtype):
+    def astype(self, dtype: str) -> AstypeContext:
         """
         Return a context manager which returns data as a particular type.
 

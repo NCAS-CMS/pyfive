@@ -1,6 +1,7 @@
 import numpy as np
 from collections import namedtuple
 from operator import mul
+from pyfive.dataobjects import DataObjects
 from pyfive.indexing import OrthogonalIndexer, ZarrArrayStub
 from pyfive.btree import BTreeV1RawDataChunks
 from pyfive.core import Reference, UNDEFINED_ADDRESS
@@ -36,7 +37,12 @@ class DatasetID:
 
     """
 
-    def __init__(self, dataobject, noindex=False, pseudo_chunking_size_MB=4):
+    def __init__(
+        self,
+        dataobject: DataObjects,
+        noindex: bool = False,
+        pseudo_chunking_size_MB: int = 4,
+    ):
         """
         Instantiated with the ``pyfive`` ``datasetdataobject``, we copy and cache everything
         we want so that the only file operations are now data accesses.
@@ -93,7 +99,7 @@ class DatasetID:
         # each variable to have it's own copy of those needed for
         # data access. Though that's clearly not optimal if they include
         # other data. To be determined.
-        self._global_heaps = {}
+        self._global_heaps = dict
 
         self._msg_offset, self.layout_class, self.property_offset = (
             dataobject.get_id_storage_params()
