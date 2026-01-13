@@ -1,7 +1,6 @@
 import numpy as np
 from collections import namedtuple
 from operator import mul
-from pyfive.dataobjects import DataObjects
 from pyfive.indexing import OrthogonalIndexer, ZarrArrayStub
 from pyfive.btree import BTreeV1RawDataChunks
 from pyfive.core import Reference, UNDEFINED_ADDRESS
@@ -39,10 +38,10 @@ class DatasetID:
 
     def __init__(
         self,
-        dataobject: DataObjects,
+        dataobject: "DataObjects",  # type: ignore[name-defined]  # noqa: F821
         noindex: bool = False,
         pseudo_chunking_size_MB: int = 4,
-    ):
+    ) -> None:
         """
         Instantiated with the ``pyfive`` ``datasetdataobject``, we copy and cache everything
         we want so that the only file operations are now data accesses.
