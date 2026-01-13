@@ -32,13 +32,11 @@ class Group(Mapping):
 
     """
 
-    def __init__(
-        self, name: str, dataobjects: DataObjects, parent
-    ):  # need type for parent
+    def __init__(self, name: str, dataobjects: DataObjects, parent: "Group"):
         """initalize."""
 
         self.parent = parent
-        self.file = parent.file
+        self.file = parent.file  # type: ignore[has-type]
         self.name = name
 
         self._links = dataobjects.get_links()
