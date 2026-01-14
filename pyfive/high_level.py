@@ -6,11 +6,11 @@ from collections.abc import Callable
 from collections.abc import Mapping, Sequence
 import os
 import posixpath
-import typing
 import warnings
 
 import numpy as np
 
+from typing import Any, BinaryIO, Self
 from pyfive.core import Reference
 from pyfive.dataobjects import DataObjects, DatasetID
 from pyfive.misc_low_level import SuperBlock
@@ -240,7 +240,7 @@ class File(Group):
 
     """
 
-    def __init__(self, filename: str | typing.BinaryIO, mode: str = "r") -> None:
+    def __init__(self, filename: str | BinaryIO, mode: str = "r") -> None:
         """initalize."""
         if mode != "r":
             raise NotImplementedError(
@@ -289,7 +289,7 @@ class File(Group):
     def __repr__(self) -> str:
         return '<HDF5 file "%s" (mode r)>' % (os.path.basename(self.filename))
 
-    def _get_object_by_address(self, obj_addr: typing.BinaryIO):
+    def _get_object_by_address(self, obj_addr: BinaryIO) -> Self | Any | None:  # type: ignore[return]
         """Return the object pointed to by a given address."""
         if self._dataobjects.offset == obj_addr:
             return self
