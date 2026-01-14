@@ -10,7 +10,8 @@ import warnings
 
 import numpy as np
 
-from typing import Any, BinaryIO, Self
+from typing import Any, BinaryIO
+from typing_extensions import Self  # Python 3.10-compat
 from pyfive.core import Reference
 from pyfive.dataobjects import DataObjects, DatasetID
 from pyfive.misc_low_level import SuperBlock
