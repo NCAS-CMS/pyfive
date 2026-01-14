@@ -50,7 +50,6 @@ p5dump = "pyfive.p5dump:main"
 [project.optional-dependencies]
 test = [
     "dask",
-    "flake8",
     "flask",
     "flask-cors",
     "h5netcdf",
