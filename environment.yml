@@ -17,7 +17,7 @@ dependencies:
   - h5py  # link to same hdf5 lib with netcdf4
   - moto
   - netcdf4  # has history of broken packages on PyPI
-  - pre-commit
+  - pre-commit  # with ruff and mypy
   - pytest
   - pytest-cov
   - pytest-html
