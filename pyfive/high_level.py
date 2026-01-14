@@ -65,9 +65,7 @@ class Group(Mapping):
         """x.__getitem__(y) <==> x[y]."""
         return self.__getitem_lazy_control(y, noindex=False)
 
-    def get_lazy_view(
-        self, y: object
-    ) -> object:
+    def get_lazy_view(self, y: object) -> object:
         """
         This instantiates the object y, and if it is a
         chunked dataset, does so without reading the b-tree
@@ -242,7 +240,7 @@ class File(Group):
 
     """
 
-    def __init__(self, filename: str | typing.BinaryIO, mode="r") -> None:
+    def __init__(self, filename: str | typing.BinaryIO, mode: str = "r") -> None:
         """initalize."""
         if mode != "r":
             raise NotImplementedError(
