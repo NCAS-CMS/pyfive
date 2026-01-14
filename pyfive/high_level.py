@@ -165,7 +165,7 @@ class Group(Mapping):
         """
         return self.visititems(lambda name, obj: func(name))
 
-    def visititems(self, func: Callable, noindex: bool = False) -> object | None:
+    def visititems(self, func: Callable, noindex: bool = False) -> object:
         """
         Recursively visit all objects in this group and subgroups.
 
