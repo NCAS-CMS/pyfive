@@ -49,13 +49,14 @@ jobs:
         run: |
           pre-commit install
           pre-commit run -a
-      # this will be removed when fully Ruff-ed
-      - name: Lint with flake8
-        run: |
-          # stop the build if there are Python syntax errors or undefined names
-          flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
-          # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
-          flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+      # we run pre-commit with ruff and mypy, so this is now redundant
+      # keeping it commented out for now, in case we ever need to come back using it
+      # - name: Lint with flake8
+      #   run: |
+      #     # stop the build if there are Python syntax errors or undefined names
+      #     flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+      #     # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
+      #     flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
       - name: Check environment contents
         run: |
           conda list
