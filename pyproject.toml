@@ -85,10 +85,7 @@ Code = "https://github.com/jjhelmus/pyfive"
 Issues = "https://github.com/jjhelmus/pyfive/issues"
 
 [tool.setuptools]
-include-package-data = true
-license-files = ["LICENSE"]
 packages = ["pyfive"]
-zip-safe = false  # possibly yes
 
 [tool.setuptools.dynamic]
 readme = {file = "README.md", content-type = "text/markdown"}
