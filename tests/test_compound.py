@@ -3,31 +3,37 @@ import h5py
 import pytest
 import pyfive
 
-@pytest.fixture(scope='module')
+
+@pytest.fixture(scope="module")
 def name(tmp_path_factory):
     return tmp_path_factory.mktemp("temp") / "compound.hdf5"
 
+
 def test_compound(name):
-
-
     # Define the inner compound with a reference
     # 'ref' is stored as an 8-byte HDF5 object reference
-    inner_dtype = np.dtype([
-        ('ref', h5py.ref_dtype),
-        ('value', np.float64),
-    ])
+    inner_dtype = np.dtype(
+        [
+            ("ref", h5py.ref_dtype),
+            ("value", np.float64),
+        ]
+    )
 
     # Define the middle compound ---
-    middle_dtype = np.dtype([
-        ('middle_id', np.int32),
-        ('inner', inner_dtype),
-    ])
+    middle_dtype = np.dtype(
+        [
+            ("middle_id", np.int32),
+            ("inner", inner_dtype),
+        ]
+    )
 
     # Define the outer compound ---
-    outer_dtype = np.dtype([
-        ('outer_id', np.int32),
-        ('middle', middle_dtype),
-    ])
+    outer_dtype = np.dtype(
+        [
+            ("outer_id", np.int32),
+            ("middle", middle_dtype),
+        ]
+    )
 
     with h5py.File(name, "w") as f:
         # create a dataset to reference
