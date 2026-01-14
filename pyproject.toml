@@ -19,7 +19,6 @@ classifiers = [
     "Environment :: Console",
     "Intended Audience :: Developers",
     "Intended Audience :: Science/Research",
-    "License :: OSI Approved :: BSD License",
     "Natural Language :: English",
     "Operating System :: POSIX :: Linux",
     "Programming Language :: Python :: 3",
@@ -40,7 +39,8 @@ dependencies = [
     "numpy>=2",
 ]
 description = "A pure python HDF5 reader"
-license = {text = "BSD License, Version 3-Clause"}
+license = "BSD-3-Clause"
+license-files = ["LICENSE.txt"]
 name = "pyfive"
 requires-python = ">=3.10"
 
