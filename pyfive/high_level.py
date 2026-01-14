@@ -67,7 +67,7 @@ class Group(Mapping):
 
     def get_lazy_view(
         self, y: object
-    ) -> object | Dataset | Datatype | "Group" | File | None:
+    ) -> object:
         """
         This instantiates the object y, and if it is a
         chunked dataset, does so without reading the b-tree
