@@ -37,14 +37,6 @@ __pycache__/
 \.\#*
 *.swp
 
-#pytest
-.cache
-.pytest_cache
-<_io.Bytes*>
-pyfive/__pycache__/
-tests/btreev2-generated.hdf5
-tests/__pycache__
-
 # Auto generated doc
 _sidebar.rst.inc
 
@@ -58,6 +50,14 @@ doc/_sidebar.rst.inc
 *.manifest
 *.spec
 
+# Pytest runs
+.cache
+.pytest_cache
+<_io.Bytes*>
+pyfive/__pycache__/
+tests/btreev2-generated.hdf5
+tests/__pycache__
+
 # Unit test / coverage reports
 htmlcov/
 .tox/
@@ -69,3 +69,4 @@ coverage.xml
 *.cover
 .hypothesis/
 .mypy_cache
+test-reports
