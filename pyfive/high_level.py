@@ -1,6 +1,8 @@
-""" High-level classes for reading HDF5 files.  """
+"""High-level classes for reading HDF5 files."""
 
+from __future__ import annotations
 from collections import deque
+from collections.abc import Callable
 from collections.abc import Mapping, Sequence
 import os
 import posixpath
@@ -8,6 +10,8 @@ import warnings
 
 import numpy as np
 
+from typing import Any, BinaryIO
+from typing_extensions import Self  # Python 3.10-compat
 from pyfive.core import Reference
 from pyfive.dataobjects import DataObjects, DatasetID
 from pyfive.misc_low_level import SuperBlock
@@ -31,11 +35,11 @@ class Group(Mapping):
 
     """
 
-    def __init__(self, name, dataobjects, parent):
-        """ initalize. """
+    def __init__(self, name: str, dataobjects: DataObjects, parent: "Group") -> None:
+        """initalize."""
 
         self.parent = parent
-        self.file = parent.file
+        self.file = parent.file  # type: ignore[has-type]
         self.name = name
 
         self._links = dataobjects.get_links()
@@ -46,30 +50,29 @@ class Group(Mapping):
         return '<HDF5 group "%s" (%d members)>' % (self.name, len(self))
 
     def __len__(self):
-        """ Number of links in the group. """
+        """Number of links in the group."""
         return len(self._links)
 
     def _dereference(self, ref):
-        """ Dereference a Reference object. """
+        """Dereference a Reference object."""
         if not ref:
-            raise ValueError('cannot deference null reference')
+            raise ValueError("cannot deference null reference")
         obj = self.file._get_object_by_address(ref.address_of_reference)
         if obj is None:
-            raise ValueError('reference not found in file')
+            raise ValueError("reference not found in file")
         return obj
 
     def __getitem__(self, y):
-        """ x.__getitem__(y) <==> x[y].
-        """
+        """x.__getitem__(y) <==> x[y]."""
         return self.__getitem_lazy_control(y, noindex=False)
 
-    def get_lazy_view(self, y):
-        """ 
-        This instantiates the object y, and if it is a 
+    def get_lazy_view(self, y: object) -> object:
+        """
+        This instantiates the object y, and if it is a
         chunked dataset, does so without reading the b-tree
         index. This is useful for inspecting a variable
         that you are not expecting to access. If you know you
-        want to access the data, and in particular, if you are 
+        want to access the data, and in particular, if you are
         going to hand the data to Dask or something else, you
         almost certainly want to read the index now, so
         just do x[y] rather than x.get_lazy_view(y).
@@ -80,18 +83,18 @@ class Group(Mapping):
         return self.__getitem_lazy_control(y, noindex=True)
 
     def __getitem_lazy_control(self, y, noindex):
-        """ 
+        """
         This is the routine which actually does the get item
         but does it in such a way that we control how much laziness
         is possible where we have chunked variables with b-trees.
 
         We want to return y, but if y is a chunked dataset we
         normally return it with a cached b-tree (noindex=false).
-        If noindex is True, we do not read the b-tree, and that 
+        If noindex is True, we do not read the b-tree, and that
         will be done when data is first read - which is fine
         in a single-threaded environment, but in a parallel
         environment you only want to read the index once
-        (so use noindex=False, which you get via the 
+        (so use noindex=False, which you get via the
         normal getitem interface - x[y]).
         """
 
@@ -99,19 +102,19 @@ class Group(Mapping):
             return self._dereference(y)
 
         path = posixpath.normpath(y)
-        if path == '.':
+        if path == ".":
             return self
-        if path.startswith('/'):
+        if path.startswith("/"):
             return self.file[path[1:]]
 
-        if posixpath.dirname(path) != '':
-            next_obj, additional_obj = path.split('/', 1)
+        if posixpath.dirname(path) != "":
+            next_obj, additional_obj = path.split("/", 1)
         else:
             next_obj = path
-            additional_obj = '.'
+            additional_obj = "."
 
         if next_obj not in self._links:
-            raise KeyError('%s not found in group' % (next_obj))
+            raise KeyError("%s not found in group" % (next_obj))
 
         obj_name = posixpath.join(self.name, next_obj)
         link_target = self._links[next_obj]
@@ -124,8 +127,8 @@ class Group(Mapping):
 
         dataobjs = DataObjects(self.file._fh, link_target)
         if dataobjs.is_dataset:
-            if additional_obj != '.':
-                raise KeyError('%s is a dataset, not a group' % (obj_name))
+            if additional_obj != ".":
+                raise KeyError("%s is a dataset, not a group" % (obj_name))
             return Dataset(obj_name, DatasetID(dataobjs, noindex=noindex), self)
 
         try:
@@ -133,7 +136,9 @@ class Group(Mapping):
             # to warn the user, who may be able to use other parts of the data.
             is_datatype = dataobjs.is_datatype
         except NotImplementedError as e:
-            warnings.warn(f'Found datatype {obj_name} but pyfive cannot read this data: {e}')
+            warnings.warn(
+                f"Found datatype {obj_name} but pyfive cannot read this data: {e}"
+            )
             is_datatype = True
 
         if is_datatype:
@@ -145,7 +150,7 @@ class Group(Mapping):
         for k in self._links.keys():
             yield k
 
-    def visit(self, func):
+    def visit(self, func: Callable) -> object:
         """
         Recursively visit all names in the group and subgroups.
 
@@ -159,7 +164,7 @@ class Group(Mapping):
         """
         return self.visititems(lambda name, obj: func(name))
 
-    def visititems(self, func, noindex=False):
+    def visititems(self, func: Callable, noindex: bool = False) -> object:
         """
         Recursively visit all objects in this group and subgroups.
 
@@ -177,7 +182,7 @@ class Group(Mapping):
 
         """
         root_name_length = len(self.name)
-        if not self.name.endswith('/'):
+        if not self.name.endswith("/"):
             root_name_length += 1
 
         # Use either normal access or lazy access:
@@ -192,7 +197,7 @@ class Group(Mapping):
 
         while queue:
             obj = queue.popleft()
-            name = obj.name[root_name_length:]
+            name = obj.name[root_name_length:]  # type: ignore[attr-defined]
             ret = func(name, obj)
             if ret is not None:
                 return ret
@@ -202,7 +207,7 @@ class Group(Mapping):
 
     @property
     def attrs(self):
-        """ attrs attribute. """
+        """attrs attribute."""
         if self._attrs is None:
             self._attrs = self._dataobjects.get_attributes()
         return self._attrs
@@ -236,19 +241,20 @@ class File(Group):
 
     """
 
-    def __init__(self, filename, mode='r'):
-        """ initalize. """
-        if mode != 'r':
-            raise NotImplementedError('pyfive only provides support for reading and treats all reads as binary')
+    def __init__(self, filename: str | BinaryIO, mode: str = "r") -> None:
+        """initalize."""
+        if mode != "r":
+            raise NotImplementedError(
+                "pyfive only provides support for reading and treats all reads as binary"
+            )
         self._close = False
-        if hasattr(filename, 'read'):
-            if not hasattr(filename, 'seek'):
-                raise ValueError(
-                    'File like object must have a seek method')
+        if hasattr(filename, "read"):
+            if not hasattr(filename, "seek"):
+                raise ValueError("File like object must have a seek method")
             self._fh = filename
-            self.filename = getattr(filename, 'name', "None")
+            self.filename = getattr(filename, "name", "None")
         else:
-            self._fh = open(filename, 'rb')
+            self._fh = open(filename, "rb")
             self._close = True
             self.filename = filename
         self._superblock = SuperBlock(self._fh, 0)
@@ -256,12 +262,12 @@ class File(Group):
         dataobjects = DataObjects(self._fh, offset)
 
         self.file = self
-        self.mode = 'r'
+        self.mode = "r"
         self.userblock_size = 0
-        super(File, self).__init__('/', dataobjects, self)
+        super(File, self).__init__("/", dataobjects, self)
 
     @property
-    def consolidated_metadata(self):
+    def consolidated_metadata(self) -> bool:
         """Returns True if all B-tree nodes for chunked datasets are located before the first chunk in the file."""
         is_consolidated = True
         f = self
@@ -281,15 +287,15 @@ class File(Group):
 
         return is_consolidated
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return '<HDF5 file "%s" (mode r)>' % (os.path.basename(self.filename))
 
-    def _get_object_by_address(self, obj_addr):
-        """ Return the object pointed to by a given address. """
+    def _get_object_by_address(self, obj_addr: BinaryIO) -> Self | Any | None:  # type: ignore[return]
+        """Return the object pointed to by a given address."""
         if self._dataobjects.offset == obj_addr:
             return self
 
-        queue = deque([(self.name.rstrip('/'), self)])
+        queue = deque([(self.name.rstrip("/"), self)])
         while queue:
             base, grp = queue.popleft()
             for name, link_addr in grp._links.items():
@@ -303,7 +309,7 @@ class File(Group):
                     queue.append((full_path, grp[name]))
 
     def close(self):
-        """ Close the file. """
+        """Close the file."""
         if self._close:
             self._fh.close()
 
@@ -360,8 +366,8 @@ class Dataset(object):
 
     """
 
-    def __init__(self, name, datasetid, parent):
-        """ initalize. """
+    def __init__(self, name: str, datasetid: DatasetID, parent: Group) -> None:
+        """initalize."""
         self.parent = parent
         self.file = parent.file
         self.name = name
@@ -386,7 +392,12 @@ class Dataset(object):
             return data
         return data.astype(self._astype)
 
-    def read_direct(self, array, source_sel=None, dest_sel=None):
+    def read_direct(
+        self,
+        array: np.ndarray,
+        source_sel: None | tuple = None,
+        dest_sel: None | tuple = None,
+    ) -> None:
         """
         Read from a HDF5 dataset directly into a NumPy array.
 
@@ -398,7 +409,7 @@ class Dataset(object):
         """
         array[dest_sel] = self[source_sel]
 
-    def astype(self, dtype):
+    def astype(self, dtype: str) -> AstypeContext:
         """
         Return a context manager which returns data as a particular type.
 
@@ -407,7 +418,7 @@ class Dataset(object):
         return AstypeContext(self, dtype)
 
     def len(self):
-        """ Return the size of the first axis. """
+        """Return the size of the first axis."""
         return self.shape[0]
 
     def iter_chunks(self, *args):
@@ -415,79 +426,80 @@ class Dataset(object):
 
     @property
     def shape(self):
-        """ shape attribute. """
+        """shape attribute."""
         return self.id.shape
 
     @property
     def maxshape(self):
-        """ maxshape attribute. (None for unlimited dimensions) """
+        """maxshape attribute. (None for unlimited dimensions)"""
         return self.id._meta.maxshape
 
     @property
     def ndim(self):
-        """ number of dimensions. """
+        """number of dimensions."""
         return len(self.shape)
 
     @property
     def dtype(self):
-        """ dtype attribute. """
+        """dtype attribute."""
         return self.id.dtype
 
     @property
     def value(self):
-        """ alias for dataset[()]. """
+        """alias for dataset[()]."""
         DeprecationWarning(
-            "dataset.value has been deprecated. Use dataset[()] instead.")
+            "dataset.value has been deprecated. Use dataset[()] instead."
+        )
         return self[()]
 
     @property
     def size(self):
-        """ size attribute. """
+        """size attribute."""
         return np.prod(self.shape)
 
     @property
     def chunks(self):
-        """ chunks attribute. """
+        """chunks attribute."""
         return self.id.chunks
 
     @property
     def compression(self):
-        """ compression attribute. """
+        """compression attribute."""
         return self.id._meta.compression
 
     @property
     def compression_opts(self):
-        """ compression_opts attribute. """
+        """compression_opts attribute."""
         return self.id._meta.compression_opts
 
     @property
     def scaleoffset(self):
-        """ scaleoffset attribute. """
+        """scaleoffset attribute."""
         return None  # TODO support scale-offset filter
 
     @property
     def shuffle(self):
-        """ shuffle attribute. """
+        """shuffle attribute."""
         return self.id._meta.shuffle
 
     @property
     def fletcher32(self):
-        """ fletcher32 attribute. """
+        """fletcher32 attribute."""
         return self.id._meta.fletcher32
 
     @property
     def fillvalue(self):
-        """ fillvalue attribute. """
+        """fillvalue attribute."""
         return self.id._meta.fillvalue
 
     @property
     def dims(self):
-        """ dims attribute. """
+        """dims attribute."""
         return DimensionManager(self)
 
     @property
     def attrs(self):
-        """ attrs attribute. """
+        """attrs attribute."""
         return self.id._meta.attributes
 
     @property
@@ -499,19 +511,20 @@ class Dataset(object):
 
 
 class DimensionManager(Sequence):
-    """ Represents a collection of dimensions associated with a dataset. """
+    """Represents a collection of dimensions associated with a dataset."""
 
     def __init__(self, dset):
         ndim = len(dset.shape)
         dim_list = [[]] * ndim
-        if 'DIMENSION_LIST' in dset.attrs:
-            dim_list = dset.attrs['DIMENSION_LIST']
-        dim_labels = [b''] * ndim
-        if 'DIMENSION_LABELS' in dset.attrs:
-            dim_labels = dset.attrs['DIMENSION_LABELS']
+        if "DIMENSION_LIST" in dset.attrs:
+            dim_list = dset.attrs["DIMENSION_LIST"]
+        dim_labels = [b""] * ndim
+        if "DIMENSION_LABELS" in dset.attrs:
+            dim_labels = dset.attrs["DIMENSION_LABELS"]
         self._dims = [
-            DimensionProxy(dset.file, label, refs) for
-            label, refs in zip(dim_labels, dim_list)]
+            DimensionProxy(dset.file, label, refs)
+            for label, refs in zip(dim_labels, dim_list)
+        ]
 
     def __len__(self):
         return len(self._dims)
@@ -521,12 +534,12 @@ class DimensionManager(Sequence):
 
 
 class DimensionProxy(Sequence):
-    """ Represents a HDF5 "dimension". """
+    """Represents a HDF5 "dimension"."""
 
     def __init__(self, dset_file, label, refs):
         try:
             # decode a byte string
-            label = label.decode('utf-8')
+            label = label.decode("utf-8")
         except AttributeError:
             # str doesn't have a decode method
             pass

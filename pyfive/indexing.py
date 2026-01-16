@@ -12,11 +12,12 @@ import numpy as np
 
 
 class ZarrArrayStub:
-    """ 
+    """
     This mimics the functionality of the zarr array produced by kerchunk,
     but with only what is needed for indexing. This is the only "new" code
     on top of the original Zarr source.
     """
+
     def __init__(self, shape, chunks):
         if chunks is None:
             self._chunks = shape
@@ -24,7 +25,9 @@ class ZarrArrayStub:
             self._chunks = chunks
         self._shape = shape
 
+
 # in the original zarr source the following error definitions are an import from zarr.errors
+
 
 class _BaseZarrIndexError(IndexError):
     _msg = ""
@@ -32,11 +35,16 @@ class _BaseZarrIndexError(IndexError):
     def __init__(self, *args):
         super().__init__(self._msg.format(*args))
 
+
 class ArrayIndexError(IndexError):
     pass
 
+
 def err_too_many_indices(selection, shape):
-    raise IndexError(f"too many indices for array; expected {len(shape)}, got {len(selection)}")
+    raise IndexError(
+        f"too many indices for array; expected {len(shape)}, got {len(selection)}"
+    )
+
 
 class VindexInvalidSelectionError(_BaseZarrIndexError):
     _msg = (
@@ -44,10 +52,11 @@ class VindexInvalidSelectionError(_BaseZarrIndexError):
         "coordinate selection (tuple of integer arrays) and mask selection "
         "(single Boolean array) are supported; got {0!r}"
     )
+
+
 class BoundsCheckError(_BaseZarrIndexError):
     _msg = "index out of bounds for dimension with length {0}"
 
-# And the rest of the code is the original file.
 
 def is_integer(x):
     """True if x is an integer (both pure Python or NumPy).
@@ -68,7 +77,12 @@ def is_integer_list(x):
 
 
 def is_integer_array(x, ndim=None):
-    t = not np.isscalar(x) and hasattr(x, "shape") and hasattr(x, "dtype") and x.dtype.kind in "ui"
+    t = (
+        not np.isscalar(x)
+        and hasattr(x, "shape")
+        and hasattr(x, "dtype")
+        and x.dtype.kind in "ui"
+    )
     if ndim is not None:
         t = t and len(x.shape) == ndim
     return t
@@ -136,9 +150,12 @@ def is_pure_orthogonal_indexing(selection, ndim):
     return (
         isinstance(selection, tuple)
         and len(selection) == ndim
-        and sum(is_integer_list(elem) or is_integer_array(elem) for elem in selection) <= 1
+        and sum(is_integer_list(elem) or is_integer_array(elem) for elem in selection)
+        <= 1
         and all(
-            is_integer_list(elem) or is_integer_array(elem) or isinstance(elem, (int, slice))
+            is_integer_list(elem)
+            or is_integer_array(elem)
+            or isinstance(elem, (int, slice))
             for elem in selection
         )
     )
@@ -247,7 +264,9 @@ class SliceDimIndexer:
                 dim_chunk_sel_stop = self.stop - dim_offset
 
             dim_chunk_sel = slice(dim_chunk_sel_start, dim_chunk_sel_stop, self.step)
-            dim_chunk_nitems = ceildiv((dim_chunk_sel_stop - dim_chunk_sel_start), self.step)
+            dim_chunk_nitems = ceildiv(
+                (dim_chunk_sel_stop - dim_chunk_sel_start), self.step
+            )
 
             # If there are no elements on the selection within this chunk, then skip
             if dim_chunk_nitems == 0:
@@ -302,7 +321,8 @@ def replace_ellipsis(selection, shape):
 
 def replace_lists(selection):
     return tuple(
-        np.asarray(dim_sel) if isinstance(dim_sel, list) else dim_sel for dim_sel in selection
+        np.asarray(dim_sel) if isinstance(dim_sel, list) else dim_sel
+        for dim_sel in selection
     )
 
 
@@ -345,7 +365,10 @@ def is_positive_slice(s):
 
 def is_contiguous_selection(selection):
     selection = ensure_tuple(selection)
-    return all((is_integer_array(s) or is_contiguous_slice(s) or s == Ellipsis) for s in selection)
+    return all(
+        (is_integer_array(s) or is_contiguous_slice(s) or s == Ellipsis)
+        for s in selection
+    )
 
 
 def is_basic_selection(selection):
@@ -361,7 +384,9 @@ class BasicIndexer:
 
         # setup per-dimension indexers
         dim_indexers = []
-        for dim_sel, dim_len, dim_chunk_len in zip(selection, array._shape, array._chunks):
+        for dim_sel, dim_len, dim_chunk_len in zip(
+            selection, array._shape, array._chunks
+        ):
             if is_integer(dim_sel):
                 dim_indexer = IntDimIndexer(dim_sel, dim_len, dim_chunk_len)
 
@@ -377,7 +402,9 @@ class BasicIndexer:
             dim_indexers.append(dim_indexer)
 
         self.dim_indexers = dim_indexers
-        self.shape = tuple(s.nitems for s in self.dim_indexers if not isinstance(s, IntDimIndexer))
+        self.shape = tuple(
+            s.nitems for s in self.dim_indexers if not isinstance(s, IntDimIndexer)
+        )
         self.drop_axes = None
 
     def __iter__(self):
@@ -396,14 +423,14 @@ class BoolArrayDimIndexer:
         # check number of dimensions
         if not is_bool_array(dim_sel, 1):
             raise IndexError(
-                "Boolean arrays in an orthogonal selection must " "be 1-dimensional only"
+                "Boolean arrays in an orthogonal selection must be 1-dimensional only"
             )
 
         # check shape
         if dim_sel.shape[0] != dim_len:
             raise IndexError(
                 f"Boolean array has the wrong length for dimension; "
-                f"expected {dim_len}, got { dim_sel.shape[0]}"
+                f"expected {dim_len}, got {dim_sel.shape[0]}"
             )
 
         # store attributes
@@ -496,7 +523,7 @@ class IntArrayDimIndexer:
         dim_sel = np.asanyarray(dim_sel)
         if not is_integer_array(dim_sel, 1):
             raise IndexError(
-                "integer arrays in an orthogonal selection must be " "1-dimensional only"
+                "integer arrays in an orthogonal selection must be 1-dimensional only"
             )
 
         # handle wraparound
@@ -580,7 +607,9 @@ def ix_(selection, shape):
         (
             slice_to_range(dim_sel, dim_len)
             if isinstance(dim_sel, slice)
-            else [dim_sel] if is_integer(dim_sel) else dim_sel
+            else [dim_sel]
+            if is_integer(dim_sel)
+            else dim_sel
         )
         for dim_sel, dim_len in zip(selection, shape)
     ]
@@ -632,7 +661,9 @@ class OrthogonalIndexer:
 
         # setup per-dimension indexers
         dim_indexers = []
-        for dim_sel, dim_len, dim_chunk_len in zip(selection, array._shape, array._chunks):
+        for dim_sel, dim_len, dim_chunk_len in zip(
+            selection, array._shape, array._chunks
+        ):
             if is_integer(dim_sel):
                 dim_indexer = IntDimIndexer(dim_sel, dim_len, dim_chunk_len)
 
@@ -656,7 +687,9 @@ class OrthogonalIndexer:
 
         self.array = array
         self.dim_indexers = dim_indexers
-        self.shape = tuple(s.nitems for s in self.dim_indexers if not isinstance(s, IntDimIndexer))
+        self.shape = tuple(
+            s.nitems for s in self.dim_indexers if not isinstance(s, IntDimIndexer)
+        )
         self.is_advanced = not is_basic_selection(selection)
         self.reverse_dims = reverse_dims
 
@@ -748,7 +781,9 @@ class BlockIndexer:
 
         # setup per-dimension indexers
         dim_indexers = []
-        for dim_sel, dim_len, dim_chunk_size in zip(selection, array._shape, array._chunks):
+        for dim_sel, dim_len, dim_chunk_size in zip(
+            selection, array._shape, array._chunks
+        ):
             dim_numchunks = int(np.ceil(dim_len / dim_chunk_size))
 
             if is_integer(dim_sel):
@@ -834,7 +869,9 @@ def is_coordinate_selection(selection, array):
 # noinspection PyProtectedMember
 def is_mask_selection(selection, array):
     return (
-        len(selection) == 1 and is_bool_array(selection[0]) and selection[0].shape == array._shape
+        len(selection) == 1
+        and is_bool_array(selection[0])
+        and selection[0].shape == array._shape
     )
 
 
@@ -864,7 +901,8 @@ class CoordinateIndexer:
 
         # compute chunk index for each point in the selection
         chunks_multi_index = tuple(
-            dim_sel // dim_chunk_len for (dim_sel, dim_chunk_len) in zip(selection, array._chunks)
+            dim_sel // dim_chunk_len
+            for (dim_sel, dim_chunk_len) in zip(selection, array._chunks)
         )
 
         # broadcast selection - this will raise error if array dimensions don't match
@@ -876,10 +914,14 @@ class CoordinateIndexer:
 
         # flatten selection
         selection = [dim_sel.reshape(-1) for dim_sel in selection]
-        chunks_multi_index = [dim_chunks.reshape(-1) for dim_chunks in chunks_multi_index]
+        chunks_multi_index = [
+            dim_chunks.reshape(-1) for dim_chunks in chunks_multi_index
+        ]
 
         # ravel chunk indices
-        chunks_raveled_indices = np.ravel_multi_index(chunks_multi_index, dims=array._cdata_shape)
+        chunks_raveled_indices = np.ravel_multi_index(
+            chunks_multi_index, dims=array._cdata_shape
+        )
 
         # group points by chunk
         if np.any(np.diff(chunks_raveled_indices) < 0):
@@ -986,11 +1028,14 @@ def check_fields(fields, dtype):
     # check type
     if not isinstance(fields, (str, list, tuple)):
         raise IndexError(
-            f"'fields' argument must be a string or list of strings; found " f"{type(fields)!r}"
+            f"'fields' argument must be a string or list of strings; found "
+            f"{type(fields)!r}"
         )
     if fields:
         if dtype.names is None:
-            raise IndexError("invalid 'fields' argument, array does not have any fields")
+            raise IndexError(
+                "invalid 'fields' argument, array does not have any fields"
+            )
         try:
             if isinstance(fields, str):
                 # single field selection
