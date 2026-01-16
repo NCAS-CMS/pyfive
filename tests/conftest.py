@@ -1,8 +1,6 @@
 import os
 import s3fs
-import pathlib
 import json
-import moto
 import pytest
 
 from moto.moto_server.threaded_moto_server import ThreadedMotoServer
@@ -15,6 +13,7 @@ endpoint_uri = "http://127.0.0.1:%s/" % port
 test_bucket_name = "test"
 versioned_bucket_name = "test-versioned"
 secure_bucket_name = "test-secure"
+
 
 def get_boto3_client():
     from botocore.session import Session

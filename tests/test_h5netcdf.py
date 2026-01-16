@@ -10,9 +10,10 @@ from pathlib import Path
 
 DIRNAME = Path(__file__).parent
 
+
 def test_file_contents():
-    fpath = os.path.join(DIRNAME, 'data', 'h5netcdf_test.hdf5')
-    p5file = pyfive.File(fpath) 
+    fpath = os.path.join(DIRNAME, "data", "h5netcdf_test.hdf5")
+    p5file = pyfive.File(fpath)
     h5file = h5py.File(fpath)
 
     expected_variables = [
@@ -22,11 +23,11 @@ def test_file_contents():
         "scalar",
         "mismatched_dim",
         "foo_unlimited",
-         "var_len_str",
+        "var_len_str",
         "enum_var",
     ]
 
-    cannot_handle = ['var_len_str', 'enum_var']
+    cannot_handle = ["var_len_str", "enum_var"]
 
     p5contents = set([a for a in p5file])
     h5contents = set([a for a in h5file])
@@ -38,9 +39,9 @@ def test_file_contents():
             # check we can get the variable
             p5x, h5x = p5file[x], h5file[x]
             if p5x is None:
-                warnings.warn(f'Had to skip {x}')
-          
-            if isinstance(h5x,h5py.Dataset):
+                warnings.warn(f"Had to skip {x}")
+
+            if isinstance(h5x, h5py.Dataset):
                 # check the dtype
                 assert p5x.dtype == h5x.dtype
                 # check the shape
@@ -57,7 +58,7 @@ def test_file_contents():
                 assert len(dh5x) == len(dp5x)
                 print(p5x)
         except:
-            print('Attempting to compare ',x)
+            print("Attempting to compare ", x)
             print(h5file[x])
             print(p5file[x])
             raise

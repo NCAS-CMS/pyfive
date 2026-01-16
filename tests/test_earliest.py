@@ -1,4 +1,4 @@
-""" Unit tests for pyfive using the earliest library version """
+"""Unit tests for pyfive using the earliest library version"""
 
 import os
 
@@ -8,47 +8,45 @@ from numpy.testing import assert_array_equal, assert_almost_equal
 import pyfive
 
 DIRNAME = os.path.dirname(__file__)
-EARLIEST_HDF5_FILE = os.path.join(DIRNAME, 'data', 'earliest.hdf5')
+EARLIEST_HDF5_FILE = os.path.join(DIRNAME, "data", "earliest.hdf5")
 
 # Polygot string type for representing unicode
 try:
-    string_type = unicode
+    string_type = unicode  # type: ignore[name-defined]
 except NameError:
     string_type = str
 
 
 def test_read_earliest():
-
     with pyfive.File(EARLIEST_HDF5_FILE) as hfile:
-
         # root
-        assert hfile.attrs['attr1'] == -123
-        assert hfile.attrs['attr1'].dtype == np.dtype('int32')
+        assert hfile.attrs["attr1"] == -123
+        assert hfile.attrs["attr1"].dtype == np.dtype("int32")
 
-        dset1 = hfile['dataset1']
+        dset1 = hfile["dataset1"]
         assert_array_equal(dset1[:], np.arange(4))
-        assert dset1.dtype == np.dtype('<i4')
-        assert dset1.attrs['attr2'] == 130
-        assert dset1.attrs['attr2'].dtype == np.dtype('uint8')
+        assert dset1.dtype == np.dtype("<i4")
+        assert dset1.attrs["attr2"] == 130
+        assert dset1.attrs["attr2"].dtype == np.dtype("uint8")
 
         # group
-        grp = hfile['group1']
-        assert_almost_equal(grp.attrs['attr3'], 12.34, 2)
-        assert grp.attrs['attr3'].dtype == np.dtype('float32')
+        grp = hfile["group1"]
+        assert_almost_equal(grp.attrs["attr3"], 12.34, 2)
+        assert grp.attrs["attr3"].dtype == np.dtype("float32")
 
-        dset2 = grp['dataset2']
+        dset2 = grp["dataset2"]
         assert_array_equal(dset2[:], np.arange(4))
-        assert dset2.dtype == np.dtype('>u8')
-        assert dset2.attrs['attr4'] == b'Hi'
-        assert dset2.attrs['attr4'].dtype == np.dtype('|S2')
+        assert dset2.dtype == np.dtype(">u8")
+        assert dset2.attrs["attr4"] == b"Hi"
+        assert dset2.attrs["attr4"].dtype == np.dtype("|S2")
 
         # sub-group
-        subgroup = grp['subgroup1']
-        assert subgroup.attrs['attr5'] == 'Test'
-        assert isinstance(subgroup.attrs['attr5'], str)
+        subgroup = grp["subgroup1"]
+        assert subgroup.attrs["attr5"] == "Test"
+        assert isinstance(subgroup.attrs["attr5"], str)
 
-        dset3 = subgroup['dataset3']
+        dset3 = subgroup["dataset3"]
         assert_array_equal(dset2[:], np.arange(4))
-        assert dset3.dtype == np.dtype('<f4')
-        assert dset3.attrs['attr6'] == u'Test' + b'\xc2\xa7'.decode('utf-8')
-        assert isinstance(dset3.attrs['attr6'], string_type)
+        assert dset3.dtype == np.dtype("<f4")
+        assert dset3.attrs["attr6"] == "Test" + b"\xc2\xa7".decode("utf-8")
+        assert isinstance(dset3.attrs["attr6"], string_type)

@@ -1,14 +1,20 @@
+"""Utility interceptor."""
+
 import inspect
 
+
 class Interceptor:
-    """
-    Intercepts file-io and logs what is going on.
+    """Intercepts file-io and logs what is going on.
+
     Used in debugging file reading issues and optimisation.
     """
+
     def __init__(self, fh, activated=True):
         self._fh = fh
-        self.activated=activated
+        self.activated = activated
+
     def seek(self, offset, whence=0):
+        """Seek."""
         if self.activated:
             caller = inspect.currentframe().f_back
             if caller is not None:
@@ -18,8 +24,10 @@ class Interceptor:
             else:
                 func, fname, lineno = "<module>", "<unknown>", 0
             print(f"seek: {offset}, {whence} (called from {func})")
-        return self._fh.seek(offset, whence)    
+        return self._fh.seek(offset, whence)
+
     def read(self, size=-1):
+        """Read."""
         if self.activated:
             caller = inspect.currentframe().f_back
             if caller is not None:
