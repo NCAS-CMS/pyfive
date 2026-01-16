@@ -724,15 +724,15 @@ class OrthogonalIndexer:
 
             if self.reverse_dims:
                 # A requested negative slice was changed to a positive
-                # slice (e.g.`slice(7,3,-1)` -> `slice(4,8,1)`), so
+                # slice (e.g. slice(7, 3, -1) -> slice(4, 8, 1)), so
                 # modify the index to the output array to ensure that
                 # the chunk selection goes in the correct place and in
                 # the correct order.
                 #
                 # E.g. For an output array axis of size 7:
-                #        `slice(0, 1)` -> `slice(6, 5, -1)`
-                #        `slice(1, 4)` -> `slice(5, 2, -1)`
-                #        `slice(4, 7)` -> `slice(2, None, -1)`
+                #        slice(0, 1) -> slice(6, 5, -1)
+                #        slice(1, 4) -> slice(5, 2, -1)
+                #        slice(4, 7) -> slice(2, None, -1)
                 #
                 # Note that the step for the modified output array
                 # slice is always -1
@@ -1114,7 +1114,7 @@ def replace_negative_slices(selection, shape):
 
     Returns
     -------
-    parsed_selection : `tuple`
+    modified_selection : `tuple`
         The reformatted indices that give the will correct subspace
         after output dimensions have been reversed, as appropriate.
 
@@ -1126,15 +1126,15 @@ def replace_negative_slices(selection, shape):
     """
     indices = replace_ellipsis(selection, shape)
 
-    # Initialize outputs
-    parsed_selection = []
+    # Initialise outputs
+    modified_selection = []
     reverse_dims = []
 
     # Dimension positions of the array *after* indexing (some
     # dimensions might get dropped by integer indices)
     dim = 0
 
-    # Parse the indices
+    # Replace a negative slice index with its reversed version
     for index, size in zip(selection, shape):
         if isinstance(index, slice):
             start, stop, step = index.indices(size)
@@ -1179,15 +1179,17 @@ def replace_negative_slices(selection, shape):
 
         elif index == Ellipsis:
             raise ValueError(
-                "replace_negative_slices doesn't work when selection "
-                "contains Ellipsis. Consider running replace_ellipsis first"
+                "replace_negative_slices(selection, shape) doesn't work "
+                "when selection contains Ellipsis. Consider doing "
+                "selection=pyfive.indexing.replace_ellipsis(selection, shape) "
+                "first"
             )
 
         dim += 1
 
-        parsed_selection.append(index)
+        modified_selection.append(index)
 
-    return tuple(parsed_selection), tuple(reverse_dims)
+    return tuple(modified_selection), tuple(reverse_dims)
 
 class PartialChunkIterator:
     """Iterator to retrieve the specific coordinates of requested data
