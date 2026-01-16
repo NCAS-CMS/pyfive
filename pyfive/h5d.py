@@ -223,13 +223,17 @@ class DatasetID:
             return np.full(self.shape, fillvalue, dtype=self.dtype)[args]
 
     def iter_chunks(self, args):
-        """
-        Iterate over chunks in a chunked dataset.
-        The optional sel argument is a slice or tuple of slices that defines the region to be used.
-        If not set, the entire dataspace will be used for the iterator.
-        For each chunk within the given region, the iterator yields a tuple of slices that gives the
-        intersection of the given chunk with the selection area.
-        This can be used to read data in that chunk.
+        """Iterate over chunks in a chunked dataset.
+
+        The args argument is a (possibly empty) sequence of indices
+        that defines the region to be used. If an empty sequence then
+        the entire dataspace will be used for the iterator.
+
+        For each chunk within the given region, the iterator yields a
+        tuple of indices that gives the intersection of the given
+        chunk with the selection area. This can be used to read data
+        in that chunk.
+
         """
         if not self.__chunk_init_check():
             return None
