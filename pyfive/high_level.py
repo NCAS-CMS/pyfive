@@ -16,6 +16,7 @@ from pyfive.core import Reference
 from pyfive.dataobjects import DataObjects, DatasetID
 from pyfive.misc_low_level import SuperBlock
 from pyfive.h5py import Datatype
+from pyfive.p5t import P5VlenStringType, P5ReferenceType, P5SequenceType
 
 
 class Group(Mapping):
@@ -506,9 +507,26 @@ class Dataset(object):
     def __orthogonal_indexing__(self):
         """Flag to indicate whether indexing is orthogonal.
 
-        """
-        return self.id.chunks is not None
+        In general, the flag will be `True` if either the data is
+        contiguous and memory mapped access is not available, or else
+        the data is chunked. Otherwise the flag will be `False`.
 
+        """
+        if self.id.chunks is not None:
+            # Chunked data
+            return True
+
+        if not (isinstance(self.id._ptype, (P5ReferenceType, P5VlenStringType, P5SequenceType))) and not self.id.posix:
+            # Contiguous data accessed with pseudo chunking via
+            # `DatasetID._get_direct_from_contiguous`.
+            #
+            # This test is based on the logic of
+            # `DatasetID._get_contiguous_data`, which decides whether
+            # or not to call `DatasetID._get_direct_from_contiguous`.
+            return True
+
+        # All other cases
+        return False
 
 class DimensionManager(Sequence):
     """Represents a collection of dimensions associated with a dataset."""
