@@ -1,7 +1,7 @@
 Cloud Optimisation
 ******************
 
-While `pyfive` can only read HDF5 files, it includes some features to help users understand whether it might
+While ``pyfive`` can only read HDF5 files, it includes some features to help users understand whether it might
 be worth rewriting files to make them cloud optimised (as defined by Stern et.al., 2022 [#]_).
 
 To be cloud optimised an HDF5 file needs to have a contiguous index for each 
@@ -21,8 +21,7 @@ Metadata can be repacked to the front of the file and variables can be rechunked
 which is effectively the same process undertaken when HDF5 data is reformatted to other cloud optimised formats.
 
 The HDF5 library provides a tool (`h5repack <https://support.hdfgroup.org/documentation/hdf5/latest/_h5_t_o_o_l__r_p__u_g.html>`_) 
-which can do this, provided it is driven with suitable information 
-about required chunk shape and the expected size of metadata fields. 
+which can do this, provided it is driven with suitable information about required chunk shape and the expected size of metadata fields. 
 `pyfive` supports both a method to query whether such repacking is necessary, and to extract necessary parameters.
 
 In the following example we compare and contrast the unpacked and repacked version of a particularly pathological 
@@ -50,12 +49,11 @@ If we look at some of the output of `p5dump -s` on this file
                     uas:_first_chunk = 36520 ;
 
 
-we can immediately see that this will be a problematic file!  The b-tree index is clearly interleaved with the data 
+We can immediately see that this will be a problematic file! The `b-tree` index is clearly interleaved with the data 
 (compare the first chunk address with last index addresses of the two variables), and with a chunk dimension of ``(1,)``, 
 any effort to use the time-dimension to locate data of interest will involve a ludicrous number of one number reads 
 (all underlying libraries read the data one chunk at a time). 
-It would feel like waiting for the heat death of the universe if one
-was to attempt to manipulate this data stored on an object store! 
+It would feel like waiting for the heat death of the universe if one was to attempt to manipulate this data stored on an object store! 
 
 It is relatively easy (albeit slow) to use 
 `h5repack <https://support.hdfgroup.org/documentation/hdf5/latest/_h5_t_o_o_l__r_p__u_g.html>`_ 
@@ -83,12 +81,11 @@ Now data follows indexes, the time dimension is one chunk, and there is a more s
 While this file would probably benefit from splitting into smaller files, now it has a contiguous set of indexes 
 it is possible to exploit this data via S3.
 
-All the metadata shown in this dump output arises from `pyfive` extensions to the `pyfive.h5t.DatasetID` class. 
-`pyfive` also provides a simple flag: `consolidated_metadata` for a `File` instance, which can take values of 
+All the metadata shown in this dump output arises from ``pyfive`` extensions to the ``pyfive.h5t.DatasetID`` class. 
+``pyfive`` also provides a simple flag: ``consolidated_metadata`` for a ``File`` instance, which can take values of 
 `True` or `False` for any given file, which simplifies at least the "is the index packed at the front of the file?" 
 part of the optimisation question - though inspection of chunking is a key part of the workflow necessary to 
 determine whether or not a file really is optimised for cloud usage.
 
-
 .. [#] Stern et.al. (2022): *Pangeo Forge: Crowdsourcing Analysis-Ready, Cloud Optimized Data Production*,  https://dx.doi.org/10.3389/fclim.2021.782909. 
-.. [#] Hassel and Cimadevilla Alvarez (2025): *Cmip7repack: Repack CMIP7 netCDF-4 Datasets*, https://dx.doi.org/10.5281/zenodo.17550920.
+.. [#] Hassell and Cimadevilla Alvarez (2025): *Cmip7repack: Repack CMIP7 netCDF-4 Datasets*, https://dx.doi.org/10.5281/zenodo.17550920.
