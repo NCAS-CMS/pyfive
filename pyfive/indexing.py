@@ -655,9 +655,7 @@ class OrthogonalIndexer:
         selection = replace_lists(selection)
 
         # Reverse negative slices
-        selection, reverse_dims = replace_negative_slices(
-            selection, array._shape
-        )
+        selection, reverse_dims = replace_negative_slices(selection, array._shape)
 
         # setup per-dimension indexers
         dim_indexers = []
@@ -1092,6 +1090,7 @@ def make_slice_selection(selection):
             ls.append(dim_selection)
     return ls
 
+
 def replace_negative_slices(selection, shape):
     """Replace negative slices with positve slices.
 
@@ -1174,8 +1173,8 @@ def replace_negative_slices(selection, shape):
             dim -= 1
 
         elif isinstance(index, np.ndarray):
-           if not index.ndim:
-               dim -= 1
+            if not index.ndim:
+                dim -= 1
 
         elif index == Ellipsis:
             raise ValueError(
@@ -1190,6 +1189,7 @@ def replace_negative_slices(selection, shape):
         modified_selection.append(index)
 
     return tuple(modified_selection), tuple(reverse_dims)
+
 
 class PartialChunkIterator:
     """Iterator to retrieve the specific coordinates of requested data
