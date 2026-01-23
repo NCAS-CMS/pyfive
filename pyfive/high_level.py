@@ -507,9 +507,11 @@ class Dataset(object):
     def __orthogonal_indexing__(self):
         """Flag to indicate whether indexing is orthogonal.
 
-        In general, the flag will be `True` if either the data is
-        contiguous and memory mapped access is not available, or else
-        the data is chunked. Otherwise the flag will be `False`.
+        In general, the flag will be `True` if:
+
+        * The data is chunked.
+        * The data is contiguous and memory mapped access is not
+          available.
 
         """
         if self.id.chunks is not None:
