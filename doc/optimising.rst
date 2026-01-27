@@ -9,10 +9,10 @@ how the data is stored in the file and how the data access library (in this case
 The data storage complexities arise from two main factors: the use of chunking, and the way attributes are stored in the files.
 
 **Chunking**: HDF5 files can store data in chunks, which allows for more efficient access to large datasets. 
-However, this also means that the library needs to maintain an index (a "b-tree") which relates the position in coordinate space to where each chunk is stored in the file.
-There is a b-tree index for each chunked variable, and this index can be scattered across the file, which can introduce overheads when accessing the data.
+However, this also means that the library needs to maintain an index (`b-tree`) which relates the position in coordinate space to where each chunk is stored in the file.
+There is a `b-tree` index for each chunked variable, and this index can be scattered across the file, which can introduce overheads when accessing the data.
 
-**Attributes**: HDF5 files can store attributes (metadata) associated with datasets and groups, and these attributes are stored in a separate section of the file.
+**Attributes**: HDF5 files can store attributes (`metadata`) associated with datasets and groups, and these attributes are stored in a separate section of the file.
 Again, these can be scattered across the files.
 
 
@@ -20,11 +20,11 @@ Optimising the files themselves
 -------------------------------
 
 Optimal access to data occurs when the data is chunked in a way that matches the access patterns of your application, and when the
-b-tree indexes and attributes are stored contiguously in the file.  
+`b-tree` indexes and attributes are stored contiguously in the file.  
 
 Users of ``pyfive`` will always confront data files which have been  created by other software, but if possible, it is worth exploring whether 
 the `h5repack <https://docs.h5py.org/en/stable/special.html#h5repack>`_ tool can 
-be used to make a copy of the file which is optimised for access by using sensible chunks and to store the attributes and b-tree indexes contiguously.
+be used to make a copy of the file which is optimised for access by using sensible chunks and to store the attributes and `b-tree` indexes contiguously.
 If that is possible, then all access will benefit from fewer calls to storage to get the necessary metadata, and the data access will be faster.
 
 
@@ -84,8 +84,7 @@ For example, you can use the `concurrent.futures` module to read data from multi
 
     print("Results:", results)
 
-
-You can do the same thing to parallelise manipulations within the variables, by for example using, ``Dask``, but that is beyond the scope of this document.
+You can do the same thing to parallelise manipulations within the variables, by for example using, ``dask``, but that is beyond the scope of this document.
 
 
 Using pyfive with S3
@@ -100,8 +99,6 @@ small reads from storage. Across a network, using S3, this would be prohibitive,
 file, which for HDF5 will be stored as one object, look like it is on a file system) tries to make fewer reads and cache those in
 memory so repeated reads can be more efficient.  The optimal caching strategy is dependent on the file layout
 and the expected access pattern, so ``s3fs`` provides a lot of flexibility as to how to configure that caching strategy.
-
-
 
 For ``pyfive`` the three most important variables to consider altering are the 
 ``default_block_size`` number, the ``default_cache_type`` option and the ``default_fill_cache`` boolean.
@@ -121,7 +118,9 @@ For ``pyfive`` the three most important variables to consider altering are the
     This is a boolean which determines whether ``s3fs`` will persistently cache the data that it reads.  
     If this is set to ``True``, then the blocks are cached persistently in memory, but if set to ``False``, then it only makes sense in conjunction with ``default_cache_type`` set to ``readahead`` or ``bytes`` to support streaming access to the data.
 
-Note that even with these strategies, it is possible that the file layout itself is such that access will be slow.  
-See the next section for more details of how to optimise your hDF5 files for cloud acccess.
+.. note::
+
+    Even with these strategies, it is possible that the file layout itself is such that access will be slow.  
+    See the next section for more details of how to optimise your hDF5 files for cloud acccess.
 
 
