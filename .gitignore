@@ -23,6 +23,11 @@ wheels/
 *.tmp
 MANIFEST
 
+# Installing virtual environments
+venv
+.venv
+.condarc
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
