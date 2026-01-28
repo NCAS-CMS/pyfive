@@ -29,7 +29,7 @@ def _load_nc_file(ncvar):
     return ds
 
 
-JASMIN_ONLINE = s3_url_exists("https://uor-aces-o.s3-ext.jc.rl.ac.uk")
+JASMIN_ONLINE = s3_url_exists("https://uor-aces-o.s3-ext.jc.rl.ac.uk/esmvaltool-zarr")
 
 
 @pytest.mark.skipif(not JASMIN_ONLINE, reason="CEDA S3 object store offline.")
