@@ -1,7 +1,10 @@
 import os
 
 import pyfive
+import pytest
 import s3fs
+
+from conftest import s3_url_exists
 
 
 def _load_nc_file(ncvar):
@@ -26,6 +29,10 @@ def _load_nc_file(ncvar):
     return ds
 
 
+JASMIN_ONLINE = s3_url_exists("https://uor-aces-o.s3-ext.jc.rl.ac.uk")
+
+
+@pytest.mark.skipif(not JASMIN_ONLINE, reason="CEDA S3 object store offline.")
 def test_buffer_issue():
     """
     Test the case when the attribute contains no data.
