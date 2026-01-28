@@ -2,6 +2,7 @@ import os
 import s3fs
 import json
 import pytest
+import requests
 
 from moto.moto_server.threaded_moto_server import ThreadedMotoServer
 
@@ -13,6 +14,18 @@ endpoint_uri = "http://127.0.0.1:%s/" % port
 test_bucket_name = "test"
 versioned_bucket_name = "test-versioned"
 secure_bucket_name = "test-secure"
+
+
+def s3_url_exists(url: str) -> bool:
+    try:
+        response = requests.get(
+            url,
+            timeout=10,  # seconds
+        )
+    except requests.exceptions.RequestException:
+        return False
+    else:
+        return response.status_code == 200
 
 
 def get_boto3_client():
