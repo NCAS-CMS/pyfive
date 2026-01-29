@@ -10,12 +10,20 @@ import pyfive
 
 DIRNAME = os.path.dirname(__file__)
 DATASET_CHUNKED_FILE = os.path.join(DIRNAME, "data/chunked.hdf5")
+DATASET_CONTIGUOUS_FILE = os.path.join(DIRNAME, "data/dataset_multidim.hdf5")
 
 
 # Define a fixture that opens the chunked file once
 @pytest.fixture(scope="module")
 def chunked_file():
     with pyfive.File(DATASET_CHUNKED_FILE) as hfile:
+        yield hfile
+
+
+# Define a fixture that opens the contiguous file once
+@pytest.fixture(scope="module")
+def contiguous_file():
+    with pyfive.File(DATASET_CONTIGUOUS_FILE) as hfile:
         yield hfile
 
 
@@ -65,3 +73,8 @@ def test_dataset_indexing_replace_negative_slices():
     # Can't pass in in Ellipsis
     with pytest.raises(ValueError) as error:
         func((0, slice(6, 0, -2), ...), (7, 8, 9))
+
+
+def test_dataset_orthogonal_indexing(chunked_file, contiguous_file):
+    assert chunked_file["dataset1"].__orthogonal_indexing__ is True
+    assert contiguous_file["d"].__orthogonal_indexing__ is False
