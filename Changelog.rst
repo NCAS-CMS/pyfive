@@ -1,3 +1,23 @@
+Version ?.?.?
+-------------
+
+**2026-??-??**
+
+* Add ``__orthogonal_indexing__`` flag by `David Hassell <https://github.com/davidhassell>`_ in https://github.com/NCAS-CMS/pyfive/issue/171
+* Allow negative slices when indexing chunked data by `David Hassell <https://github.com/davidhassell>`_ in https://github.com/NCAS-CMS/pyfive/pull/170
+
+Version 1.0.1
+-------------
+
+**2025-12-18**
+
+* Set ``__version__`` attribute dynamically in ``__init__.py`` by `Valeriu Predoi <https://github.com/valeriupredoi>`_ in https://github.com/NCAS-CMS/pyfive/pull/152
+* pin ``numpy>=2`` by `Valeriu Predoi <https://github.com/valeriupredoi>`_ in https://github.com/NCAS-CMS/pyfive/pull/157
+* add a ``pip check`` by `Valeriu Predoi <https://github.com/valeriupredoi>`_ in https://github.com/NCAS-CMS/pyfive/pull/159
+* Highlight: Test case for corner case file (buffer too small) and add bookkeeping for Fractal Heaps by `Kai Mühlbauer <https://github.com/kmuehlbauer>`_ in https://github.com/NCAS-CMS/pyfive/pull/160
+* update ``setuptools`` pins by `Valeriu Predoi <https://github.com/valeriupredoi>`_ in https://github.com/NCAS-CMS/pyfive/pull/165
+* Fix display of ``p5dump`` global attributes by `Ezequiel Cimadevilla <https://github.com/zequihg50>`_ in https://github.com/NCAS-CMS/pyfive/pull/163
+
 Version 1.0.0
 -------------
 
@@ -53,8 +73,8 @@ Version 0.6.0
 
 **2025-09-16**
 
-* Enumeration Support (https://github.com/NCAS-CMS/pyfive/issues/85 by 
-  `Bryan Lawrence <https://github.com/bnlawrence>`_, 
+* Enumeration Support (https://github.com/NCAS-CMS/pyfive/issues/85 by
+  `Bryan Lawrence <https://github.com/bnlawrence>`_,
   `Kai Mühlbauer <https://github.com/kmuehlbauer>`_,
   `Brian Maranville <https://github.com/bmaranville>`_))
 
@@ -196,7 +216,7 @@ Version 0.3.0
 * Support for complex attribute datatypes
   (https://github.com/NCAS-CMS/pyfive/pull/26 by `Jonathan Helmus
   <https://github.com/jjhelmus>`_)
-* Refactor attribute value retrival
+* Refactor attribute value retrieval
   (https://github.com/NCAS-CMS/pyfive/pull/25 by `Jonathan Helmus
   <https://github.com/jjhelmus>`_)
 * Dataset.ndim attribute (https://github.com/NCAS-CMS/pyfive/pull/24
@@ -254,4 +274,3 @@ Version 0.1.0
 **2016-07-26**
 
 * First release by `Jonathan Helmus <https://github.com/jjhelmus>`_
-

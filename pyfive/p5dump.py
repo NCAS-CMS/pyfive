@@ -2,6 +2,7 @@ from pyfive import p5ncdump
 import sys
 import signal
 
+
 def main(argv=None):
     """
     Provides some of the functionality of tools like ncdump and h5dump.
@@ -27,7 +28,8 @@ def main(argv=None):
         case _:
             raise ValueError(f"Invalid arguments: {argv}")
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     # Set SIGPIPE to default behaviour on Unix (ignored safely on Windows)
     try:
         signal.signal(signal.SIGPIPE, signal.SIG_DFL)

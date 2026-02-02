@@ -1,7 +1,7 @@
 [build-system]
 requires = [
-    "setuptools >= 40.6.0",
-    "setuptools_scm>=6.2",
+    "setuptools>=80",
+    "setuptools_scm>=8",
 ]
 build-backend = "setuptools.build_meta"
 
@@ -19,7 +19,6 @@ classifiers = [
     "Environment :: Console",
     "Intended Audience :: Developers",
     "Intended Audience :: Science/Research",
-    "License :: OSI Approved :: BSD License",
     "Natural Language :: English",
     "Operating System :: POSIX :: Linux",
     "Programming Language :: Python :: 3",
@@ -40,7 +39,8 @@ dependencies = [
     "numpy>=2",
 ]
 description = "A pure python HDF5 reader"
-license = {text = "BSD License, Version 3-Clause"}
+license = "BSD-3-Clause"
+license-files = ["LICENSE.txt"]
 name = "pyfive"
 requires-python = ">=3.10"
 
@@ -49,19 +49,19 @@ p5dump = "pyfive.p5dump:main"
 
 [project.optional-dependencies]
 test = [
-    "pytest>6.0.0",
-    "pytest-cov>=2.10.1",
-    "pytest-html!=2.1.0",
-    "pytest-rerunfailures",
-    "pytest-xdist",
     "dask",
-    "flake8",
     "flask",
     "flask-cors",
     "h5netcdf",
     "h5py",
-    "netCDF4",
     "moto",
+    "netCDF4!=1.7.4",  # github.com/Unidata/netcdf4-python/issues/1464
+    "pre-commit",  # with ruff and mypy
+    "pytest",
+    "pytest-cov",
+    "pytest-html",
+    "pytest-rerunfailures",
+    "pytest-xdist",
     "python-lzf",
     "s3fs>=2025.9.0",  # v-mismatch with boto3 results in ancient s3fs
 ]
@@ -85,10 +85,7 @@ Code = "https://github.com/jjhelmus/pyfive"
 Issues = "https://github.com/jjhelmus/pyfive/issues"
 
 [tool.setuptools]
-include-package-data = true
-license-files = ["LICENSE"]
 packages = ["pyfive"]
-zip-safe = false  # possibly yes
 
 [tool.setuptools.dynamic]
 readme = {file = "README.md", content-type = "text/markdown"}
@@ -106,10 +103,49 @@ addopts = [
 [tool.coverage.run]
 parallel = true
 source = ["pyfive"]
-    
+
 [tool.coverage.report]
 exclude_lines = [
     "pragma: no cover",
     "if __name__ == .__main__.:",
     "if TYPE_CHECKING:",
+]
+
+[tool.ruff.lint]
+select = [
+    "E",    # pycodestyle errors
+    "W",    # pycodestyle warnings
+    "F",    # Pyflakes
+]
+ignore = [
+    # these should not be fixed
+    "F401",      # unused imports: some are really needed
+    "F841",      # unused variables: some are really needed
+    # we may want to fix these
+    "E721",      # type comparison issues (2 errors)
+    "F811",      # redefined while unused (1 error)
+    "E722",      # bare except (1 error)
+    "E711",      # None comparison (1 error)
+]
+future-annotations = true
+
+[tool.ruff.lint.pycodestyle]
+max-line-length = 150
+
+[tool.ruff.lint.flake8-annotations]
+allow-star-arg-any = true
+ignore-fully-untyped = true
+# turn these on at a later stage
+# [tool.ruff.lint.isort]
+# known-first-party = ["pyfive"]
+# [tool.ruff.lint.pydocstyle]
+# convention = "numpy"
+# [tool.ruff.lint.pylint]
+# max-args = 7
+
+[tool.mypy]
+# See https://mypy.readthedocs.io/en/stable/config_file.html
+ignore_missing_imports = true
+enable_error_code = [
+    "truthy-bool",
 ]
