@@ -11,7 +11,8 @@ exclude: |
   ^.github/|
   ^doc/|
   ^paper.md|
-  ^paper.bib
+  ^paper.bib|
+  ^build_paper.sh
 
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
