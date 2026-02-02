@@ -9,7 +9,9 @@ exclude: |
   .readthedocs.yaml|
   codecov.yml|
   ^.github/|
-  ^doc/
+  ^doc/|
+  ^paper.md|
+  ^paper.bib
 
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
