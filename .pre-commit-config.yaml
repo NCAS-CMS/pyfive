@@ -24,7 +24,7 @@ repos:
       - id: trailing-whitespace
         args: [--markdown-linebreak-ext=md]
   - repo: https://github.com/adrienverge/yamllint
-    rev: 'v1.37.1'
+    rev: 'v1.38.0'
     hooks:
       - id: yamllint
   # codespell is always iffy; we can turn it on if we want to
@@ -34,7 +34,7 @@ repos:
   #     - id: codespell
   #       additional_dependencies: [tomli]  # required for Python 3.10
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: "v0.14.9"
+    rev: "v0.14.14"
     hooks:
       - id: ruff-check
         args: [--fix]
