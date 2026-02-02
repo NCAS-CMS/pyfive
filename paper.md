@@ -59,11 +59,11 @@ bibliography: paper.bib
 
 # Summary
 
-`pyfive` (<https://pyfive.readthedocs.io/en/latest/>) is an open-source thread-safe pure Python package for reading data stored in HDF5. 
-While it is not a complete implementation of all the specifications and capabilities of HDF5, it includes all the core functionality necessary to read gridded datasets, whether stored contiguously or with chunks.
+`pyfive` is an open-source thread-safe pure Python package for reading data stored in HDF5. 
+While it is not a complete implementation of all the specifications and capabilities of HDF5, it includes all the core functionality necessary to read gridded datasets, whether stored contiguously or with chunks (with or without standard compression options).
 All data access is fully lazy, the data is only read from storage when the numpy data arrays are manipulated. Originally developed some years ago, the package has recently been upgraded to support lazy access, and to add missing features necessary for handling all the environmental data known to the authors. 
 It is now a realistic option for production data access in environmental science and more widely. 
-The API is based on that of `h5py` (which is a Python shimmy over the HDF5 C-library, and hence is not thread-safe), with some API extensions to help optimise remote access. 
+The API is based on that of `h5py` ([https://github.com/h5py/h5py](https://github.com/h5py/h5py), a Python shimmy over the HDF5 C-library which itself is not thread-safe), with some API extensions to help optimise remote access. 
 With these extensions, coupled with thread safety, many of the limitations precluding the efficient use of HDF5 (and netCDF4) on cloud storage have been removed.
 
 # Statement of need
@@ -87,7 +87,7 @@ A pure Python code also makes it easier to develop scripts which can work around
 [^1]: https://www.hdfgroup.org/solutions/hdf5/
 [^2]: https://www.unidata.ucar.edu/software/netcdf
 
-# Current Status
+# Current Status of pyfive
 
 
 The original implementation of `pyfive` (by JH), which included all the low-level functionality to deal with the internals of an HDF5 file was developed with POSIX access in mind. 
@@ -97,8 +97,8 @@ Thread safety has become a concern given the wide use of Dask[^3] in Python base
 ``pyfive`` addresses thread safety by bypassing the underlying HDF5 c-library and
 addresses some of the issues with remote access by optimising access to
 internal file metadata (in particular, the chunk indexes) and by supporting the determination of whether or not a given file is cloud optimised. 
-
-To improve internal metadata access,`pyfive` now supports several levels of "laziness" for instantating chunked datasets (variables). The default method preloads internal indices to make parallellism more efficient, but a completely lazy option without index loading is possible. Neither load data until it is requested.
+ 
+To improve internal metadata access, `pyfive` now supports several levels of "laziness" for instantating chunked datasets (variables). The default method preloads internal indices to make parallellism more efficient, but a completely lazy option without index loading is possible. Neither load data until it is requested.
 
 To be fully cloud optimised, files needs sensible chunking, and variables need contiguous indices. Chunking has been, and is easy to determine.
 `pyfive` now also provides simple methods to expose information about internal file layout - both in API extensions, and via a new `p5dump` utility packaged with the `pyfive` library[^4]. Either method allows one to determine whether the key internal "b-tree" indices are contiguous in storage, and to determine the parameters necessary to rewrite the data with contiguous indices.

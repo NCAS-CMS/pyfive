@@ -95,6 +95,21 @@ working with large datasets in a parallel environment where you might want to cl
     after closing the file. This is fully lazy (in that no data is read until needed) and thread-safe, and we have tests to ensure that this behavior works correctly 
     even in multi-threaded scenarios. 
 
+Compression
+-----------
+
+``pyfive`` supports reading datasets that have been compressed or filtered using standard HDF5 filters, such as gzip compression. 
+When you read data from a compressed dataset, ``pyfive`` automatically decompresses the data for you, provided it recognises
+the compression filter used. 
+
+At present, ``pyfive`` supports the following HDF5 filters:
+
+* Gzip compression (DEFLATE)
+* LZF compression
+* Shuffle filter
+
+Currently, other compression filters (such as Szip or Blosc) are not supported, and attempting to read datasets using unsupported filters will raise an error.
+
 
 Using S3/Object Storage 
 =======================
