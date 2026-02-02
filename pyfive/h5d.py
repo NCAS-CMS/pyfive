@@ -132,7 +132,7 @@ class DatasetID:
         of the data in the file, and the data shape are a unique
         combination.
         """
-        return hash(self.unique)
+        return hash(self._unique)
 
     def __eq__(self, other):
         """
@@ -168,7 +168,7 @@ class DatasetID:
         if self.__chunk_init_check():
             return self._index[coordinate_index]
         else:
-            return None
+            raise TypeError("Dataset is not chunked ")
 
     def get_num_chunks(self):
         """
@@ -616,6 +616,8 @@ class DatasetID:
         the relevant chunks.
 
         """
+        if self._index is None:
+            raise RuntimeError("Attempt to read chunked data with no index")
         # need a local dtype as we may override it for a reference read.
         dtype = self.dtype
         if isinstance(self._ptype, P5ReferenceType):
