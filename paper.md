@@ -62,7 +62,7 @@ bibliography: paper.bib
 `pyfive` is an open-source and thread-safe pure Python package for reading data stored in HDF5. 
 While it is not a complete implementation of all the specifications and capabilities of HDF5, it includes all the core functionality necessary to read gridded datasets, whether stored contiguously or with chunks (with or without standard compression options).
 All data access is fully lazy as the data is only read from storage when the numpy data arrays are manipulated. Originally developed some years ago, the package has recently been expanded to support lazy data access, and to add missing features necessary for handling all the HDF5-based environmental data known to the authors. 
-It is now a realistic option for production data access in environmental science and more broadly across otehr domains.
+It is now a realistic option for production data access in environmental science and more broadly across other domains.
 The API is based on that of `h5py` ([https://github.com/h5py/h5py](https://github.com/h5py/h5py), a Python shimmy over the HDF5 C-library which itself is not thread-safe), with some API extensions to help optimise remote access. 
 With these extensions, coupled with thread safety, many of the limitations precluding the efficient use of HDF5 (and netCDF4) on cloud storage have been removed.
 
@@ -78,7 +78,7 @@ Firstly, it is not thread-safe. Secondly, the underlying code is large and compl
 Finally, the code complexity also meant that it is not suitable for developing bespoke code for data recovery in the case of partially corrupt data. 
 From a long-term curation perspective these last two constraints present a major concern. 
 
-Reliance on a complex codebase controlled by a single private company presents significant challenges for long-term data access. Addressing these challenges requires well-documented data formats, use of only documented features, and the existence of publicly available code that can be sustainably maintained.
+Reliance on a complex codebase controlled by a single private company presents significant challenges for long-term data access. Addressing these challenges requires well-documented data formats, the use of only those documented features, and the existence of publicly available code that can be sustainably maintained.
 The HDF5group have provided good documentation for the HDF5 format, but while there are communities of developers beyond those of the HDF5 group, recent events suggest that given most of those developers and their existing funding are based in the USA, some spreading of risk would be desirable. 
 To that end, a pure Python code covering the core HDF5 features of interest to the target scientific community, which is relatively small and maintained by an international constituency provides some assurance that the community can maintain HDF5 access for the foreseeable future. 
 A pure Python code also makes it easier to develop scripts which can work around data and metadata corruption should they occur, and has the additional advantage of being able to be deployed in resource or operating-system constrained environments (such as on mobile).
@@ -98,7 +98,7 @@ Thread safety has become a concern given the wide use of Dask[^3] in Python base
 It addresses some of the issues with remote access by supporting the determination of whether or not a given file is cloud optimised, 
 and by optimising access to internal file metadata (in particular, the chunk indexes).
  
-To improve internal metadata access, `pyfive` supports several levels of laziness for instantating chunked datasets (variables). The default method preloads internal indices to make parallellism more efficient, but a completely lazy option without index loading isalso possible. Neither method loads data until it is requested.
+To improve internal metadata access, `pyfive` supports several levels of laziness for instantating chunked datasets (variables). The default method preloads internal indices to make parallellism more efficient, but a completely lazy option without index loading is also possible. Neither method loads data until it is requested.
 
 To be fully cloud optimised, files needs sensible chunking, and variables need contiguous indices. Chunking information has always been easy to determine.
 `pyfive` now also provides simple methods to expose information about internal file layout - both in API extensions, and via a new `p5dump` utility packaged with the `pyfive` library[^4]. Either method allows one to determine whether the key internal "b-tree" indices are contiguous in storage, and to determine the parameters necessary to rewrite the data with contiguous indices.
