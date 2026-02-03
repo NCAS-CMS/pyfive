@@ -1,6 +1,7 @@
 """HDF5 B-Trees and contents."""
 
 from collections import OrderedDict
+import lz4.frame as lzf
 import struct
 import zlib
 
@@ -186,12 +187,6 @@ class BTreeV1RawDataChunks(BTreeV1):
                 # strip off 4-byte checksum from end of buffer
                 chunk_buffer = chunk_buffer[:-4]
             elif filter_id == LZF_FILTER:
-                try:
-                    import lzf
-                except ImportError as e:
-                    raise ModuleNotFoundError(
-                        "LZF codec requires optional package 'python-lzf'."
-                    ) from e
                 uncompressed_len = struct.unpack(">H", chunk_buffer[:2])[0]
                 chunk_buffer = lzf.decompress(chunk_buffer, uncompressed_len)
             else:
