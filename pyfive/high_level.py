@@ -7,6 +7,7 @@ from collections.abc import Mapping, Sequence
 import os
 import posixpath
 import warnings
+import logging
 
 import numpy as np
 
@@ -126,6 +127,7 @@ class Group(Mapping):
             except KeyError:
                 return None
 
+        logging.info(f"[pyfive] Accessing object '{obj_name}' with link target {link_target} (lazy access: {noindex})")
         dataobjs = DataObjects(self.file._fh, link_target)
         if dataobjs.is_dataset:
             if additional_obj != ".":

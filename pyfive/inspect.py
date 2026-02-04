@@ -141,7 +141,7 @@ def dump_header(obj, indent, real_dimensions, special):
     print(f"{indent}variables:")
     for name, ds in datasets.items():
 
-        tv0= time()
+        tv0 = time()
 
         # Variable type
         dtype_str = clean_types(ds.dtype)
@@ -182,7 +182,7 @@ def dump_header(obj, indent, real_dimensions, special):
             printattr(name, extras, [])
 
         tv1 = time() - tv0
-        log_msgs.append(f"[pyfive] Inspected variable '{name}' of type '{dtype(ds.dtype)}' in {t1:.4f}s")
+        log_msgs.append(f"[pyfive] Inspected variable '{name}' of type '{dtype(ds.dtype)}' in {tv1:.4f}s")
 
     t2 = time()
     

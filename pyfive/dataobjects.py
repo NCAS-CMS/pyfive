@@ -179,14 +179,16 @@ class DataObjects(object):
         # Attributes may also be stored in objects reference in the
         # Attribute Info Message (0x0015, 21).
         # Assume we can have both types though I suspect this is not the case
-        attrs_log = ''
+        attrs_log = f'({len(attrs)}'
         attr_info = self.find_msg_type(ATTRIBUTE_INFO_MSG_TYPE)
         if attr_info:
             more_attrs = self._get_attributes_from_attr_info(attrs, attr_info)
             attrs.update(more_attrs)
-            attrs_log = f'(o{len(more_attrs)})'
+            attrs_log += f'+{len(more_attrs)})'
+        else:
+            attrs_log += ")"
         t1 = time()-t0
-
+        logging.info("[pyfive] Dataobject Attribute Method called - call stack:", stack_info=True)
         logging.info(f'[pyfive] Obtained {len(attrs)}{attrs_log} attributes, operation took {t1:.4f}s')
 
         return attrs
