@@ -374,7 +374,10 @@ class DatasetID:
             self._btree_end, self._btree_start = None, None
             return
 
-        logging.info(f"Building chunk index in pyfive {version('pyfive')}")
+        logging.info(
+            "[pyfive] Building chunk index (pyfive version=%s)",
+            version("pyfive"),
+        )
 
         # FIXME: How do we know it's a V1 B-tree?
         # There are potentially five different chunk indexing options according to
@@ -402,8 +405,16 @@ class DatasetID:
         self._btree_start = chunk_btree.offset
         self._btree_end = chunk_btree.last_offset
 
-        t1 = time()-t0
-        logging.info(f'Obtained b-tree with {len(chunk_btree.all_nodes)} chunks, operation took {t1:.3}s {version("pyfive")}')
+        t1 = time() - t0
+        if t1 < 1.0:
+            elapsed = f"{t1 * 1000:.0f}ms"
+        else:
+            elapsed = f"{t1:.1f}s"
+        logging.info(
+            "[pyfive] Chunk index built: btree nodes=%d elapsed=%s",
+            len(chunk_btree.all_nodes),
+            elapsed,
+        )
 
         self.__index_built = True
 

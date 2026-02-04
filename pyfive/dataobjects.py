@@ -182,7 +182,7 @@ class DataObjects(object):
             more_attrs = self._get_attributes_from_attr_info(attrs, attr_info)
             attrs.update(more_attrs)
         t1 = time()-t0
-        logging.info(f'Obtained {len(attrs)} attributes, operation took {t1:.3}s {version("pyfive")}')
+        logging.info(f'[pyfive] Obtained {len(attrs)} attributes, operation took {t1:.4f}s')
         
         return attrs
 
