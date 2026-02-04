@@ -102,5 +102,7 @@ def test_chunk_index_logging(caplog):
     
     # Check that the expected log messages were generated
     log_messages = [record.message for record in caplog.records]
-    assert any("Building chunk index in pyfive" in msg for msg in log_messages)
-    assert any("Obtained b-tree" in msg and "chunks, operation took" in msg for msg in log_messages)
+    assert any("Building chunk index" in msg and "[pyfive]" in msg for msg in log_messages)
+    assert any(
+        "Chunk index built" in msg for msg in log_messages
+    )
