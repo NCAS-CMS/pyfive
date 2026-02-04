@@ -228,15 +228,20 @@ def p5ncdump(file_path, special=False):
     filename = Path(filename).name
 
     try:
+        t0 = time()
         with File(file_path) as f:
             # we assume all the netcdf 4 dimnnsions, if they exist, are in the root group
             real_dimensions = collect_dimensions_from_root(f)
+            t1 = time() - t0
+            logging.info(f"[pyfive] Opend file and collected real dimensions from root group in {t1:.4f}s")
 
             # ok, go for it
             safe_print(f"File: {filename} " + "{")
             indent = ""
             log_msgs = dump_header(f, indent, real_dimensions, special)
             safe_print("}")
+            t1 = time() - t0
+            logging.info(f"[pyfive] Completed ncdump of file '{filename}' in {t1:.4f}s")
             for msg in log_msgs:
                 logging.info(msg)
 

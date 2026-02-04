@@ -184,8 +184,8 @@ class DataObjects(object):
             more_attrs = self._get_attributes_from_attr_info(attrs, attr_info)
             attrs.update(more_attrs)
         t1 = time()-t0
-        logging.info(f'[pyfive] Obtained {len(attrs)} attributes, operation took {t1:.4f}s [info={attr_info}]')
-        logging.info('[pyfive] Attribute offsets: %s', (offsets[0], offsets[-1]) if offsets else 'none')
+        logging.info(f'[pyfive] Obtained {len(attrs)} attributes, operation took {t1:.4f}s [info={len(attr_info)}]')
+
 
         return attrs
 

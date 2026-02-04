@@ -411,7 +411,7 @@ class DatasetID:
         else:
             elapsed = f"{t1:.1f}s"
         logging.info(
-            "[pyfive] Chunk index built: btree nodes=%d elapsed=%s",
+            "[pyfive] Chunk index built: btree_nodes=%d elapsed=%s",
             len(chunk_btree.all_nodes),
             elapsed,
         )
