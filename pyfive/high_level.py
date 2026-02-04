@@ -422,8 +422,8 @@ class Dataset(object):
         """Return the size of the first axis."""
         return self.shape[0]
 
-    def iter_chunks(self, *args):
-        return self.id.iter_chunks(args)
+    def iter_chunks(self, sel=()):
+        return self.id.iter_chunks(sel)
 
     @property
     def shape(self):
