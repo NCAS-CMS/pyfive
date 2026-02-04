@@ -133,7 +133,7 @@ class DatasetID:
         of the data in the file, and the data shape are a unique
         combination.
         """
-        return hash(self.unique)
+        return hash(self._unique)
 
     def __eq__(self, other):
         """
@@ -169,7 +169,7 @@ class DatasetID:
         if self.__chunk_init_check():
             return self._index[coordinate_index]
         else:
-            return None
+            raise TypeError("Dataset is not chunked ")
 
     def get_num_chunks(self):
         """
@@ -386,9 +386,7 @@ class DatasetID:
         )
         if self.posix:
             fh.close()
-        t1 = time()-t0
-        logging.info(f'Obtained b-tree with {len(chunk_btree.all_nodes)} chunks, operation took {t1:.3}s {version("pyfive")}')
-
+     
         self._index = {}
         self._nthindex = []
 
@@ -403,6 +401,9 @@ class DatasetID:
 
         self._btree_start = chunk_btree.offset
         self._btree_end = chunk_btree.last_offset
+
+        t1 = time()-t0
+        logging.info(f'Obtained b-tree with {len(chunk_btree.all_nodes)} chunks, operation took {t1:.3}s {version("pyfive")}')
 
         self.__index_built = True
 
@@ -619,6 +620,8 @@ class DatasetID:
         the relevant chunks.
 
         """
+        if self._index is None:
+            raise RuntimeError("Attempt to read chunked data with no index")
         # need a local dtype as we may override it for a reference read.
         dtype = self.dtype
         if isinstance(self._ptype, P5ReferenceType):
