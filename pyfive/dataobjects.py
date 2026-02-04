@@ -170,10 +170,12 @@ class DataObjects(object):
         t0 = time()
         attrs = {}
         attr_msgs = self.find_msg_type(ATTRIBUTE_MSG_TYPE)
+        offsets = []
         for msg in attr_msgs:
             offset = msg["offset_to_message"]
             name, value = self.unpack_attribute(offset)
             attrs[name] = value
+            offsets.append(offset)
         # Attributes may also be stored in objects reference in the
         # Attribute Info Message (0x0015, 21).
         # Assume we can have both types though I suspect this is not the case
@@ -182,8 +184,9 @@ class DataObjects(object):
             more_attrs = self._get_attributes_from_attr_info(attrs, attr_info)
             attrs.update(more_attrs)
         t1 = time()-t0
-        logging.info(f'[pyfive] Obtained {len(attrs)} attributes, operation took {t1:.4f}s')
-        
+        logging.info(f'[pyfive] Obtained {len(attrs)} attributes, operation took {t1:.4f}s [info={attr_info}]')
+        logging.info('[pyfive] Attribute offsets: %s', (offsets[0], offsets[-1]) if offsets else 'none')
+
         return attrs
 
     def _get_attributes_from_attr_info(self, attrs, attr_info):
@@ -199,7 +202,10 @@ class DataObjects(object):
             return {}
         name_btree_address = data["name_btree_address"]
         order_btree_address = data["creation_order_btree_address"]
+        t0 = time()
         heap = FractalHeap(self.fh, heap_address)
+        t1 = time()-t0
+
         ordered = order_btree_address is not None
         if ordered:
             btree = BTreeV2AttrCreationOrder(self.fh, order_btree_address)

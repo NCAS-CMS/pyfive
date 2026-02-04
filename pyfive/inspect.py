@@ -1,7 +1,9 @@
 from pathlib import Path
 
+from numpy import dtype
 from pyfive import Dataset, Group, File
-
+import logging
+from time import time
 
 def safe_print(*args, **kwargs):
     try:
@@ -110,6 +112,7 @@ def dump_header(obj, indent, real_dimensions, special):
     datasets = {}
     groups = {}
     phonys = {}
+    log_msgs = []
 
     for name in obj:
         item = obj.get_lazy_view(name)
@@ -132,6 +135,9 @@ def dump_header(obj, indent, real_dimensions, special):
 
     print(f"{indent}variables:")
     for name, ds in datasets.items():
+
+        t0 = time()
+
         # Variable type
         dtype_str = clean_types(ds.dtype)
 
@@ -170,6 +176,9 @@ def dump_header(obj, indent, real_dimensions, special):
                     extras["_compression"] = ds.compression + f"({ds.compression_opts})"
             printattr(name, extras, [])
 
+        t1 = time() - t0
+        log_msgs.append(f"[pyfive] Inspected variable '{name}' of type '{dtype(ds.dtype)}' in {t1:.4f}s")
+
     if isinstance(obj, File):
         hstr = "// global "
     elif isinstance(obj, Group):
@@ -184,6 +193,9 @@ def dump_header(obj, indent, real_dimensions, special):
             gindent = indent + " "
             dump_header(o, gindent, real_dimensions, special=special)
             safe_print(gindent + "}" + f" // group {g}")
+
+    return log_msgs
+
 
 
 def p5ncdump(file_path, special=False):
@@ -213,9 +225,12 @@ def p5ncdump(file_path, special=False):
             # ok, go for it
             safe_print(f"File: {filename} " + "{")
             indent = ""
-            dump_header(f, indent, real_dimensions, special)
+            log_msgs = dump_header(f, indent, real_dimensions, special)
             safe_print("}")
+            for msg in log_msgs:
+                logging.info(msg)
 
+            
     except NotImplementedError as e:
         if "unsupported superblock" in str(e):
             raise ValueError("Not an HDF5 or NC4 file!")
