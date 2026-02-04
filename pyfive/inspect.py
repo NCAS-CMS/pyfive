@@ -114,6 +114,8 @@ def dump_header(obj, indent, real_dimensions, special):
     phonys = {}
     log_msgs = []
 
+    t0 = time()
+
     for name in obj:
         item = obj.get_lazy_view(name)
         if isinstance(item, Dataset):
@@ -132,6 +134,9 @@ def dump_header(obj, indent, real_dimensions, special):
     dindent = "        "
     for d in dims:
         safe_print(f"{indent}{dindent}{d[0]} = {d[1]};")
+
+    t1 = time() - t0
+    log_msgs.append(f"[pyfive] Inspecting File '{obj.name}' and gathered dimensions in {t1:.4f}s")
 
     print(f"{indent}variables:")
     for name, ds in datasets.items():
@@ -179,6 +184,8 @@ def dump_header(obj, indent, real_dimensions, special):
         t1 = time() - t0
         log_msgs.append(f"[pyfive] Inspected variable '{name}' of type '{dtype(ds.dtype)}' in {t1:.4f}s")
 
+    t0 = time()
+    
     if isinstance(obj, File):
         hstr = "// global "
     elif isinstance(obj, Group):
@@ -186,6 +193,9 @@ def dump_header(obj, indent, real_dimensions, special):
     if obj.attrs:
         safe_print(hstr + "attributes:")
         printattr("", obj.attrs, ["_NCProperties"])
+
+    t1 = time() - t0
+    log_msgs.append(f"[pyfive] Inspected attributes of {hstr.strip('// ')} in {t1:.4f}s")
 
     if groups:
         for g, o in groups.items():
