@@ -141,7 +141,7 @@ def dump_header(obj, indent, real_dimensions, special):
     print(f"{indent}variables:")
     for name, ds in datasets.items():
 
-        t0 = time()
+        tv0= time()
 
         # Variable type
         dtype_str = clean_types(ds.dtype)
@@ -181,10 +181,10 @@ def dump_header(obj, indent, real_dimensions, special):
                     extras["_compression"] = ds.compression + f"({ds.compression_opts})"
             printattr(name, extras, [])
 
-        t1 = time() - t0
+        tv1 = time() - tv0
         log_msgs.append(f"[pyfive] Inspected variable '{name}' of type '{dtype(ds.dtype)}' in {t1:.4f}s")
 
-    t0 = time()
+    t2 = time()
     
     if isinstance(obj, File):
         hstr = "// global "
@@ -194,8 +194,8 @@ def dump_header(obj, indent, real_dimensions, special):
         safe_print(hstr + "attributes:")
         printattr("", obj.attrs, ["_NCProperties"])
 
-    t1 = time() - t0
-    log_msgs.append(f"[pyfive] Inspected attributes of {hstr.strip('// ')} in {t1:.4f}s")
+    t3 = time() - t2
+    log_msgs.append(f"[pyfive] Inspected attributes of {hstr.strip('// ')} in {t3:.4f}s")
 
     if groups:
         for g, o in groups.items():
@@ -203,6 +203,8 @@ def dump_header(obj, indent, real_dimensions, special):
             gindent = indent + " "
             dump_header(o, gindent, real_dimensions, special=special)
             safe_print(gindent + "}" + f" // group {g}")
+
+    log_msgs.append(f"[pyfive] dump header completed in {time() - t0:.4f}s")
 
     return log_msgs
 
@@ -245,7 +247,6 @@ def p5ncdump(file_path, special=False):
                 logging.info(msg)
             logging.info(f"[pyfive] Completed ncdump of file '{filename}' in {t1:.4f}s")
 
-            
     except NotImplementedError as e:
         if "unsupported superblock" in str(e):
             raise ValueError("Not an HDF5 or NC4 file!")
