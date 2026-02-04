@@ -9,6 +9,10 @@ import warnings
 import numpy as np
 from time import time
 import logging
+try:
+    from importlib.metadata import version
+except ImportError:  # pragma: no cover
+    from importlib_metadata import version
 
 from pyfive.datatype_msg import DatatypeMessage
 from pyfive.core import _padded_size, _structure_size
@@ -178,7 +182,7 @@ class DataObjects(object):
             more_attrs = self._get_attributes_from_attr_info(attrs, attr_info)
             attrs.update(more_attrs)
         t1 = time()-t0
-        logging.info('Obtained {len(attrs)} attributes, operation took {t1:.3}s {version("pyfive")}')
+        logging.info(f'Obtained {len(attrs)} attributes, operation took {t1:.3}s {version("pyfive")}')
         
         return attrs
 
