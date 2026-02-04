@@ -241,9 +241,9 @@ def p5ncdump(file_path, special=False):
             log_msgs = dump_header(f, indent, real_dimensions, special)
             safe_print("}")
             t1 = time() - t0
-            logging.info(f"[pyfive] Completed ncdump of file '{filename}' in {t1:.4f}s")
             for msg in log_msgs:
                 logging.info(msg)
+            logging.info(f"[pyfive] Completed ncdump of file '{filename}' in {t1:.4f}s")
 
             
     except NotImplementedError as e:
