@@ -8,6 +8,8 @@
     Introduction <introduction>
     Getting started <quickstart/index>
     API Reference <api_reference>
+    The p5dump utility <p5dump>
     Additional API Features <additional>
     Optimising Data Access Speed <optimising>
+    Understanding Cloud Optimisation <cloud>
     Change Log <changelog>

@@ -12,11 +12,12 @@ import numpy as np
 
 
 class ZarrArrayStub:
-    """ 
+    """
     This mimics the functionality of the zarr array produced by kerchunk,
     but with only what is needed for indexing. This is the only "new" code
     on top of the original Zarr source.
     """
+
     def __init__(self, shape, chunks):
         if chunks is None:
             self._chunks = shape
@@ -24,7 +25,9 @@ class ZarrArrayStub:
             self._chunks = chunks
         self._shape = shape
 
+
 # in the original zarr source the following error definitions are an import from zarr.errors
+
 
 class _BaseZarrIndexError(IndexError):
     _msg = ""
@@ -32,11 +35,16 @@ class _BaseZarrIndexError(IndexError):
     def __init__(self, *args):
         super().__init__(self._msg.format(*args))
 
+
 class ArrayIndexError(IndexError):
     pass
 
+
 def err_too_many_indices(selection, shape):
-    raise IndexError(f"too many indices for array; expected {len(shape)}, got {len(selection)}")
+    raise IndexError(
+        f"too many indices for array; expected {len(shape)}, got {len(selection)}"
+    )
+
 
 class VindexInvalidSelectionError(_BaseZarrIndexError):
     _msg = (
@@ -44,14 +52,11 @@ class VindexInvalidSelectionError(_BaseZarrIndexError):
         "coordinate selection (tuple of integer arrays) and mask selection "
         "(single Boolean array) are supported; got {0!r}"
     )
+
+
 class BoundsCheckError(_BaseZarrIndexError):
     _msg = "index out of bounds for dimension with length {0}"
 
-class NegativeStepError(IndexError):
-    def __init__(self):
-        super().__init__("only slices with step >= 1 are supported")
-
-# And the rest of the code is the original file.
 
 def is_integer(x):
     """True if x is an integer (both pure Python or NumPy).
@@ -72,7 +77,12 @@ def is_integer_list(x):
 
 
 def is_integer_array(x, ndim=None):
-    t = not np.isscalar(x) and hasattr(x, "shape") and hasattr(x, "dtype") and x.dtype.kind in "ui"
+    t = (
+        not np.isscalar(x)
+        and hasattr(x, "shape")
+        and hasattr(x, "dtype")
+        and x.dtype.kind in "ui"
+    )
     if ndim is not None:
         t = t and len(x.shape) == ndim
     return t
@@ -140,9 +150,12 @@ def is_pure_orthogonal_indexing(selection, ndim):
     return (
         isinstance(selection, tuple)
         and len(selection) == ndim
-        and sum(is_integer_list(elem) or is_integer_array(elem) for elem in selection) <= 1
+        and sum(is_integer_list(elem) or is_integer_array(elem) for elem in selection)
+        <= 1
         and all(
-            is_integer_list(elem) or is_integer_array(elem) or isinstance(elem, (int, slice))
+            is_integer_list(elem)
+            or is_integer_array(elem)
+            or isinstance(elem, (int, slice))
             for elem in selection
         )
     )
@@ -207,8 +220,6 @@ class SliceDimIndexer:
     def __init__(self, dim_sel, dim_len, dim_chunk_len):
         # normalize
         self.start, self.stop, self.step = dim_sel.indices(dim_len)
-        if self.step < 1:
-            raise NegativeStepError()
 
         # store attributes
         self.dim_len = dim_len
@@ -253,7 +264,9 @@ class SliceDimIndexer:
                 dim_chunk_sel_stop = self.stop - dim_offset
 
             dim_chunk_sel = slice(dim_chunk_sel_start, dim_chunk_sel_stop, self.step)
-            dim_chunk_nitems = ceildiv((dim_chunk_sel_stop - dim_chunk_sel_start), self.step)
+            dim_chunk_nitems = ceildiv(
+                (dim_chunk_sel_stop - dim_chunk_sel_start), self.step
+            )
 
             # If there are no elements on the selection within this chunk, then skip
             if dim_chunk_nitems == 0:
@@ -308,7 +321,8 @@ def replace_ellipsis(selection, shape):
 
 def replace_lists(selection):
     return tuple(
-        np.asarray(dim_sel) if isinstance(dim_sel, list) else dim_sel for dim_sel in selection
+        np.asarray(dim_sel) if isinstance(dim_sel, list) else dim_sel
+        for dim_sel in selection
     )
 
 
@@ -351,7 +365,10 @@ def is_positive_slice(s):
 
 def is_contiguous_selection(selection):
     selection = ensure_tuple(selection)
-    return all((is_integer_array(s) or is_contiguous_slice(s) or s == Ellipsis) for s in selection)
+    return all(
+        (is_integer_array(s) or is_contiguous_slice(s) or s == Ellipsis)
+        for s in selection
+    )
 
 
 def is_basic_selection(selection):
@@ -367,7 +384,9 @@ class BasicIndexer:
 
         # setup per-dimension indexers
         dim_indexers = []
-        for dim_sel, dim_len, dim_chunk_len in zip(selection, array._shape, array._chunks):
+        for dim_sel, dim_len, dim_chunk_len in zip(
+            selection, array._shape, array._chunks
+        ):
             if is_integer(dim_sel):
                 dim_indexer = IntDimIndexer(dim_sel, dim_len, dim_chunk_len)
 
@@ -383,7 +402,9 @@ class BasicIndexer:
             dim_indexers.append(dim_indexer)
 
         self.dim_indexers = dim_indexers
-        self.shape = tuple(s.nitems for s in self.dim_indexers if not isinstance(s, IntDimIndexer))
+        self.shape = tuple(
+            s.nitems for s in self.dim_indexers if not isinstance(s, IntDimIndexer)
+        )
         self.drop_axes = None
 
     def __iter__(self):
@@ -402,14 +423,14 @@ class BoolArrayDimIndexer:
         # check number of dimensions
         if not is_bool_array(dim_sel, 1):
             raise IndexError(
-                "Boolean arrays in an orthogonal selection must " "be 1-dimensional only"
+                "Boolean arrays in an orthogonal selection must be 1-dimensional only"
             )
 
         # check shape
         if dim_sel.shape[0] != dim_len:
             raise IndexError(
                 f"Boolean array has the wrong length for dimension; "
-                f"expected {dim_len}, got { dim_sel.shape[0]}"
+                f"expected {dim_len}, got {dim_sel.shape[0]}"
             )
 
         # store attributes
@@ -502,7 +523,7 @@ class IntArrayDimIndexer:
         dim_sel = np.asanyarray(dim_sel)
         if not is_integer_array(dim_sel, 1):
             raise IndexError(
-                "integer arrays in an orthogonal selection must be " "1-dimensional only"
+                "integer arrays in an orthogonal selection must be 1-dimensional only"
             )
 
         # handle wraparound
@@ -586,7 +607,9 @@ def ix_(selection, shape):
         (
             slice_to_range(dim_sel, dim_len)
             if isinstance(dim_sel, slice)
-            else [dim_sel] if is_integer(dim_sel) else dim_sel
+            else [dim_sel]
+            if is_integer(dim_sel)
+            else dim_sel
         )
         for dim_sel, dim_len in zip(selection, shape)
     ]
@@ -631,9 +654,14 @@ class OrthogonalIndexer:
         # normalize list to array
         selection = replace_lists(selection)
 
+        # Reverse negative slices
+        selection, reverse_dims = replace_negative_slices(selection, array._shape)
+
         # setup per-dimension indexers
         dim_indexers = []
-        for dim_sel, dim_len, dim_chunk_len in zip(selection, array._shape, array._chunks):
+        for dim_sel, dim_len, dim_chunk_len in zip(
+            selection, array._shape, array._chunks
+        ):
             if is_integer(dim_sel):
                 dim_indexer = IntDimIndexer(dim_sel, dim_len, dim_chunk_len)
 
@@ -657,8 +685,12 @@ class OrthogonalIndexer:
 
         self.array = array
         self.dim_indexers = dim_indexers
-        self.shape = tuple(s.nitems for s in self.dim_indexers if not isinstance(s, IntDimIndexer))
+        self.shape = tuple(
+            s.nitems for s in self.dim_indexers if not isinstance(s, IntDimIndexer)
+        )
         self.is_advanced = not is_basic_selection(selection)
+        self.reverse_dims = reverse_dims
+
         if self.is_advanced:
             self.drop_axes = tuple(
                 i
@@ -687,6 +719,34 @@ class OrthogonalIndexer:
                 # special case for non-monotonic indices
                 if not is_basic_selection(out_selection):
                     out_selection = ix_(out_selection, self.shape)
+
+            if self.reverse_dims:
+                # A requested negative slice was changed to a positive
+                # slice (e.g. slice(7, 3, -1) -> slice(4, 8, 1)), so
+                # modify the index to the output array to ensure that
+                # the chunk selection goes in the correct place and in
+                # the correct order.
+                #
+                # E.g. For an output array axis of size 7:
+                #        slice(0, 1) -> slice(6, 5, -1)
+                #        slice(1, 4) -> slice(5, 2, -1)
+                #        slice(4, 7) -> slice(2, None, -1)
+                #
+                # Note that the step for the modified output array
+                # slice is always -1
+                out_selection = list(out_selection)
+                for i in self.reverse_dims:
+                    size = self.shape[i]
+                    start, stop, step = out_selection[i].indices(size)
+
+                    start = size - start - 1
+                    stop = size - stop - 1
+                    if stop < 0:
+                        stop = None
+
+                    out_selection[i] = slice(start, stop, -1)
+
+                out_selection = tuple(out_selection)
 
             yield ChunkProjection(chunk_coords, chunk_selection, out_selection)
 
@@ -719,7 +779,9 @@ class BlockIndexer:
 
         # setup per-dimension indexers
         dim_indexers = []
-        for dim_sel, dim_len, dim_chunk_size in zip(selection, array._shape, array._chunks):
+        for dim_sel, dim_len, dim_chunk_size in zip(
+            selection, array._shape, array._chunks
+        ):
             dim_numchunks = int(np.ceil(dim_len / dim_chunk_size))
 
             if is_integer(dim_sel):
@@ -805,7 +867,9 @@ def is_coordinate_selection(selection, array):
 # noinspection PyProtectedMember
 def is_mask_selection(selection, array):
     return (
-        len(selection) == 1 and is_bool_array(selection[0]) and selection[0].shape == array._shape
+        len(selection) == 1
+        and is_bool_array(selection[0])
+        and selection[0].shape == array._shape
     )
 
 
@@ -835,7 +899,8 @@ class CoordinateIndexer:
 
         # compute chunk index for each point in the selection
         chunks_multi_index = tuple(
-            dim_sel // dim_chunk_len for (dim_sel, dim_chunk_len) in zip(selection, array._chunks)
+            dim_sel // dim_chunk_len
+            for (dim_sel, dim_chunk_len) in zip(selection, array._chunks)
         )
 
         # broadcast selection - this will raise error if array dimensions don't match
@@ -847,10 +912,14 @@ class CoordinateIndexer:
 
         # flatten selection
         selection = [dim_sel.reshape(-1) for dim_sel in selection]
-        chunks_multi_index = [dim_chunks.reshape(-1) for dim_chunks in chunks_multi_index]
+        chunks_multi_index = [
+            dim_chunks.reshape(-1) for dim_chunks in chunks_multi_index
+        ]
 
         # ravel chunk indices
-        chunks_raveled_indices = np.ravel_multi_index(chunks_multi_index, dims=array._cdata_shape)
+        chunks_raveled_indices = np.ravel_multi_index(
+            chunks_multi_index, dims=array._cdata_shape
+        )
 
         # group points by chunk
         if np.any(np.diff(chunks_raveled_indices) < 0):
@@ -957,11 +1026,14 @@ def check_fields(fields, dtype):
     # check type
     if not isinstance(fields, (str, list, tuple)):
         raise IndexError(
-            f"'fields' argument must be a string or list of strings; found " f"{type(fields)!r}"
+            f"'fields' argument must be a string or list of strings; found "
+            f"{type(fields)!r}"
         )
     if fields:
         if dtype.names is None:
-            raise IndexError("invalid 'fields' argument, array does not have any fields")
+            raise IndexError(
+                "invalid 'fields' argument, array does not have any fields"
+            )
         try:
             if isinstance(fields, str):
                 # single field selection
@@ -1017,6 +1089,106 @@ def make_slice_selection(selection):
         else:
             ls.append(dim_selection)
     return ls
+
+
+def replace_negative_slices(selection, shape):
+    """Replace negative slices with positve slices.
+
+    A slice object that is decreasing (i.e. with a negative step), is
+    recast as an increasing slice (i.e. with a positive step. For
+    example ``slice(7,3,-1)`` would be cast as ``slice(4,8,1)``. This
+    is to facilitate finding which chunks are touched by the
+    index. The dimensions in the indexed array for which this has
+    occurred are returned so that they can be reversed later.
+
+    All other indices are unchanged.
+
+    Parameters
+    ----------
+    selection : numpy-style indices
+        Indices to an array of the given shape.
+
+    shape : tuple of `int`
+        The shape of the array.
+
+    Returns
+    -------
+    modified_selection : `tuple`
+        The reformatted indices that give the will correct subspace
+        after output dimensions have been reversed, as appropriate.
+
+    reverse_dims : `tuple`
+        The positions in the output array of dimensions that will need
+        reversing. The tuple wll be empty if there were no negative
+        slices.
+
+    """
+    indices = replace_ellipsis(selection, shape)
+
+    # Initialise outputs
+    modified_selection = []
+    reverse_dims = []
+
+    # Dimension positions of the array *after* indexing (some
+    # dimensions might get dropped by integer indices)
+    dim = 0
+
+    # Replace a negative slice index with its reversed version
+    for index, size in zip(selection, shape):
+        if isinstance(index, slice):
+            start, stop, step = index.indices(size)
+
+            if step < 0:
+                # When the slice step is negative, transform the
+                # original slice to a new slice with a positive step
+                # such that the result of the new slice is the reverse
+                # of the result of the original slice.
+                #
+                # For example, if the original slice is slice(6,0,-2)
+                # then the new slice will be slice(2,7,2):
+                #
+                # >>> a = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
+                # >>> a[slice(6, 0, -2)]
+                # [6, 4, 2]
+                # >>> a[slice(2, 7, 2)]
+                # [2, 4, 6]
+                # >>> a[slice(6, 0, -2)] == list(reversed(a[slice(2, 7, 2)]))
+                # True
+                if stop == -1:
+                    stop = None
+
+                index = slice(start, stop, step)
+                start, stop, step = index.indices(size)
+
+                step *= -1
+                div, mod = divmod(start - stop - 1, step)
+                div_step = div * step
+                start -= div_step
+                stop = start + div_step + 1
+
+                index = slice(start, stop, step)
+                reverse_dims.append(dim)
+
+        elif isinstance(index, int):
+            dim -= 1
+
+        elif isinstance(index, np.ndarray):
+            if not index.ndim:
+                dim -= 1
+
+        elif index == Ellipsis:
+            raise ValueError(
+                "replace_negative_slices(selection, shape) doesn't work "
+                "when selection contains Ellipsis. Consider doing "
+                "selection=pyfive.indexing.replace_ellipsis(selection, shape) "
+                "first"
+            )
+
+        dim += 1
+
+        modified_selection.append(index)
+
+    return tuple(modified_selection), tuple(reverse_dims)
 
 
 class PartialChunkIterator:

@@ -1,6 +1,8 @@
 # tests the variables found in the file h5netcdf_test.hdf5,
 # which is produced by the write_h5netcdf test routine in the h5netcdf package
 #
+import os
+
 import pyfive
 import h5py
 import warnings
@@ -8,9 +10,11 @@ from pathlib import Path
 
 DIRNAME = Path(__file__).parent
 
+
 def test_file_contents():
-    p5file = pyfive.File(DIRNAME/'h5netcdf_test.hdf5') 
-    h5file = h5py.File(DIRNAME/'h5netcdf_test.hdf5')
+    fpath = os.path.join(DIRNAME, "data", "h5netcdf_test.hdf5")
+    p5file = pyfive.File(fpath)
+    h5file = h5py.File(fpath)
 
     expected_variables = [
         "foo",
@@ -19,11 +23,11 @@ def test_file_contents():
         "scalar",
         "mismatched_dim",
         "foo_unlimited",
-         "var_len_str",
+        "var_len_str",
         "enum_var",
     ]
 
-    cannot_handle = ['var_len_str', 'enum_var']
+    cannot_handle = ["var_len_str", "enum_var"]
 
     p5contents = set([a for a in p5file])
     h5contents = set([a for a in h5file])
@@ -35,9 +39,9 @@ def test_file_contents():
             # check we can get the variable
             p5x, h5x = p5file[x], h5file[x]
             if p5x is None:
-                warnings.warn(f'Had to skip {x}')
-          
-            if isinstance(h5x,h5py.Dataset):
+                warnings.warn(f"Had to skip {x}")
+
+            if isinstance(h5x, h5py.Dataset):
                 # check the dtype
                 assert p5x.dtype == h5x.dtype
                 # check the shape
@@ -54,7 +58,7 @@ def test_file_contents():
                 assert len(dh5x) == len(dp5x)
                 print(p5x)
         except:
-            print('Attempting to compare ',x)
+            print("Attempting to compare ", x)
             print(h5file[x])
             print(p5file[x])
             raise
@@ -75,3 +79,10 @@ def test_file_contents():
     assert p5file["subgroup/y"].id == p5file[ref3].id
     assert str(p5file["subgroup/y"][:]) == str(p5file[ref3][:])
     assert p5file["y"].id != p5file[ref3].id
+
+    # tests for compound with nested REFERENCE
+    # see https://github.com/NCAS-CMS/pyfive/issues/119
+    ref4 = p5file["subgroup/y"].attrs["REFERENCE_LIST"][0]
+    assert ref4[1] == 0
+    assert p5file["subgroup/y_var"].id == p5file[ref4[0]].id
+    assert str(p5file["subgroup/y_var"][:]) == str(p5file[ref4[0]][:])

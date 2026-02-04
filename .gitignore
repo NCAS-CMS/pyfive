@@ -1,10 +1,77 @@
-.coverage
-.pyc
-build
-__pycache__/
-*.egg-info
-.idea
+# Distribution / packaging
+.Python
+build/
+_build/
+c
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+env/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
 .DS_Store
-test-reports/
+*.egg-info/
+.installed.cfg
+*.egg
+*.orig
+*.tmp
+MANIFEST
+
+# Installing virtual environments
+venv
+.venv
+.condarc
+
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# C extensions
+*.so
+
+# Created by editors
+*~
+\#*
+\.\#*
+*.swp
+
+# Auto generated doc
+_sidebar.rst.inc
+
+# Build folder
+doc/build
+doc/_sidebar.rst.inc
+
+# PyInstaller
+#  Usually these files are written by a python script from a template
+#  before PyInstaller builds the exe, so as to inject date/other infos into it.
+*.manifest
+*.spec
+
+# Pytest runs
+.cache
+.pytest_cache
 <_io.Bytes*>
 pyfive/__pycache__/
+tests/btreev2-generated.hdf5
+tests/__pycache__
+
+# Unit test / coverage reports
+htmlcov/
+.tox/
+.coverage
+.coverage.*
+.ruff_cache
+nosetests.xml
+coverage.xml
+*.cover
+.hypothesis/
+.mypy_cache
+test-reports

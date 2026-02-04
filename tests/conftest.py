@@ -1,9 +1,8 @@
 import os
 import s3fs
-import pathlib
 import json
-import moto
 import pytest
+import requests
 
 from moto.moto_server.threaded_moto_server import ThreadedMotoServer
 
@@ -15,6 +14,19 @@ endpoint_uri = "http://127.0.0.1:%s/" % port
 test_bucket_name = "test"
 versioned_bucket_name = "test-versioned"
 secure_bucket_name = "test-secure"
+
+
+def s3_url_exists(url: str) -> bool:
+    try:
+        response = requests.get(
+            url,
+            timeout=10,  # seconds
+        )
+    except requests.exceptions.RequestException:
+        return False
+    else:
+        return response.status_code == 200
+
 
 def get_boto3_client():
     from botocore.session import Session
@@ -106,3 +118,8 @@ def s3fs_s3(s3_base):
     s3.invalidate_cache()
 
     yield s3
+
+
+@pytest.fixture(scope="module")
+def modular_tmp_path(tmp_path_factory):
+    return tmp_path_factory.mktemp("temp")

@@ -1,9 +1,10 @@
-""" Test new style groups in pyfive. """
+"""Test new style groups in pyfive."""
+
 import os
 import pyfive
 
 DIRNAME = os.path.dirname(__file__)
-NEW_STYLE_GROUPS_HDF5_FILE = os.path.join(DIRNAME, "new_style_groups.hdf5")
+NEW_STYLE_GROUPS_HDF5_FILE = os.path.join(DIRNAME, "data", "new_style_groups.hdf5")
 
 
 def test_groups():
