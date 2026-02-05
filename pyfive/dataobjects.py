@@ -93,6 +93,7 @@ class DataObjects(object):
         self._chunks = None
         self._chunk_dims = None
         self._chunk_address = None
+        self._cached_attributes = None  # Cache parsed attributes
         self.order = order
 
     @staticmethod
@@ -178,6 +179,11 @@ class DataObjects(object):
 
     def get_attributes(self):
         """Return a dictionary of all attributes."""
+        # Return cached attributes if available
+        if self._cached_attributes is not None:
+            logging.debug('[pyfive] Attribute cache hit for offset %d', self.offset)
+            return self._cached_attributes
+        
         t0 = time()
         attrs = {}
         attr_msgs = self.find_msg_type(ATTRIBUTE_MSG_TYPE)
@@ -210,7 +216,9 @@ class DataObjects(object):
                 '[pyfive] Obtained %d%s attributes from offset %d (fh_id=%s type=%s) in %.4fs',
                 len(attrs), attrs_log, offsets[0], fh_id, fh_type, t1
             )
-
+        
+        # Cache the parsed attributes for subsequent calls
+        self._cached_attributes = attrs
         return attrs
 
     def _get_attributes_from_attr_info(self, attrs, attr_info):
