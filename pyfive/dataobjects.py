@@ -60,6 +60,11 @@ class DataObjects(object):
 
     def __init__(self, fh, offset, order="C"):
         """initalize."""
+        # Log file handle info for diagnostics
+        fh_id = id(fh)
+        fh_type = type(fh).__name__
+        is_s3 = hasattr(fh, 'fs') or 'S3' in fh_type
+        
         fh.seek(offset)
         version_hint = struct.unpack_from("<B", fh.read(1))[0]
         fh.seek(offset)
@@ -69,6 +74,11 @@ class DataObjects(object):
             msgs, msg_data, header = self._parse_v2_objects(fh)
         else:
             raise InvalidHDF5File("unknown Data Object Header")
+
+        logging.debug(
+            "[pyfive] DataObjects init: fh_id=%s type=%s s3=%s offset=%d",
+            fh_id, fh_type, is_s3, offset
+        )
 
         self.fh = fh
         self.msgs = msgs
@@ -194,7 +204,12 @@ class DataObjects(object):
             logging.info("[pyfive] stack: %s", 
                 ' → '.join(f"{f.function}" for f in pyfive_stack[1:]))
         if offsets:
-            logging.info(f'[pyfive] Obtained {len(attrs)}{attrs_log} attributes from {offsets[0]}, operation took {t1:.4f}s')
+            fh_id = id(self.fh)
+            fh_type = type(self.fh).__name__
+            logging.info(
+                '[pyfive] Obtained %d%s attributes from offset %d (fh_id=%s type=%s) in %.4fs',
+                len(attrs), attrs_log, offsets[0], fh_id, fh_type, t1
+            )
 
         return attrs
 
