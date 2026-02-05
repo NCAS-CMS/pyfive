@@ -2,8 +2,11 @@ from pathlib import Path
 
 from numpy import dtype
 from pyfive import Dataset, Group, File
-import logging
+
 from time import time
+
+import logging
+logger = logging.getLogger(__name__)
 
 def safe_print(*args, **kwargs):
     try:
@@ -235,7 +238,7 @@ def p5ncdump(file_path, special=False):
             # we assume all the netcdf 4 dimnnsions, if they exist, are in the root group
             real_dimensions = collect_dimensions_from_root(f)
             t1 = time() - t0
-            logging.info(f"[pyfive] Opend file and collected real dimensions from root group in {t1:.4f}s")
+            logger.info(f"[pyfive] Opend file and collected real dimensions from root group in {t1:.4f}s")
 
             # ok, go for it
             safe_print(f"File: {filename} " + "{")
@@ -244,8 +247,8 @@ def p5ncdump(file_path, special=False):
             safe_print("}")
             t1 = time() - t0
             for msg in log_msgs:
-                logging.info(msg)
-            logging.info(f"[pyfive] Completed ncdump of file '{filename}' in {t1:.4f}s")
+                logger.info(msg)
+            logger.info(f"[pyfive] Completed ncdump of file '{filename}' in {t1:.4f}s")
 
     except NotImplementedError as e:
         if "unsupported superblock" in str(e):
