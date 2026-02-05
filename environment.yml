@@ -22,7 +22,7 @@ dependencies:
   - pytest-html
   - pytest-rerunfailures
   - pytest-xdist
-  - python-lzf
+  - python-lzf  # built from pypi.org/project/python-neo-lzf/
   - s3fs >=2025.9.0
   # documentation dependencies
   - autodocsumm
