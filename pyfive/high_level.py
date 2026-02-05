@@ -233,6 +233,12 @@ class File(Group):
     filename : str or file-like
         Name of file (string or unicode) or file like object which has read
         and seek methods which behaved like a Python file object.
+    mode : str
+        File open mode (default: "r", read-only).
+    metadata_buffer_size : int
+        Size of metadata buffer for S3/remote files in MB (default: 1MB).
+        Larger values reduce network calls but use more memory.
+        (This is a pyfive extension for optimizing remote file access, ignored for local files.)
 
     Attributes
     ----------
@@ -245,7 +251,7 @@ class File(Group):
 
     """
 
-    def __init__(self, filename: str | BinaryIO, mode: str = "r") -> None:
+    def __init__(self, filename: str | BinaryIO, mode: str = "r", metadata_buffer_size: int = 1) -> None:
         """initalize."""
         if mode != "r":
             raise NotImplementedError(
@@ -263,16 +269,13 @@ class File(Group):
             self.filename = filename
         
         # Wrap S3 file handles with metadata buffering to reduce network calls
-        # Use adaptive buffer size: estimate from HDF5 superblock or use 1MB default
-        buffer_size = 1   # 1MB default
         if isinstance(fh, MetadataBufferingWrapper):
             # Already wrapped
             self._fh = fh
         elif type(fh).__name__ == "S3File" or hasattr(fh, "fs"):
             # S3 file handle - wrap with buffering
-            # Try to estimate needed buffer from first few bytes if possible
-            logging.info("[pyfive] Detected S3 file, enabling metadata buffering (%d MB)", buffer_size)
-            self._fh = MetadataBufferingWrapper(fh, buffer_size=buffer_size)
+            logging.info("[pyfive] Detected S3 file, enabling metadata buffering (%d MB)", metadata_buffer_size)
+            self._fh = MetadataBufferingWrapper(fh, buffer_size=metadata_buffer_size)
         else:
             # Local file or other
             self._fh = fh
