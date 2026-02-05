@@ -9,6 +9,7 @@ import warnings
 import numpy as np
 from time import time
 import logging
+import inspect
 try:
     from importlib.metadata import version
 except ImportError:  # pragma: no cover
@@ -188,8 +189,12 @@ class DataObjects(object):
         else:
             attrs_log += ")"
         t1 = time()-t0
-        logging.info("[pyfive] Dataobject Attribute Method called - call stack:", stack_info=True)
-        logging.info(f'[pyfive] Obtained {len(attrs)}{attrs_log} attributes, operation took {t1:.4f}s')
+        pyfive_stack = [f for f in inspect.stack() if 'pyfive' in f.filename]
+        if len(pyfive_stack) > 1:
+            logging.info("[pyfive] stack: %s", 
+                ' → '.join(f"{f.function}" for f in pyfive_stack[1:]))
+        if offsets:
+            logging.info(f'[pyfive] Obtained {len(attrs)}{attrs_log} attributes from {offsets[0]}, operation took {t1:.4f}s')
 
         return attrs
 
