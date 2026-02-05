@@ -52,6 +52,7 @@ from pyfive.h5py import Empty
 # these constants happen to have the same value...
 UNLIMITED_SIZE = UNDEFINED_ADDRESS
 
+logger = logging.getLogger(__name__)
 
 class DataObjects(object):
     """
@@ -75,7 +76,7 @@ class DataObjects(object):
         else:
             raise InvalidHDF5File("unknown Data Object Header")
 
-        logging.debug(
+        logger.debug(
             "[pyfive] DataObjects init: fh_id=%s type=%s s3=%s offset=%d",
             fh_id, fh_type, is_s3, offset
         )
@@ -181,7 +182,7 @@ class DataObjects(object):
         """Return a dictionary of all attributes."""
         # Return cached attributes if available
         if self._cached_attributes is not None:
-            logging.debug('[pyfive] Attribute cache hit for offset %d', self.offset)
+            logger.info('[pyfive] Attribute cache hit for offset %d', self.offset)
             return self._cached_attributes
         
         t0 = time()
@@ -207,12 +208,12 @@ class DataObjects(object):
         t1 = time()-t0
         pyfive_stack = [f for f in inspect.stack() if 'pyfive' in f.filename]
         if len(pyfive_stack) > 1:
-            logging.info("[pyfive] stack: %s", 
+            logger.debug("[pyfive] stack: %s", 
                 ' → '.join(f"{f.function}" for f in pyfive_stack[1:]))
         if offsets:
             fh_id = id(self.fh)
             fh_type = type(self.fh).__name__
-            logging.info(
+            logger.info(
                 '[pyfive] Obtained %d%s attributes from offset %d (fh_id=%s type=%s) in %.4fs',
                 len(attrs), attrs_log, offsets[0], fh_id, fh_type, t1
             )

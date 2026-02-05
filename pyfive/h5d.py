@@ -18,6 +18,8 @@ import struct
 import logging
 from importlib.metadata import version
 
+logger = logging.getLogger(__name__)
+
 StoreInfo = namedtuple("StoreInfo", "chunk_offset filter_mask byte_offset size")
 ChunkIndex = namedtuple("ChunkIndex", "chunk_address chunk_dims")
 
@@ -374,7 +376,7 @@ class DatasetID:
             self._btree_end, self._btree_start = None, None
             return
 
-        logging.info(
+        logger.info(
             "[pyfive] Building chunk index (pyfive version=%s)",
             version("pyfive"),
         )
@@ -410,7 +412,7 @@ class DatasetID:
             elapsed = f"{t1 * 1000:.0f}ms"
         else:
             elapsed = f"{t1:.1f}s"
-        logging.info(
+        logger.info(
             "[pyfive] Chunk index built: btree_nodes=%d elapsed=%s",
             len(chunk_btree.all_nodes),
             elapsed,
