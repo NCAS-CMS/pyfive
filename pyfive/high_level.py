@@ -294,7 +294,7 @@ class File(Group):
             # Local file or other
             # NOTE mypy detects incompatible types:
             # str | BytesIO = MetadataBufferingWrapper
-            self._fh = fh  # type: ignore[assignment]
+            self._fh = fh
 
         self._superblock = SuperBlock(self._fh, 0)
         self._dataobjects_cache: dict = {}
