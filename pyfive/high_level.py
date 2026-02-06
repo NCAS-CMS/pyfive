@@ -4,16 +4,12 @@ from __future__ import annotations
 from collections import deque
 from collections.abc import Callable
 from collections.abc import Mapping, Sequence
-import io
 import os
 import posixpath
 import warnings
 import logging
-
-
 import numpy as np
-
-from typing import Any, BinaryIO
+from typing import Any, BinaryIO, cast
 from typing_extensions import Self  # Python 3.10-compat
 from pyfive.core import Reference
 from pyfive.dataobjects import DataObjects, DatasetID
@@ -269,7 +265,7 @@ class File(Group):
         if hasattr(filename, "read"):
             if not hasattr(filename, "seek"):
                 raise ValueError("File like object must have a seek method")
-            fh = filename
+            fh = cast(BinaryIO, filename)
             self.filename = getattr(filename, "name", "None")
         else:
             fh = open(filename, "rb")
@@ -277,11 +273,15 @@ class File(Group):
             self.filename = filename
 
         # Wrap S3 file handles with metadata buffering to reduce network calls
+        self._fh: BinaryIO | MetadataBufferingWrapper
         if isinstance(fh, MetadataBufferingWrapper):
             # Already wrapped
             self._fh = fh
         elif type(fh).__name__ == "S3File" or hasattr(fh, "fs"):
             # S3 file handle - wrap with buffering
+            # We check for the S3File type by name to avoid a hard dependency on s3fs,
+            # but also check for an 'fs' attribute which is common in s3fs file-like objects.
+            # This may yet be too broad, but it is unlikely to cause issues for non-S3 files.
             logger.info(
                 "[pyfive] Detected S3 file, enabling metadata buffering (%d MB)",
                 metadata_buffer_size,
@@ -292,7 +292,7 @@ class File(Group):
             self._fh = fh
 
         self._superblock = SuperBlock(self._fh, 0)
-        self._dataobjects_cache = {}
+        self._dataobjects_cache: dict[int, DataObjects] = {}
         offset = self._superblock.offset_to_dataobjects
         dataobjects = self._get_dataobjects(offset)
 

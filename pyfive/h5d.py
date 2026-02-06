@@ -161,7 +161,7 @@ class DatasetID:
         if self.__chunk_init_check():
             return self._index[self._nthindex[index]]
         else:
-            return None
+            raise TypeError("Dataset is not chunked ")
 
     def get_chunk_info_by_coord(self, coordinate_index):
         """
@@ -188,7 +188,7 @@ class DatasetID:
         Additional arguments supported by ``h5py`` are not supported here.
         """
         if not self.__chunk_init_check():
-            return None
+            raise TypeError("Dataset is not chunked ")
         if chunk_position not in self._index:
             raise OSError("Chunk coordinates must lie on chunk boundaries")
         storeinfo = self._index[chunk_position]

@@ -189,7 +189,7 @@ def dump_header(obj, indent, real_dimensions, special):
 
         tv1 = time() - tv0
         log_msgs.append(
-            f"[pyfive] Inspected variable '{name}' of type '{dtype(ds.dtype)}' in {tv1:.4f}s"
+            f"[pyfive] Inspected variable '{name}' of type '{ds.dtype}' in {tv1:.4f}s"
         )
 
     t2 = time()
@@ -245,7 +245,7 @@ def p5ncdump(file_path, special=False):
             real_dimensions = collect_dimensions_from_root(f)
             t1 = time() - t0
             logger.info(
-                f"[pyfive] Opend file and collected real dimensions from root group in {t1:.4f}s"
+                f"[pyfive] Opened file and collected real dimensions from root group in {t1:.4f}s"
             )
 
             # ok, go for it

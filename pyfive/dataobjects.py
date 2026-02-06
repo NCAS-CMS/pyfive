@@ -11,11 +11,6 @@ from time import time
 import logging
 import inspect
 
-try:
-    from importlib.metadata import version
-except ImportError:  # pragma: no cover
-    from importlib_metadata import version
-
 from pyfive.datatype_msg import DatatypeMessage
 from pyfive.core import _padded_size, _structure_size
 from pyfive.core import _unpack_struct_from, _unpack_struct_from_file
@@ -251,7 +246,9 @@ class DataObjects(object):
         t0 = time()
         heap = FractalHeap(self.fh, heap_address)
         t1 = time() - t0
-
+        logger.debug(
+            f"Fractal heap {heap_address} loaded with {len(heap.nobjects)} objects in {t1:.4f}s"
+        )
         ordered = order_btree_address is not None
         if ordered:
             btree = BTreeV2AttrCreationOrder(self.fh, order_btree_address)
