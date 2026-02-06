@@ -205,12 +205,15 @@ class DataObjects(object):
             attrs_log += f'+{len(more_attrs)})'
         else:
             attrs_log += ")"
-        t1 = time()-t0
-        pyfive_stack = [f for f in inspect.stack() if 'pyfive' in f.filename]
-        if len(pyfive_stack) > 1:
-            logger.debug("[pyfive] stack: %s", 
-                ' → '.join(f"{f.function}" for f in pyfive_stack[1:]))
-        if offsets:
+        t1 = time() - t0
+        if logger.isEnabledFor(logging.DEBUG):
+            pyfive_stack = [f for f in inspect.stack() if 'pyfive' in f.filename]
+            if len(pyfive_stack) > 1:
+                logger.debug(
+                    "[pyfive] stack: %s",
+                    " -> ".join(f"{f.function}" for f in pyfive_stack[1:])
+                )
+        if offsets and logger.isEnabledFor(logging.INFO):
             fh_id = id(self.fh)
             fh_type = type(self.fh).__name__
             logger.info(
