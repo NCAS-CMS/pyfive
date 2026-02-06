@@ -108,18 +108,18 @@ class MetadataBufferingWrapper:
         self._ensure_buffer()
 
         # Calculate buffer bounds
-        buffer_end = self.buffer_start + self.buffer.getbuffer().nbytes  # type: ignore[attr:defined]
+        buffer_end = self.buffer_start + self.buffer.getbuffer().nbytes  # type: ignore[attr-defined]
 
         # If read is within buffer, serve from buffer
         if self.position >= self.buffer_start and self.position < buffer_end:
             # Position within buffer
             offset_in_buffer = self.position - self.buffer_start
-            self.buffer.seek(offset_in_buffer)  # type: ignore[attr:defined]
+            self.buffer.seek(offset_in_buffer)  # type: ignore[attr-defined]
 
             if size == -1:
-                data = self.buffer.read()  # type: ignore[attr:defined]
+                data = self.buffer.read()  # type: ignore[attr-defined]
             else:
-                data = self.buffer.read(size)  # type: ignore[attr:defined]
+                data = self.buffer.read(size)  # type: ignore[attr-defined]
 
             self.position += len(data)
 
