@@ -348,7 +348,7 @@ class DataObjects(object):
             for i in range(count):
                 if isinstance(ptype, P5StringType):
                     _, vlen_data = self._vlen_size_and_data(buf, offset)
-                    value[i] = vlen_data.decode("utf-8") 
+                    value[i] = vlen_data.decode("utf-8")
                     offset += 16
                 elif isinstance(ptype, P5ReferenceType):
                     (address,) = struct.unpack_from("<Q", buf, offset=offset)
