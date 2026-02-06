@@ -247,7 +247,7 @@ class DataObjects(object):
         heap = FractalHeap(self.fh, heap_address)
         t1 = time() - t0
         logger.debug(
-            f"Fractal heap {heap_address} loaded with {len(heap.nobjects)} objects in {t1:.4f}s"
+            f"Fractal heap {heap_address} loaded with {heap.nobjects} objects in {t1:.4f}s"
         )
         ordered = order_btree_address is not None
         if ordered:
