@@ -44,6 +44,7 @@ class Interceptor:
             print(f"read: {size} bytes at {pos} (called from {func})")
         return self._fh.read(size)
 
+
 class MetadataBufferingWrapper:
     """
     Wraps a file-like object to eagerly buffer metadata from S3 or remote sources.
@@ -65,7 +66,7 @@ class MetadataBufferingWrapper:
         """
         MB = 2**20
         self.fh = fh
-        self.buffer_size = buffer_size*MB
+        self.buffer_size = buffer_size * MB
         self.buffer = None
         self.buffer_start = 0
         self.position = 0
@@ -84,8 +85,8 @@ class MetadataBufferingWrapper:
             self.buffer = io.BytesIO(data)
             self.buffer_start = 0
             logging.info(
-                '[pyfive] Eagerly buffered %d bytes of metadata from remote file',
-                len(data)
+                "[pyfive] Eagerly buffered %d bytes of metadata from remote file",
+                len(data),
             )
 
     def seek(self, offset: int, whence: int = 0) -> int:
@@ -102,21 +103,23 @@ class MetadataBufferingWrapper:
 
     def read(self, size: int = -1) -> bytes:
         """Read from buffer or fall through to original fh."""
+
+        # ensure buffer makes sure that self.buffer is not None, so we can safely call methods on it
         self._ensure_buffer()
 
         # Calculate buffer bounds
-        buffer_end = self.buffer_start + self.buffer.getbuffer().nbytes
+        buffer_end = self.buffer_start + self.buffer.getbuffer().nbytes  # type: ignore[attr:defined]
 
         # If read is within buffer, serve from buffer
         if self.position >= self.buffer_start and self.position < buffer_end:
             # Position within buffer
             offset_in_buffer = self.position - self.buffer_start
-            self.buffer.seek(offset_in_buffer)
+            self.buffer.seek(offset_in_buffer)  # type: ignore[attr:defined]
 
             if size == -1:
-                data = self.buffer.read()
+                data = self.buffer.read()  # type: ignore[attr:defined]
             else:
-                data = self.buffer.read(size)
+                data = self.buffer.read(size)  # type: ignore[attr:defined]
 
             self.position += len(data)
 
@@ -130,8 +133,12 @@ class MetadataBufferingWrapper:
             return data
         else:
             # Read is beyond buffer or before buffer, use original fh
-            logger.debug('[pyfive] Read at position %d is outside buffer bounds (%d-%d), reading from original file handle', 
-                         self.position, self.buffer_start, buffer_end)
+            logger.debug(
+                "[pyfive] Read at position %d is outside buffer bounds (%d-%d), reading from original file handle",
+                self.position,
+                self.buffer_start,
+                buffer_end,
+            )
             self.fh.seek(self.position)
             data = self.fh.read(size)
             self.position += len(data)

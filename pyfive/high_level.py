@@ -132,7 +132,9 @@ class Group(Mapping):
             except KeyError:
                 return None
 
-        logger.info(f"[pyfive] Accessing object '{obj_name}' with link target {link_target} (lazy access: {noindex})")
+        logger.info(
+            f"[pyfive] Accessing object '{obj_name}' with link target {link_target} (lazy access: {noindex})"
+        )
         dataobjs = self.file._get_dataobjects(link_target)
         if dataobjs.is_dataset:
             if additional_obj != ".":
@@ -255,7 +257,9 @@ class File(Group):
 
     """
 
-    def __init__(self, filename: str | BinaryIO, mode: str = "r", metadata_buffer_size: int = 1) -> None:
+    def __init__(
+        self, filename: str | BinaryIO, mode: str = "r", metadata_buffer_size: int = 1
+    ) -> None:
         """initalize."""
         if mode != "r":
             raise NotImplementedError(
@@ -271,19 +275,22 @@ class File(Group):
             fh = open(filename, "rb")
             self._close = True
             self.filename = filename
-        
+
         # Wrap S3 file handles with metadata buffering to reduce network calls
         if isinstance(fh, MetadataBufferingWrapper):
             # Already wrapped
             self._fh = fh
         elif type(fh).__name__ == "S3File" or hasattr(fh, "fs"):
             # S3 file handle - wrap with buffering
-            logger.info("[pyfive] Detected S3 file, enabling metadata buffering (%d MB)", metadata_buffer_size)
+            logger.info(
+                "[pyfive] Detected S3 file, enabling metadata buffering (%d MB)",
+                metadata_buffer_size,
+            )
             self._fh = MetadataBufferingWrapper(fh, buffer_size=metadata_buffer_size)
         else:
             # Local file or other
             self._fh = fh
-        
+
         self._superblock = SuperBlock(self._fh, 0)
         self._dataobjects_cache = {}
         offset = self._superblock.offset_to_dataobjects

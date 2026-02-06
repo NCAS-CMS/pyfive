@@ -6,7 +6,9 @@ from pyfive import Dataset, Group, File
 from time import time
 
 import logging
+
 logger = logging.getLogger(__name__)
+
 
 def safe_print(*args, **kwargs):
     try:
@@ -139,11 +141,12 @@ def dump_header(obj, indent, real_dimensions, special):
         safe_print(f"{indent}{dindent}{d[0]} = {d[1]};")
 
     t1 = time() - t0
-    log_msgs.append(f"[pyfive] Inspecting File '{obj.name}' and gathered dimensions in {t1:.4f}s")
+    log_msgs.append(
+        f"[pyfive] Inspecting File '{obj.name}' and gathered dimensions in {t1:.4f}s"
+    )
 
     print(f"{indent}variables:")
     for name, ds in datasets.items():
-
         tv0 = time()
 
         # Variable type
@@ -185,10 +188,12 @@ def dump_header(obj, indent, real_dimensions, special):
             printattr(name, extras, [])
 
         tv1 = time() - tv0
-        log_msgs.append(f"[pyfive] Inspected variable '{name}' of type '{dtype(ds.dtype)}' in {tv1:.4f}s")
+        log_msgs.append(
+            f"[pyfive] Inspected variable '{name}' of type '{dtype(ds.dtype)}' in {tv1:.4f}s"
+        )
 
     t2 = time()
-    
+
     if isinstance(obj, File):
         hstr = "// global "
     elif isinstance(obj, Group):
@@ -198,7 +203,9 @@ def dump_header(obj, indent, real_dimensions, special):
         printattr("", obj.attrs, ["_NCProperties"])
 
     t3 = time() - t2
-    log_msgs.append(f"[pyfive] Inspected attributes of {hstr.strip('// ')} in {t3:.4f}s")
+    log_msgs.append(
+        f"[pyfive] Inspected attributes of {hstr.strip('// ')} in {t3:.4f}s"
+    )
 
     if groups:
         for g, o in groups.items():
@@ -210,7 +217,6 @@ def dump_header(obj, indent, real_dimensions, special):
     log_msgs.append(f"[pyfive] dump header completed in {time() - t0:.4f}s")
 
     return log_msgs
-
 
 
 def p5ncdump(file_path, special=False):
@@ -238,7 +244,9 @@ def p5ncdump(file_path, special=False):
             # we assume all the netcdf 4 dimnnsions, if they exist, are in the root group
             real_dimensions = collect_dimensions_from_root(f)
             t1 = time() - t0
-            logger.info(f"[pyfive] Opend file and collected real dimensions from root group in {t1:.4f}s")
+            logger.info(
+                f"[pyfive] Opend file and collected real dimensions from root group in {t1:.4f}s"
+            )
 
             # ok, go for it
             safe_print(f"File: {filename} " + "{")

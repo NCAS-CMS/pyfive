@@ -391,7 +391,7 @@ class DatasetID:
         )
         if self.posix:
             fh.close()
-     
+
         self._index = {}
         self._nthindex = []
 
@@ -414,7 +414,7 @@ class DatasetID:
             elapsed = f"{t1:.1f}s"
         logger.info(
             "[pyfive] Chunk index built: btree range=%s; elapsed=%s",
-            (self._btree_start,self._btree_end),
+            (self._btree_start, self._btree_end),
             elapsed,
         )
 
