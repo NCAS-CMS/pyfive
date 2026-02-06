@@ -10,6 +10,7 @@ import posixpath
 import warnings
 import logging
 
+
 import numpy as np
 
 from typing import Any, BinaryIO
@@ -20,6 +21,9 @@ from pyfive.misc_low_level import SuperBlock
 from pyfive.h5py import Datatype
 from pyfive.p5t import P5VlenStringType, P5ReferenceType, P5SequenceType
 from pyfive.utilities import MetadataBufferingWrapper
+
+logger = logging.getLogger(__name__)
+
 
 class Group(Mapping):
     """
@@ -128,7 +132,7 @@ class Group(Mapping):
             except KeyError:
                 return None
 
-        logging.info(f"[pyfive] Accessing object '{obj_name}' with link target {link_target} (lazy access: {noindex})")
+        logger.info(f"[pyfive] Accessing object '{obj_name}' with link target {link_target} (lazy access: {noindex})")
         dataobjs = self.file._get_dataobjects(link_target)
         if dataobjs.is_dataset:
             if additional_obj != ".":
@@ -274,7 +278,7 @@ class File(Group):
             self._fh = fh
         elif type(fh).__name__ == "S3File" or hasattr(fh, "fs"):
             # S3 file handle - wrap with buffering
-            logging.info("[pyfive] Detected S3 file, enabling metadata buffering (%d MB)", metadata_buffer_size)
+            logger.info("[pyfive] Detected S3 file, enabling metadata buffering (%d MB)", metadata_buffer_size)
             self._fh = MetadataBufferingWrapper(fh, buffer_size=metadata_buffer_size)
         else:
             # Local file or other

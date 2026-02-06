@@ -182,7 +182,7 @@ class DataObjects(object):
         """Return a dictionary of all attributes."""
         # Return cached attributes if available
         if self._cached_attributes is not None:
-            logger.info('[pyfive] Attribute cache hit for offset %d', self.offset)
+            logger.debug('[pyfive] Attribute cache hit for offset %d', self.offset)
             return self._cached_attributes
         
         t0 = time()

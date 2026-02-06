@@ -4,6 +4,8 @@ import inspect
 import io
 import logging
 
+logger = logging.getLogger(__name__)
+
 
 class Interceptor:
     """Intercepts file-io and logs what is going on.
@@ -128,6 +130,8 @@ class MetadataBufferingWrapper:
             return data
         else:
             # Read is beyond buffer or before buffer, use original fh
+            logger.debug('[pyfive] Read at position %d is outside buffer bounds (%d-%d), reading from original file handle', 
+                         self.position, self.buffer_start, buffer_end)
             self.fh.seek(self.position)
             data = self.fh.read(size)
             self.position += len(data)
