@@ -1,4 +1,3 @@
-import os
 import logging
 
 import h5py
@@ -99,10 +98,10 @@ def test_chunk_index_logging(caplog):
             assert isinstance(var, pyfive.Dataset)
             # Accessing the data should trigger index building
             _ = var[0, 0]
-    
+
     # Check that the expected log messages were generated
     log_messages = [record.message for record in caplog.records]
-    assert any("Building chunk index" in msg and "[pyfive]" in msg for msg in log_messages)
     assert any(
-        "Chunk index built" in msg for msg in log_messages
+        "Building chunk index" in msg and "[pyfive]" in msg for msg in log_messages
     )
+    assert any("Chunk index built" in msg for msg in log_messages)

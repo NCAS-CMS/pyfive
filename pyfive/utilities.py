@@ -84,7 +84,7 @@ class MetadataBufferingWrapper:
             data = self.fh.read(self.buffer_size)
             self.buffer = io.BytesIO(data)
             self.buffer_start = 0
-            logging.info(
+            logger.info(
                 "[pyfive] Eagerly buffered %d bytes of metadata from remote file",
                 len(data),
             )
