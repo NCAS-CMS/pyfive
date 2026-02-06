@@ -190,7 +190,8 @@ class BTreeV1RawDataChunks(BTreeV1):
                     import lzf
                 except ImportError as e:
                     raise ModuleNotFoundError(
-                        "LZF codec requires optional package 'python-lzf'."
+                        "LZF codec requires optional package 'python-neo-lzf'."
+                        "Could be installed from conda-forge or PyPI."
                     ) from e
                 uncompressed_len = struct.unpack(">H", chunk_buffer[:2])[0]
                 chunk_buffer = lzf.decompress(chunk_buffer, uncompressed_len)
