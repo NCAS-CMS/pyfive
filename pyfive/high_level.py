@@ -258,7 +258,10 @@ class File(Group):
     """
 
     def __init__(
-        self, filename: str | BinaryIO, mode: str = "r", metadata_buffer_size: int = 1
+        self,
+        filename: str | BinaryIO | MetadataBufferingWrapper,
+        mode: str = "r",
+        metadata_buffer_size: int = 1,
     ) -> None:
         """initalize."""
         if mode != "r":
@@ -289,10 +292,12 @@ class File(Group):
             self._fh = MetadataBufferingWrapper(fh, buffer_size=metadata_buffer_size)
         else:
             # Local file or other
-            self._fh = fh
+            # NOTE mypy detects incompatible types:
+            # str | BytesIO = MetadataBufferingWrapper
+            self._fh = fh  # type: ignore[assignment]
 
         self._superblock = SuperBlock(self._fh, 0)
-        self._dataobjects_cache = {}
+        self._dataobjects_cache: dict = {}
         offset = self._superblock.offset_to_dataobjects
         dataobjects = self._get_dataobjects(offset)
 
