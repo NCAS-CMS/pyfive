@@ -62,7 +62,7 @@ class MetadataBufferingWrapper:
         fh : file-like
             Original file handle (S3File or similar)
         buffer_size : int
-            Size of metadata buffer to read upfront (MB, default=1MB)
+            Size of metadata buffer to read upfront (MiB, default=1MiB)
         """
         MB = 2**20
         self.fh = fh
