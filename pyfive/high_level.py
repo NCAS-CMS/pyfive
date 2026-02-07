@@ -238,7 +238,7 @@ class File(Group):
     mode : str
         File open mode (default: "r", read-only).
     metadata_buffer_size : int
-        Size of metadata buffer for S3/remote files in MB (default: 1MB).
+        Size of metadata buffer for S3/remote files in MiB (default: 1MiB).
         Larger values reduce network calls but use more memory.
         (This is a pyfive extension for optimizing remote file access, ignored for local files.)
 
