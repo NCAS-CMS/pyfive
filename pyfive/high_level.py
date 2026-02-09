@@ -7,16 +7,18 @@ from collections.abc import Mapping, Sequence
 import os
 import posixpath
 import warnings
-
+import logging
 import numpy as np
-
-from typing import Any, BinaryIO
+from typing import Any, BinaryIO, cast
 from typing_extensions import Self  # Python 3.10-compat
 from pyfive.core import Reference
 from pyfive.dataobjects import DataObjects, DatasetID
 from pyfive.misc_low_level import SuperBlock
 from pyfive.h5py import Datatype
 from pyfive.p5t import P5VlenStringType, P5ReferenceType, P5SequenceType
+from pyfive.utilities import MetadataBufferingWrapper
+
+logger = logging.getLogger(__name__)
 
 
 class Group(Mapping):
@@ -126,7 +128,10 @@ class Group(Mapping):
             except KeyError:
                 return None
 
-        dataobjs = DataObjects(self.file._fh, link_target)
+        logger.info(
+            f"[pyfive] Accessing object '{obj_name}' with link target {link_target} (lazy access: {noindex})"
+        )
+        dataobjs = self.file._get_dataobjects(link_target)
         if dataobjs.is_dataset:
             if additional_obj != ".":
                 raise KeyError("%s is a dataset, not a group" % (obj_name))
@@ -230,6 +235,12 @@ class File(Group):
     filename : str or file-like
         Name of file (string or unicode) or file like object which has read
         and seek methods which behaved like a Python file object.
+    mode : str
+        File open mode (default: "r", read-only).
+    metadata_buffer_size : int
+        Size of metadata buffer for S3/remote files in MiB (default: 1MiB).
+        Larger values reduce network calls but use more memory.
+        (This is a pyfive extension for optimizing remote file access, ignored for local files.)
 
     Attributes
     ----------
@@ -242,7 +253,12 @@ class File(Group):
 
     """
 
-    def __init__(self, filename: str | BinaryIO, mode: str = "r") -> None:
+    def __init__(
+        self,
+        filename: str | BinaryIO | MetadataBufferingWrapper,
+        mode: str = "r",
+        metadata_buffer_size: int = 1,
+    ) -> None:
         """initalize."""
         if mode != "r":
             raise NotImplementedError(
@@ -252,15 +268,38 @@ class File(Group):
         if hasattr(filename, "read"):
             if not hasattr(filename, "seek"):
                 raise ValueError("File like object must have a seek method")
-            self._fh = filename
+            fh = cast(BinaryIO, filename)
             self.filename = getattr(filename, "name", "None")
         else:
-            self._fh = open(filename, "rb")
+            fh = open(filename, "rb")
             self._close = True
             self.filename = filename
+
+        # Wrap S3 file handles with metadata buffering to reduce network calls
+        self._fh: BinaryIO | MetadataBufferingWrapper
+        if isinstance(fh, MetadataBufferingWrapper):
+            # Already wrapped
+            self._fh = fh
+        elif type(fh).__name__ == "S3File" or hasattr(fh, "fs"):
+            # S3 file handle - wrap with buffering
+            # We check for the S3File type by name to avoid a hard dependency on s3fs,
+            # but also check for an 'fs' attribute which is common in s3fs file-like objects.
+            # This may yet be too broad, but it is unlikely to cause issues for non-S3 files.
+            logger.info(
+                "[pyfive] Detected S3 file, enabling metadata buffering (%d MB)",
+                metadata_buffer_size,
+            )
+            self._fh = MetadataBufferingWrapper(fh, buffer_size=metadata_buffer_size)
+        else:
+            # Local file or other
+            # NOTE mypy detects incompatible types:
+            # str | BytesIO = MetadataBufferingWrapper
+            self._fh = fh
+
         self._superblock = SuperBlock(self._fh, 0)
+        self._dataobjects_cache: dict = {}
         offset = self._superblock.offset_to_dataobjects
-        dataobjects = DataObjects(self._fh, offset)
+        dataobjects = self._get_dataobjects(offset)
 
         self.file = self
         self.mode = "r"
@@ -291,6 +330,15 @@ class File(Group):
     def __repr__(self) -> str:
         return '<HDF5 file "%s" (mode r)>' % (os.path.basename(self.filename))
 
+    def _get_dataobjects(self, obj_addr):
+        """Return cached DataObjects for an object header address."""
+        cached = self._dataobjects_cache.get(obj_addr)
+        if cached is not None:
+            return cached
+        dataobjects = DataObjects(self._fh, obj_addr)
+        self._dataobjects_cache[obj_addr] = dataobjects
+        return dataobjects
+
     def _get_object_by_address(self, obj_addr: BinaryIO) -> Self | Any | None:  # type: ignore[return]
         """Return the object pointed to by a given address."""
         if self._dataobjects.offset == obj_addr:
@@ -306,7 +354,7 @@ class File(Group):
                     # return instantiated object
                     return grp[name]
                 # descend only if it's a subgroup (need to instantiate minimally)
-                if DataObjects(self.file._fh, link_addr).is_group:
+                if self._get_dataobjects(link_addr).is_group:
                     queue.append((full_path, grp[name]))
 
     def close(self):
@@ -422,8 +470,8 @@ class Dataset(object):
         """Return the size of the first axis."""
         return self.shape[0]
 
-    def iter_chunks(self, *args):
-        return self.id.iter_chunks(args)
+    def iter_chunks(self, sel=()):
+        return self.id.iter_chunks(sel)
 
     @property
     def shape(self):

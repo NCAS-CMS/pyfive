@@ -1,4 +1,4 @@
-import os
+import logging
 
 import h5py
 import pyfive
@@ -7,7 +7,7 @@ import pytest
 
 
 mypath = Path(__file__).parent
-filename = os.path.join(mypath, "data", "compressed.hdf5")
+filename = mypath / "data" / "compressed.hdf5"
 variable_name = "dataset3"
 breaking_address = (2, 0)
 
@@ -48,20 +48,20 @@ def get_slices(var, using_py5):
 
 
 def test_h5d_chunking_details():
-    with h5py.File(mypath / filename) as f:
+    with h5py.File(str(filename)) as f:
         h5detail = chunk_down(f, variable_name)
 
-    with pyfive.File(mypath / filename) as g:
+    with pyfive.File(str(filename)) as g:
         p5detail = chunk_down(g, variable_name)
 
     assert h5detail == p5detail
 
 
 def test_iter_chunks_all():
-    with h5py.File(mypath / filename) as f:
+    with h5py.File(str(filename)) as f:
         h5chunks = get_chunks(f, variable_name)
 
-    with pyfive.File(mypath / filename) as g:
+    with pyfive.File(str(filename)) as g:
         p5chunks = get_chunks(g, variable_name)
 
     assert h5chunks == p5chunks
@@ -72,17 +72,36 @@ def test_iter_chunks_sel():
     obviously I don't have the right method in pyfive and/
     or the right test #FIXME"""
 
-    with h5py.File(mypath / filename) as f:
+    with h5py.File(str(filename)) as f:
         var = f[variable_name]
+        assert isinstance(var, h5py.Dataset)
         slices = get_slices(var, False)
         h5chunks = list(var.iter_chunks(slices))
         # print(h5chunks,var.shape, var.chunks)
 
     with pytest.raises(NotImplementedError):
-        with pyfive.File(mypath / filename) as g:
+        with pyfive.File(str(filename)) as g:
             var = g[variable_name]
             slices = get_slices(var, True)
+            assert isinstance(var, pyfive.Dataset)
             p5chunks = list(var.iter_chunks(slices))
             # print(p5chunks,var.shape, var.chunks)
 
         assert h5chunks == p5chunks
+
+
+def test_chunk_index_logging(caplog):
+    """Test that logging.info messages are generated when building chunk index."""
+    with caplog.at_level(logging.INFO):
+        with pyfive.File(str(filename)) as g:
+            var = g[variable_name]
+            assert isinstance(var, pyfive.Dataset)
+            # Accessing the data should trigger index building
+            _ = var[0, 0]
+
+    # Check that the expected log messages were generated
+    log_messages = [record.message for record in caplog.records]
+    assert any(
+        "Building chunk index" in msg and "[pyfive]" in msg for msg in log_messages
+    )
+    assert any("Chunk index built" in msg for msg in log_messages)

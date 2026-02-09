@@ -12,10 +12,13 @@ from pyfive.misc_low_level import (
 )
 from pyfive.p5t import P5CompoundType, P5VlenStringType, P5ReferenceType, P5SequenceType
 from io import UnsupportedOperation
+from time import time
 
 import struct
 import logging
 from importlib.metadata import version
+
+logger = logging.getLogger(__name__)
 
 StoreInfo = namedtuple("StoreInfo", "chunk_offset filter_mask byte_offset size")
 ChunkIndex = namedtuple("ChunkIndex", "chunk_address chunk_dims")
@@ -132,7 +135,7 @@ class DatasetID:
         of the data in the file, and the data shape are a unique
         combination.
         """
-        return hash(self.unique)
+        return hash(self._unique)
 
     def __eq__(self, other):
         """
@@ -158,7 +161,7 @@ class DatasetID:
         if self.__chunk_init_check():
             return self._index[self._nthindex[index]]
         else:
-            return None
+            raise TypeError("Dataset is not chunked ")
 
     def get_chunk_info_by_coord(self, coordinate_index):
         """
@@ -168,7 +171,7 @@ class DatasetID:
         if self.__chunk_init_check():
             return self._index[coordinate_index]
         else:
-            return None
+            raise TypeError("Dataset is not chunked ")
 
     def get_num_chunks(self):
         """
@@ -185,7 +188,7 @@ class DatasetID:
         Additional arguments supported by ``h5py`` are not supported here.
         """
         if not self.__chunk_init_check():
-            return None
+            raise TypeError("Dataset is not chunked ")
         if chunk_position not in self._index:
             raise OSError("Chunk coordinates must lie on chunk boundaries")
         storeinfo = self._index[chunk_position]
@@ -373,12 +376,15 @@ class DatasetID:
             self._btree_end, self._btree_start = None, None
             return
 
-        logging.info(f"Building chunk index in pyfive {version('pyfive')}")
+        logger.info(
+            "[pyfive] Building chunk index (pyfive version=%s)",
+            version("pyfive"),
+        )
 
         # FIXME: How do we know it's a V1 B-tree?
         # There are potentially five different chunk indexing options according to
         # https://docs.hdfgroup.org/archive/support/HDF5/doc/H5.format.html#AppendixC
-
+        t0 = time()
         fh = self._fh
         chunk_btree = BTreeV1RawDataChunks(
             fh, self._index_params.chunk_address, self._index_params.chunk_dims
@@ -400,6 +406,17 @@ class DatasetID:
 
         self._btree_start = chunk_btree.offset
         self._btree_end = chunk_btree.last_offset
+
+        t1 = time() - t0
+        if t1 < 1.0:
+            elapsed = f"{t1 * 1000:.0f}ms"
+        else:
+            elapsed = f"{t1:.1f}s"
+        logger.info(
+            "[pyfive] Chunk index built: btree range=%s; elapsed=%s",
+            (self._btree_start, self._btree_end),
+            elapsed,
+        )
 
         self.__index_built = True
 
@@ -616,6 +633,8 @@ class DatasetID:
         the relevant chunks.
 
         """
+        if self._index is None:
+            raise RuntimeError("Attempt to read chunked data with no index")
         # need a local dtype as we may override it for a reference read.
         dtype = self.dtype
         if isinstance(self._ptype, P5ReferenceType):

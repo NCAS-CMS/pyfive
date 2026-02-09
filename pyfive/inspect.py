@@ -1,6 +1,13 @@
 from pathlib import Path
 
+from numpy import dtype
 from pyfive import Dataset, Group, File
+
+from time import time
+
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 def safe_print(*args, **kwargs):
@@ -110,6 +117,9 @@ def dump_header(obj, indent, real_dimensions, special):
     datasets = {}
     groups = {}
     phonys = {}
+    log_msgs = []
+
+    t0 = time()
 
     for name in obj:
         item = obj.get_lazy_view(name)
@@ -130,8 +140,15 @@ def dump_header(obj, indent, real_dimensions, special):
     for d in dims:
         safe_print(f"{indent}{dindent}{d[0]} = {d[1]};")
 
+    t1 = time() - t0
+    log_msgs.append(
+        f"[pyfive] Inspecting File '{obj.name}' and gathered dimensions in {t1:.4f}s"
+    )
+
     print(f"{indent}variables:")
     for name, ds in datasets.items():
+        tv0 = time()
+
         # Variable type
         dtype_str = clean_types(ds.dtype)
 
@@ -170,6 +187,13 @@ def dump_header(obj, indent, real_dimensions, special):
                     extras["_compression"] = ds.compression + f"({ds.compression_opts})"
             printattr(name, extras, [])
 
+        tv1 = time() - tv0
+        log_msgs.append(
+            f"[pyfive] Inspected variable '{name}' of type '{ds.dtype}' in {tv1:.4f}s"
+        )
+
+    t2 = time()
+
     if isinstance(obj, File):
         hstr = "// global "
     elif isinstance(obj, Group):
@@ -178,12 +202,21 @@ def dump_header(obj, indent, real_dimensions, special):
         safe_print(hstr + "attributes:")
         printattr("", obj.attrs, ["_NCProperties"])
 
+    t3 = time() - t2
+    log_msgs.append(
+        f"[pyfive] Inspected attributes of {hstr.strip('// ')} in {t3:.4f}s"
+    )
+
     if groups:
         for g, o in groups.items():
             safe_print(f"{indent}group: {g} " + "{")
             gindent = indent + " "
             dump_header(o, gindent, real_dimensions, special=special)
             safe_print(gindent + "}" + f" // group {g}")
+
+    log_msgs.append(f"[pyfive] dump header completed in {time() - t0:.4f}s")
+
+    return log_msgs
 
 
 def p5ncdump(file_path, special=False):
@@ -206,15 +239,24 @@ def p5ncdump(file_path, special=False):
     filename = Path(filename).name
 
     try:
+        t0 = time()
         with File(file_path) as f:
             # we assume all the netcdf 4 dimnnsions, if they exist, are in the root group
             real_dimensions = collect_dimensions_from_root(f)
+            t1 = time() - t0
+            logger.info(
+                f"[pyfive] Opened file and collected real dimensions from root group in {t1:.4f}s"
+            )
 
             # ok, go for it
             safe_print(f"File: {filename} " + "{")
             indent = ""
-            dump_header(f, indent, real_dimensions, special)
+            log_msgs = dump_header(f, indent, real_dimensions, special)
             safe_print("}")
+            t1 = time() - t0
+            for msg in log_msgs:
+                logger.info(msg)
+            logger.info(f"[pyfive] Completed ncdump of file '{filename}' in {t1:.4f}s")
 
     except NotImplementedError as e:
         if "unsupported superblock" in str(e):

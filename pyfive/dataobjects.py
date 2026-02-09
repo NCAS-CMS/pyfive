@@ -7,6 +7,9 @@ import struct
 import warnings
 
 import numpy as np
+from time import time
+import logging
+import inspect
 
 from pyfive.datatype_msg import DatatypeMessage
 from pyfive.core import _padded_size, _structure_size
@@ -45,6 +48,8 @@ from pyfive.h5py import Empty
 # these constants happen to have the same value...
 UNLIMITED_SIZE = UNDEFINED_ADDRESS
 
+logger = logging.getLogger(__name__)
+
 
 class DataObjects(object):
     """
@@ -53,6 +58,11 @@ class DataObjects(object):
 
     def __init__(self, fh, offset, order="C"):
         """initalize."""
+        # Log file handle info for diagnostics
+        fh_id = id(fh)
+        fh_type = type(fh).__name__
+        is_s3 = hasattr(fh, "fs") or "S3" in fh_type
+
         fh.seek(offset)
         version_hint = struct.unpack_from("<B", fh.read(1))[0]
         fh.seek(offset)
@@ -62,6 +72,14 @@ class DataObjects(object):
             msgs, msg_data, header = self._parse_v2_objects(fh)
         else:
             raise InvalidHDF5File("unknown Data Object Header")
+
+        logger.debug(
+            "[pyfive] DataObjects init: fh_id=%s type=%s s3=%s offset=%d",
+            fh_id,
+            fh_type,
+            is_s3,
+            offset,
+        )
 
         self.fh = fh
         self.msgs = msgs
@@ -76,6 +94,7 @@ class DataObjects(object):
         self._chunks = None
         self._chunk_dims = None
         self._chunk_address = None
+        self._cached_attributes = None  # Cache parsed attributes
         self.order = order
 
     @staticmethod
@@ -161,19 +180,54 @@ class DataObjects(object):
 
     def get_attributes(self):
         """Return a dictionary of all attributes."""
+        # Return cached attributes if available
+        if self._cached_attributes is not None:
+            logger.debug("[pyfive] Attribute cache hit for offset %d", self.offset)
+            return self._cached_attributes
+
+        t0 = time()
         attrs = {}
         attr_msgs = self.find_msg_type(ATTRIBUTE_MSG_TYPE)
+        offsets = []
         for msg in attr_msgs:
             offset = msg["offset_to_message"]
             name, value = self.unpack_attribute(offset)
             attrs[name] = value
+            offsets.append(offset)
         # Attributes may also be stored in objects reference in the
         # Attribute Info Message (0x0015, 21).
         # Assume we can have both types though I suspect this is not the case
+        attrs_log = f"({len(attrs)}"
         attr_info = self.find_msg_type(ATTRIBUTE_INFO_MSG_TYPE)
         if attr_info:
             more_attrs = self._get_attributes_from_attr_info(attrs, attr_info)
             attrs.update(more_attrs)
+            attrs_log += f"+{len(more_attrs)})"
+        else:
+            attrs_log += ")"
+        t1 = time() - t0
+        if logger.isEnabledFor(logging.DEBUG):
+            pyfive_stack = [f for f in inspect.stack() if "pyfive" in f.filename]
+            if len(pyfive_stack) > 1:
+                logger.debug(
+                    "[pyfive] stack: %s",
+                    " -> ".join(f"{f.function}" for f in pyfive_stack[1:]),
+                )
+        if offsets and logger.isEnabledFor(logging.INFO):
+            fh_id = id(self.fh)
+            fh_type = type(self.fh).__name__
+            logger.info(
+                "[pyfive] Obtained %d%s attributes from offset %d (fh_id=%s type=%s) in %.4fs",
+                len(attrs),
+                attrs_log,
+                offsets[0],
+                fh_id,
+                fh_type,
+                t1,
+            )
+
+        # Cache the parsed attributes for subsequent calls
+        self._cached_attributes = attrs
         return attrs
 
     def _get_attributes_from_attr_info(self, attrs, attr_info):
@@ -189,7 +243,12 @@ class DataObjects(object):
             return {}
         name_btree_address = data["name_btree_address"]
         order_btree_address = data["creation_order_btree_address"]
+        t0 = time()
         heap = FractalHeap(self.fh, heap_address)
+        t1 = time() - t0
+        logger.debug(
+            f"Fractal heap {heap_address} loaded with {heap.nobjects} objects in {t1:.4f}s"
+        )
         ordered = order_btree_address is not None
         if ordered:
             btree = BTreeV2AttrCreationOrder(self.fh, order_btree_address)
