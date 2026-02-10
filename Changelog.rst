@@ -1,10 +1,26 @@
-Version ?.?.?
+Version 1.1.0
 -------------
 
-**2026-??-??**
+**2026-02-10**
 
+**Highlights**
+
+* Add support for pre-commit with mypy and Ruff and start adding type hints by `Valeriu Predoi <https://github.com/valeriupredoi>`_ in https://github.com/NCAS-CMS/pyfive/pull/173
+* Timing + Optimisations + Minor fixes by `Bryan Lawrence <https://github.com/bnlawrence>`_ in https://github.com/NCAS-CMS/pyfive/pull/191
 * Add ``__orthogonal_indexing__`` flag by `David Hassell <https://github.com/davidhassell>`_ in https://github.com/NCAS-CMS/pyfive/issue/171
 * Allow negative slices when indexing chunked data by `David Hassell <https://github.com/davidhassell>`_ in https://github.com/NCAS-CMS/pyfive/pull/170
+
+**Other Changes**
+
+* [JOSS REVIEW PR] Harmonize depenedncies from environment.yml and pyproject.toml by `Valeriu Predoi <https://github.com/valeriupredoi>`_ in https://github.com/NCAS-CMS/pyfive/pull/174
+* pep639 license by @valeriupredoi in https://github.com/NCAS-CMS/pyfive/pull/180
+* add CONTRIBUTING.md file (and contributing guidelines, of course) by `Valeriu Predoi <https://github.com/valeriupredoi>`_ in https://github.com/NCAS-CMS/pyfive/pull/181
+* Documentation consistency fixes by `Trevor James Smith <https://github.com/Zeitsperre>`_ in https://github.com/NCAS-CMS/pyfive/pull/175
+* Overhaul `.gitignore` file by `Valeriu Predoi <https://github.com/valeriupredoi>`_ in https://github.com/NCAS-CMS/pyfive/pull/179
+* add link to Pyfive GitHub repository on doc landing page by `Valeriu Predoi <https://github.com/valeriupredoi>`_ in https://github.com/NCAS-CMS/pyfive/pull/185
+* Skip tests if ceda-jasmin s3 storage is offline by `Valeriu Predoi <https://github.com/valeriupredoi>`_ in https://github.com/NCAS-CMS/pyfive/pull/187
+* [pre-commit.ci] pre-commit autoupdate by ``@pre-commit-ci[bot]`` in https://github.com/NCAS-CMS/pyfive/pull/188
+* Replace python-lzf with python-neo-lzf by `Valeriu Predoi <https://github.com/valeriupredoi>`_ in https://github.com/NCAS-CMS/pyfive/pull/189
 
 Version 1.0.1
 -------------
