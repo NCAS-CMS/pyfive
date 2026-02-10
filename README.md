@@ -1,5 +1,6 @@
 [![Maintenance](https://img.shields.io/badge/Maintained%3F-yes-green.svg)](https://GitHub.com/Naereen/StrapDown.js/graphs/commit-activity)
 [![made-with-python](https://img.shields.io/badge/Made%20with-Python-1f425f.svg)](https://www.python.org/)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.18599472.svg)](https://doi.org/10.5281/zenodo.18599472)
 [![Documentation Status](https://app.readthedocs.org/projects/pyfive/badge/?version=latest)](https://pyfive.readthedocs.io/en/latest/?badge=latest)
 [![Test](https://github.com/NCAS-CMS/pyfive/actions/workflows/pytest.yml/badge.svg)](https://github.com/NCAS-CMS/pyfive/actions/workflows/pytest.yml)
 [![codecov](https://codecov.io/gh/NCAS-CMS/pyfive/graph/badge.svg?token=3In5JuzeGK)](https://codecov.io/gh/NCAS-CMS/pyfive)
