@@ -74,7 +74,7 @@ From satellite missions to climate models and radar systems, the default binary 
 While newer data formats are starting to get mindshare, there are petabytes, if not exabytes, of existing HDF5, and there remain many good use cases for creating new data in the HDF5 format today. 
 However, despite its historical importance, there are few libraries available for reading HDF5 file data that do not depend on the official HDF5 library maintained by the HDF Group. In particular, apart from `pyfive`, there are no Python HDF5 libraries that address the data access needs of environmental science. 
 While the HDF5 C library is reliable and performant, and battle-tested over decades, there are some caveats to depending upon it. 
-Firstly, it is not thread-safe. Secondly, the underlying code is large and complex, and should anything happen to the financial stability of the HDF5 Group, it is not obvious it could be maintained. 
+Firstly, it is not thread-safe. Secondly, the underlying code is large and complex, and should anything happen to the financial stability of the HDF Group, it is not obvious it could be maintained. 
 Finally, the code complexity also means that it is not suitable for developing bespoke code for data recovery in the case of partially corrupt data. 
 From a long-term curation perspective these last two constraints present a major concern. 
 
