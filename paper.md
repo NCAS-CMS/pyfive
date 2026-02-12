@@ -79,7 +79,7 @@ Finally, the code complexity also means that it is not suitable for developing b
 From a long-term curation perspective these last two constraints present a major concern. 
 
 Reliance on a complex codebase controlled by a single private company presents significant challenges for long-term data access. Addressing these challenges requires well-documented data formats, the use of only those documented features, and the existence of publicly available code that can be sustainably maintained.
-The HDF Group have provided good documentation for the HDF5 format, but while there are communities of developers beyond those of the HDF Group, recent events suggest that given most of those developers and their existing funding are based in the USA, and some spreading of risk would be desirable. 
+The HDF Group have provided good documentation for the HDF5 format, but while there are communities of developers beyond those of the HDF Group, recent events suggest that given most of those developers and their existing funding are based in the USA, some spreading of risk would be desirable. 
 To that end, a pure Python code covering the core HDF5 features of interest to the target scientific community, which is relatively small and maintained by an international constituency, provides some assurance that the community can maintain HDF5 access for the foreseeable future. 
 A pure Python code also makes it easier to develop scripts that can work around data and metadata corruption should they occur, and has the additional advantage of being able to be deployed in resource or operating-system constrained environments (such as on mobile).
 
