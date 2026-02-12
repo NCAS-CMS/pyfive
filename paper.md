@@ -43,13 +43,13 @@ affiliations:
    index: 3
  - name:  European Synchrotron Radiation Facility (ESRF), Grenoble, France.
    index: 4
- - name: Astral Software Inc
+ - name: Astral Software Inc., USA.
    index: 5
  - name: NIST Center for Neutron Research
    index: 6
  - name: Institute of Geosciences, Meteorology Section, University of Bonn, Germany.
    index: 7
- - name: No affiliation.
+ - name: Independent Researcher, USA.
    index: 8
 
 date: 14 December 2025
