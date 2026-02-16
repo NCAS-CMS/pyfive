@@ -84,7 +84,11 @@ class DatasetID:
             except:
                 # maybe a remote https file opened as bytes?
                 # failing that, maybe a memory file, return as None
+                # or even a Pyfive Dataset instance
                 self._filename = getattr(fh, "full_name", "None")
+                if self._filename == "None":
+                    fh = getattr(fh, "fh", "None")
+                    self._filename = fh.path
         else:
             # Has a file descriptor => Posix
             self.posix = True
