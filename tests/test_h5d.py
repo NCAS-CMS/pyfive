@@ -7,6 +7,8 @@ from pathlib import Path
 import pytest
 import s3fs
 
+from conftest import s3_url_exists
+
 
 mypath = Path(__file__).parent
 filename = mypath / "data" / "compressed.hdf5"
@@ -109,6 +111,10 @@ def test_chunk_index_logging(caplog):
     assert any("Chunk index built" in msg for msg in log_messages)
 
 
+JASMIN_ONLINE = s3_url_exists("https://uor-aces-o.s3-ext.jc.rl.ac.uk/esmvaltool-zarr")
+
+
+@pytest.mark.skipif(not JASMIN_ONLINE, reason="CEDA S3 object store offline.")
 def test_get_filename_real_s3():
     """Extract _filename from a real S3 file."""
     storage_options = {
