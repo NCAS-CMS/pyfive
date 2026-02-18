@@ -57,7 +57,10 @@ def test_s3file_with_s3fs(s3fs_s3, capsys):
     with s3.open(os.path.join("MY_BUCKET", file_name), "rb") as f:
         pyfive_ds = pyfive.File(f)
         print("Dataset loaded from mock S3 with s3fs and Pyfive: ds")
+        print("Dataset is", pyfive_ds)
+        var_ds = pyfive_ds["q"]
         assert "q" in pyfive_ds
+        assert var_ds.id._filename == "MY_BUCKET/issue23_A.nc"
 
     # test command command line main test_s3
     with s3.open(os.path.join("MY_BUCKET", file_name), "rb") as f:
