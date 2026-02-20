@@ -1,9 +1,13 @@
+import os
 import logging
 
 import h5py
 import pyfive
 from pathlib import Path
 import pytest
+import s3fs
+
+from conftest import s3_url_exists
 
 
 mypath = Path(__file__).parent
@@ -105,3 +109,20 @@ def test_chunk_index_logging(caplog):
         "Building chunk index" in msg and "[pyfive]" in msg for msg in log_messages
     )
     assert any("Chunk index built" in msg for msg in log_messages)
+
+
+JASMIN_ONLINE = s3_url_exists("https://uor-aces-o.s3-ext.jc.rl.ac.uk/esmvaltool-zarr")
+
+
+@pytest.mark.skipif(not JASMIN_ONLINE, reason="CEDA S3 object store offline.")
+def test_get_filename_real_s3():
+    """Extract _filename from a real S3 file."""
+    storage_options = {
+        "anon": True,
+        "client_kwargs": {"endpoint_url": "https://uor-aces-o.s3-ext.jc.rl.ac.uk"},
+    }
+    fs = s3fs.S3FileSystem(**storage_options)
+    uri = os.path.join("esmvaltool-zarr", "CMIP6-test.nc")
+    s3file = fs.open(uri, "rb")
+    ds = pyfive.File(s3file)["tas"]
+    assert ds.id._filename == "esmvaltool-zarr/CMIP6-test.nc"
