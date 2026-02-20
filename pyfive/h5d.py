@@ -88,7 +88,7 @@ class DatasetID:
                 self._filename = getattr(fh, "full_name", "None")
                 if self._filename == "None":
                     fh = getattr(fh, "fh", None)
-                    if fh:
+                    if fh is not None:
                         self._filename = fh.path
         else:
             # Has a file descriptor => Posix
