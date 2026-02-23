@@ -1,3 +1,14 @@
+Version 1.1.1
+-------------
+
+**2026-02-23**
+
+This is a bugfix release:
+
+* (main bugfix) extract filename from pyfive S3 Dataset correctly by `Valeriu Predoi <https://github.com/valeriupredoi>`_ in https://github.com/NCAS-CMS/pyfive/pull/197
+* add DOI badge in README by `Valeriu Predoi <https://github.com/valeriupredoi>`_ in https://github.com/NCAS-CMS/pyfive/pull/194
+* add JOSS paper badge in README by `Valeriu Predoi <https://github.com/valeriupredoi>`_ in https://github.com/NCAS-CMS/pyfive/pull/196
+
 Version 1.1.0
 -------------
 
