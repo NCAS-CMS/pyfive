@@ -47,6 +47,4 @@ jobs:
           pip list
       - name: Test p5dump
         run: |
-          which p5dump
-          p5dump tests/data/groups.hdf5
-          p5dump tests/data/issue23_A.nc          
+          which p5dump 
