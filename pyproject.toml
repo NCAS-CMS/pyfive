@@ -37,6 +37,7 @@ dynamic = [
 ]
 dependencies = [
     "numpy>=2",
+    "typing-extensions",
 ]
 description = "A pure python HDF5 reader"
 license = "BSD-3-Clause"
