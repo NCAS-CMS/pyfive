@@ -47,4 +47,5 @@ jobs:
           pip list
       - name: Test p5dump
         run: |
-          which p5dump 
+          which p5dump
+          p5dump -h 
