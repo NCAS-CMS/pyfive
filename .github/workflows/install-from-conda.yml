@@ -1,0 +1,51 @@
+name: Install from conda-forge
+permissions: {}
+on:
+  push:
+    branches:
+      - main
+  schedule:
+    - cron: "0 4 * * *"
+
+# Required shell entrypoint to have properly configured bash shell
+defaults:
+  run:
+    shell: bash -l {0}
+
+jobs:
+  linux:
+    runs-on: "ubuntu-latest"
+    if: github.repository == 'NCAS-CMS/pyfive' # avoid GAs in forks
+    strategy:
+      matrix:
+        python-version: ["3.10", "3.11", "3.12", "3.13", "3.14"]
+      # fail-fast set to False allows all other tests
+      # in the workflow to run regardless of any fail
+      fail-fast: false
+    name: Linux Python ${{ matrix.python-version }}
+    steps:
+      - uses: conda-incubator/setup-miniconda@fc2d68f6413eb2d87b895e92f8584b5b94a10167 # v3.3.0
+        with:
+          python-version: ${{ matrix.python-version }}
+          miniforge-version: "latest"
+          use-mamba: true
+      - name: Record versions
+        run: |
+          mamba --version
+          which conda
+          which mamba
+          python -V
+      - name: Install pyfive
+        run: mamba install pyfive
+      - name: Verify installation
+        run: |
+          python -c "import pyfive"
+      - name: Check environment contents
+        run: |
+          conda list
+          pip list
+      - name: Test p5dump
+        run: |
+          which p5dump
+          p5dump tests/data/groups.hdf5
+          p5dump tests/data/issue23_A.nc          
