@@ -8,6 +8,7 @@ dependencies:
   # core dependencies
   - numpy >=2
   - python >=3.10
+  - typing_extensions
   # testing dependencies
   - dask
   - flask
