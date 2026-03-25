@@ -14,9 +14,11 @@ from pyfive.p5t import P5CompoundType, P5VlenStringType, P5ReferenceType, P5Sequ
 from io import UnsupportedOperation
 from time import time
 
+import os
 import struct
 import logging
 from importlib.metadata import version
+from concurrent.futures import ThreadPoolExecutor
 
 logger = logging.getLogger(__name__)
 
@@ -24,7 +26,140 @@ StoreInfo = namedtuple("StoreInfo", "chunk_offset filter_mask byte_offset size")
 ChunkIndex = namedtuple("ChunkIndex", "chunk_address chunk_dims")
 
 
-class DatasetID:
+
+class ChunkRead:
+    """
+    Mixin providing parallel and bulk chunk-reading strategies.
+
+    ``DatasetID`` inherits from this class so that the hot path in
+    ``_get_selection_via_chunks`` can dispatch to the best available I/O strategy:
+
+    * **Case A - fsspec ``cat_ranges``**: a single bulk request issued to the
+      filesystem; ideal for remote stores (S3, GCS, https,  …).
+    * **Case B - ``os.pread`` thread pool**: parallel POSIX reads sharing a
+      single file descriptor without seek contention.
+    * **Case C - serial fallback**: safe for in-memory buffers and any
+      custom file-like wrapper.
+    """
+
+    # ------------------------------------------------------------------ #
+    # Shared helpers                                                       #
+    # ------------------------------------------------------------------ #
+
+    def _get_required_chunks(self, indexer):
+        """Walk *indexer* and return a list of
+        ``(chunk_coords, chunk_selection, out_selection, storeinfo)``
+        tuples for every chunk needed to satisfy the selection.
+        """
+        result = []
+        for chunk_coords, chunk_selection, out_selection in indexer:
+            chunk_coords = tuple(map(mul, chunk_coords, self.chunks))
+            storeinfo = self._index[chunk_coords]
+            result.append((chunk_coords, chunk_selection, out_selection, storeinfo))
+        return result
+
+    def _decode_chunk(self, chunk_buffer, filter_mask, dtype):
+        """Apply the filter pipeline (if any) and return a shaped ndarray."""
+        if self.filter_pipeline is not None:
+            chunk_buffer = BTreeV1RawDataChunks._filter_chunk(
+                chunk_buffer,
+                filter_mask,
+                self.filter_pipeline,
+                self.dtype.itemsize,
+            )
+        return np.frombuffer(chunk_buffer, dtype=dtype).reshape(
+            self.chunks, order=self._order
+        )
+
+    def _select_chunks(self, indexer, out, dtype):
+        """Collect required chunks and dispatch I/O to the best strategy.
+        Called by ``_get_selection_via_chunks`` in place of the serial loop.
+        """
+        chunks = self._get_required_chunks(indexer)
+        if not chunks:
+            return
+
+        # Case A: fsspec – bulk parallel fetch via cat_ranges
+        if not self.posix:
+            fh = self._fh
+            if hasattr(fh, "fs") and hasattr(fh.fs, "cat_ranges"):
+                self._read_bulk_fsspec(fh, chunks, out, dtype)
+                return
+
+        # Case B: POSIX – thread-parallel reads via os.pread
+        if self.posix and hasattr(os, "pread"):
+            self._read_parallel_threads(chunks, out, dtype)
+            return
+
+        # Case C: serial fallback
+        self._read_serial(chunks, out, dtype)
+
+    # ------------------------------------------------------------------ #
+    # Strategy implementations                                             #
+    # ------------------------------------------------------------------ #
+
+    def _read_serial(self, chunks, out, dtype):
+        """Read one chunk at a time (safe for any file-like object)."""
+        fh = self._fh
+        for _coords, chunk_sel, out_sel, storeinfo in chunks:
+            fh.seek(storeinfo.byte_offset)
+            chunk_buffer = fh.read(storeinfo.size)
+            out[out_sel] = self._decode_chunk(
+                chunk_buffer, storeinfo.filter_mask, dtype
+            )[chunk_sel]
+        if self.posix:
+            fh.close()
+
+    def _read_parallel_threads(self, chunks, out, dtype):
+        """Thread-parallel read via ``os.pread``.
+
+        ``os.pread`` does not advance the file-position pointer, so all
+        worker threads share a single open file descriptor safely.
+        """
+        fh = open(self._filename, "rb")
+        fd = fh.fileno()
+
+        def _read_one(item):
+            _coords, chunk_sel, out_sel, storeinfo = item
+            return (
+                chunk_sel,
+                out_sel,
+                storeinfo.filter_mask,
+                os.pread(fd, storeinfo.size, storeinfo.byte_offset),
+            )
+
+        try:
+            with ThreadPoolExecutor() as executor:
+                results = list(executor.map(_read_one, chunks))
+        finally:
+            fh.close()
+
+        for chunk_sel, out_sel, filter_mask, chunk_buffer in results:
+            out[out_sel] = self._decode_chunk(chunk_buffer, filter_mask, dtype)[
+                chunk_sel
+            ]
+
+    def _read_bulk_fsspec(self, fh, chunks, out, dtype):
+        """Bulk read via ``fsspec`` ``cat_ranges``.
+
+        Issues a single pipelined request for all required byte-ranges,
+        which on object stores typically translates to a small number of
+        HTTP range requests rather than one round-trip per chunk.
+        """
+        path = fh.path
+        starts = [si.byte_offset for _, _, _, si in chunks]
+        stops = [si.byte_offset + si.size for _, _, _, si in chunks]
+        buffers = fh.fs.cat_ranges([path] * len(chunks), starts, stops)
+
+        for (_coords, chunk_sel, out_sel, storeinfo), chunk_buffer in zip(
+            chunks, buffers
+        ):
+            out[out_sel] = self._decode_chunk(
+                chunk_buffer, storeinfo.filter_mask, dtype
+            )[chunk_sel]
+
+
+class DatasetID(ChunkRead):
     """
     Implements an "HDF5 dataset identifier", which despite the name, actually
     represents the data of a dataset in a file, and not an identifier. It includes all
@@ -679,23 +814,7 @@ class DatasetID:
                 fh.close()
 
         else:
-            for chunk_coords, chunk_selection, out_selection in indexer:
-                # map from chunk coordinate space to array space which
-                # is how hdf5 keeps the index
-                chunk_coords = tuple(map(mul, chunk_coords, self.chunks))
-                filter_mask, chunk_buffer = self.read_direct_chunk(chunk_coords)
-                if self.filter_pipeline is not None:
-                    # we are only using the class method here, future
-                    # filter pipelines may need their own function
-                    chunk_buffer = BTreeV1RawDataChunks._filter_chunk(
-                        chunk_buffer,
-                        filter_mask,
-                        self.filter_pipeline,
-                        self.dtype.itemsize,
-                    )
-                chunk_data = np.frombuffer(chunk_buffer, dtype=dtype)
-                chunk_data = chunk_data.reshape(self.chunks, order=self._order)
-                out[out_selection] = chunk_data[chunk_selection]
+            self._select_chunks(indexer, out, dtype)
 
         if isinstance(self._ptype, P5ReferenceType):
             to_reference = np.vectorize(Reference)
