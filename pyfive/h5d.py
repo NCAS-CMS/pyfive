@@ -46,8 +46,34 @@ class ChunkRead:
     # Shared helpers                                                       #
     # ------------------------------------------------------------------ #
 
+    def set_parallelism(self, thread_count=0, cat_range_allowed=False):
+        """
+        Configure experimental chunk-read parallelism.
+
+        ``thread_count`` controls POSIX threaded reads via ``os.pread``:
+        - ``0`` disables threaded reads
+        - ``>0`` enables threaded reads with that many workers
+
+        ``cat_range_allowed`` enables fsspec bulk reads via ``cat_ranges``
+        for compatible non-posix file handles.
+
+        This is a ``pyfive`` API extension, and is opt-in by default as it may not be suitable for all use cases.
+        It is recommended to enable it when working with remote files, but it may not be suitable for local files.
+
+        """
+        if thread_count is None:
+            thread_count = 0
+        thread_count = int(thread_count)
+        if thread_count < 0:
+            raise ValueError("thread_count must be >= 0")
+
+        self._thread_count = thread_count
+        self._cat_range_allowed = bool(cat_range_allowed)
+
+
     def _get_required_chunks(self, indexer):
-        """Walk *indexer* and return a list of
+        """
+        Walk *indexer* and return a list of
         ``(chunk_coords, chunk_selection, out_selection, storeinfo)``
         tuples for every chunk needed to satisfy the selection.
         """
@@ -59,7 +85,9 @@ class ChunkRead:
         return result
 
     def _decode_chunk(self, chunk_buffer, filter_mask, dtype):
-        """Apply the filter pipeline (if any) and return a shaped ndarray."""
+        """
+        Apply the filter pipeline (if any) and return a shaped ndarray
+        """
         if self.filter_pipeline is not None:
             chunk_buffer = BTreeV1RawDataChunks._filter_chunk(
                 chunk_buffer,
@@ -72,26 +100,33 @@ class ChunkRead:
         )
 
     def _select_chunks(self, indexer, out, dtype):
-        """Collect required chunks and dispatch I/O to the best strategy.
+        """
+        Collect required chunks and dispatch I/O to the best strategy.
         Called by ``_get_selection_via_chunks`` in place of the serial loop.
         """
         chunks = self._get_required_chunks(indexer)
         if not chunks:
             return
 
-        # Case A: fsspec – bulk parallel fetch via cat_ranges
-        if not self.posix:
+        # Case A: fsspec - bulk parallel fetch via cat_ranges
+        if not self.posix and self._cat_range_allowed:
             fh = self._fh
             if hasattr(fh, "fs") and hasattr(fh.fs, "cat_ranges"):
+                logger.debug("[pyfive] chunk read strategy: fsspec_cat_ranges")
                 self._read_bulk_fsspec(fh, chunks, out, dtype)
                 return
 
-        # Case B: POSIX – thread-parallel reads via os.pread
-        if self.posix and hasattr(os, "pread"):
+        # Case B: POSIX - thread-parallel reads via os.pread
+        if self.posix and hasattr(os, "pread") and self._thread_count != 0:
+            logger.debug(
+                "[pyfive] chunk read strategy: posix_pread_threads workers=%s",
+                self._thread_count,
+            )
             self._read_parallel_threads(chunks, out, dtype)
             return
 
         # Case C: serial fallback
+        logger.debug("[pyfive] chunk read strategy: serial")
         self._read_serial(chunks, out, dtype)
 
     # ------------------------------------------------------------------ #
@@ -99,7 +134,9 @@ class ChunkRead:
     # ------------------------------------------------------------------ #
 
     def _read_serial(self, chunks, out, dtype):
-        """Read one chunk at a time (safe for any file-like object)."""
+        """
+        Read one chunk at a time (safe for any file-like object).
+        """
         fh = self._fh
         for _coords, chunk_sel, out_sel, storeinfo in chunks:
             fh.seek(storeinfo.byte_offset)
@@ -111,7 +148,8 @@ class ChunkRead:
             fh.close()
 
     def _read_parallel_threads(self, chunks, out, dtype):
-        """Thread-parallel read via ``os.pread``.
+        """
+        Thread-parallel read via ``os.pread``.
 
         ``os.pread`` does not advance the file-position pointer, so all
         worker threads share a single open file descriptor safely.
@@ -129,7 +167,7 @@ class ChunkRead:
             )
 
         try:
-            with ThreadPoolExecutor() as executor:
+            with ThreadPoolExecutor(max_workers=self._thread_count) as executor:
                 results = list(executor.map(_read_one, chunks))
         finally:
             fh.close()
@@ -140,7 +178,8 @@ class ChunkRead:
             ]
 
     def _read_bulk_fsspec(self, fh, chunks, out, dtype):
-        """Bulk read via ``fsspec`` ``cat_ranges``.
+        """
+        Bulk read via ``fsspec`` ``cat_ranges``.
 
         Issues a single pipelined request for all required byte-ranges,
         which on object stores typically translates to a small number of
@@ -235,6 +274,8 @@ class DatasetID(ChunkRead):
         self.shape = dataobject.shape
         self.rank = len(self.shape)
         self.chunks = dataobject.chunks
+        # Experimental chunk-read settings are opt-in by default.
+        self.set_parallelism()
 
         # experimental code. We need to find out whether or not this
         # is unnecessary duplication. At the moment it seems best for
