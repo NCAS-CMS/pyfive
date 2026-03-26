@@ -281,12 +281,12 @@ class File(Group):
             # Already wrapped
             self._fh = fh
         elif type(fh).__name__ == "S3File" or hasattr(fh, "fs"):
-            # S3 file handle - wrap with buffering
+            # fsspec file handle - wrap with buffering
             # We check for the S3File type by name to avoid a hard dependency on s3fs,
             # but also check for an 'fs' attribute which is common in s3fs file-like objects.
             # This may yet be too broad, but it is unlikely to cause issues for non-S3 files.
             logger.info(
-                "[pyfive] Detected S3 file, enabling metadata buffering (%d MB)",
+                "[pyfive] Detected remote file, enabling metadata buffering (%d MB)",
                 metadata_buffer_size,
             )
             self._fh = MetadataBufferingWrapper(fh, buffer_size=metadata_buffer_size)
