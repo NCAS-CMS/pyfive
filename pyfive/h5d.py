@@ -69,6 +69,7 @@ class ChunkRead:
 
         self._thread_count = thread_count
         self._cat_range_allowed = bool(cat_range_allowed)
+        logger.info('Parallelism set with thread_count=%d and cat_range_allowed=%s', self._thread_count, self._cat_range_allowed)
 
 
     def _get_required_chunks(self, indexer):
@@ -111,22 +112,24 @@ class ChunkRead:
         # Case A: fsspec - bulk parallel fetch via cat_ranges
         if not self.posix and self._cat_range_allowed:
             fh = self._fh
-            if hasattr(fh, "fs") and hasattr(fh.fs, "cat_ranges"):
-                logger.debug("[pyfive] chunk read strategy: fsspec_cat_ranges")
+            actual_fh = getattr(fh, "fh", fh)  # support wrapped file-like objects  
+            if hasattr(actual_fh, "fs") and hasattr(actual_fh.fs, "cat_ranges"):
+                logger.info(f"[pyfive] chunk read strategy: fsspec_cat_ranges ({len(chunks)} chunks)")
                 self._read_bulk_fsspec(fh, chunks, out, dtype)
                 return
 
         # Case B: POSIX - thread-parallel reads via os.pread
         if self.posix and hasattr(os, "pread") and self._thread_count != 0:
-            logger.debug(
-                "[pyfive] chunk read strategy: posix_pread_threads workers=%s",
+            logger.info(
+                "[pyfive] chunk read strategy: posix_pread_threads workers=%s (%d chunks)",
                 self._thread_count,
+                len(chunks),
             )
             self._read_parallel_threads(chunks, out, dtype)
             return
 
         # Case C: serial fallback
-        logger.debug("[pyfive] chunk read strategy: serial")
+        logger.info("[pyfive] chunk read strategy: serial  (%d chunks)", len(chunks))
         self._read_serial(chunks, out, dtype)
 
     # ------------------------------------------------------------------ #
@@ -172,6 +175,8 @@ class ChunkRead:
         finally:
             fh.close()
 
+        logger.info('pyfive thread pool read completed using %d threads', self._thread_count)
+
         for chunk_sel, out_sel, filter_mask, chunk_buffer in results:
             out[out_sel] = self._decode_chunk(chunk_buffer, filter_mask, dtype)[
                 chunk_sel
@@ -183,12 +188,14 @@ class ChunkRead:
 
         Issues a single pipelined request for all required byte-ranges,
         which on object stores typically translates to a small number of
-        HTTP range requests rather than one round-trip per chunk.
+        HTTP range requests rather than one round-trip per chunk
+        (reaching through the MetadataBufferingWrapper).
         """
-        path = fh.path
+        actual_fh = getattr(fh, "fh", fh)  # support wrapped file-like objects
+        path = actual_fh.path
         starts = [si.byte_offset for _, _, _, si in chunks]
         stops = [si.byte_offset + si.size for _, _, _, si in chunks]
-        buffers = fh.fs.cat_ranges([path] * len(chunks), starts, stops)
+        buffers = actual_fh.fs.cat_ranges([path] * len(chunks), starts, stops)
 
         for (_coords, chunk_sel, out_sel, storeinfo), chunk_buffer in zip(
             chunks, buffers
