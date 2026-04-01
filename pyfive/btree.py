@@ -55,16 +55,6 @@ class AbstractBTree(object):
         self.last_offset = max(offset, self.last_offset)
         return node
 
-    @staticmethod
-    def _get_cat_ranges_fs(fh):
-        """Return (fs, path) when cat_ranges is supported, else (None, None)."""
-        actual_fh = getattr(fh, "fh", fh)
-        fs = getattr(actual_fh, "fs", None)
-        path = getattr(actual_fh, "path", None)
-        if fs is not None and path is not None and hasattr(fs, "cat_ranges"):
-            return fs, path
-        return None, None
-
     def _read_node_header(self, offset):
         """Return a single node header in the b-tree located at a give offset."""
         raise NotImplementedError
@@ -136,15 +126,15 @@ class BTreeV1RawDataChunks(BTreeV1):
 
     NODE_TYPE = 1  # type: ignore[assignment]
 
-    def __init__(self, fh, offset, dims):
+    def __init__(self, fh, offset, dims, fetch_fn=None):
         """initalize."""
         self.dims = dims
+        self._fetch_fn = fetch_fn
         super().__init__(fh, offset)
 
     def _read_children(self):
-        """Read child nodes; fetch leaf-level nodes in bulk when possible."""
-        fs, path = self._get_cat_ranges_fs(self.fh)
-        if fs is None:
+        """Read children; fetch leaf nodes via fetch_fn when provided."""
+        if self._fetch_fn is None:
             super()._read_children()
             return
 
@@ -168,13 +158,11 @@ class BTreeV1RawDataChunks(BTreeV1):
         if not leaf_addresses:
             return
 
-        leaf_size = self._estimate_leaf_node_size(leaf_addresses[0])
-        starts = list(leaf_addresses)
-        stops = [addr + leaf_size for addr in starts]
-        raw_leaves = fs.cat_ranges([path] * len(starts), starts, stops)
+        leaf_size = self._leaf_node_size()
+        raw_buffers = self._fetch_fn(leaf_addresses, leaf_size)
 
-        for addr, raw in zip(starts, raw_leaves):
-            node = self._parse_leaf_from_buffer(raw, addr)
+        for addr, raw in zip(leaf_addresses, raw_buffers):
+            node = self._parse_node_from_buffer(raw, addr, node_level=0)
             self._add_node(node)
 
     def _read_node(self, offset, node_level):
@@ -217,32 +205,37 @@ class BTreeV1RawDataChunks(BTreeV1):
         self.last_offset = max(offset, self.last_offset)
         return node
 
-    def _estimate_leaf_node_size(self, first_leaf_addr):
-        """Estimate leaf-node byte size using the first leaf header."""
-        node = self._read_node_header(first_leaf_addr, 0)
+    def _leaf_node_size(self):
+        """Compute the byte size of a leaf node by peeking at the first one."""
         header_size = struct.calcsize("<" + "".join(self.B_LINK_NODE.values()))
-        entry_size = 8 + (8 * self.dims) + 8
-        return header_size + (node["entries_used"] * entry_size)
+        entry_size = 8 + 8 * self.dims + 8
 
-    def _parse_leaf_from_buffer(self, raw, addr):
-        """Parse a level-0 raw-data chunk node from a bytes buffer."""
+        first_leaf_addr = self.all_nodes[1][0]["addresses"][0]
+        self.fh.seek(first_leaf_addr)
+        header_bytes = self.fh.read(header_size)
+        entries_used = struct.unpack_from("<H", header_bytes, 6)[0]
+        return header_size + entries_used * entry_size
+
+    def _parse_node_from_buffer(self, raw, addr, node_level):
+        """Parse a raw-data-chunk b-tree node from an in-memory bytes buffer."""
         node = _unpack_struct_from(self.B_LINK_NODE, raw)
         assert node["signature"] == b"TREE"
         assert node["node_type"] == self.NODE_TYPE
-        assert node["node_level"] == 0
+        assert node["node_level"] == node_level
 
         keys = []
         addresses = []
-        entry_offset_fmt = "<" + "Q" * self.dims
-        entry_offset_size = struct.calcsize(entry_offset_fmt)
+        mv = memoryview(raw)
+        offset_fmt = f"<{self.dims}Q"
+        offset_fmt_size = self.dims * 8
         cursor = struct.calcsize("<" + "".join(self.B_LINK_NODE.values()))
 
         for _ in range(node["entries_used"]):
-            chunk_size, filter_mask = struct.unpack_from("<II", raw, cursor)
+            chunk_size, filter_mask = struct.unpack_from("<II", mv, cursor)
             cursor += 8
-            chunk_offset = struct.unpack_from(entry_offset_fmt, raw, cursor)
-            cursor += entry_offset_size
-            chunk_address = struct.unpack_from("<Q", raw, cursor)[0]
+            chunk_offset = struct.unpack_from(offset_fmt, mv, cursor)
+            cursor += offset_fmt_size
+            chunk_address = struct.unpack_from("<Q", mv, cursor)[0]
             cursor += 8
 
             keys.append(

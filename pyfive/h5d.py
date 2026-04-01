@@ -112,7 +112,7 @@ class ChunkRead:
         # Case A: fsspec - bulk parallel fetch via cat_ranges
         if not self.posix and self._cat_range_allowed:
             fh = self._fh
-            actual_fh = getattr(fh, "fh", fh)  # support wrapped file-like objects  
+            actual_fh = getattr(fh, "fh", fh)  # support wrapped file-like objects
             if hasattr(actual_fh, "fs") and hasattr(actual_fh.fs, "cat_ranges"):
                 logger.info(f"[pyfive] chunk read strategy: fsspec_cat_ranges ({len(chunks)} chunks)")
                 self._read_bulk_fsspec(fh, chunks, out, dtype)
@@ -575,7 +575,10 @@ class DatasetID(ChunkRead):
         t0 = time()
         fh = self._fh
         chunk_btree = BTreeV1RawDataChunks(
-            fh, self._index_params.chunk_address, self._index_params.chunk_dims
+            fh,
+            self._index_params.chunk_address,
+            self._index_params.chunk_dims,
+            fetch_fn=self._make_btree_fetch_fn(),
         )
         if self.posix:
             fh.close()
@@ -607,6 +610,44 @@ class DatasetID(ChunkRead):
         )
 
         self.__index_built = True
+
+    def _make_btree_fetch_fn(self):
+        """Return fetch_fn(addresses, size) for b-tree leaf reads, or None."""
+        actual_fh = None
+        if not self.posix:
+            fh = self._fh
+            actual_fh = getattr(fh, "fh", fh)
+
+        # Case A: fsspec cat_ranges for remote file-like handles.
+        if self._cat_range_allowed:
+            fs = getattr(actual_fh, "fs", None)
+            path = getattr(actual_fh, "path", None)
+            if fs is not None and path is not None and hasattr(fs, "cat_ranges"):
+
+                def fetch_cat_ranges(addresses, size):
+                    stops = [addr + size for addr in addresses]
+                    return fs.cat_ranges([path] * len(addresses), addresses, stops)
+
+                return fetch_cat_ranges
+
+        # Case B: POSIX thread pool with os.pread.
+        if self.posix and hasattr(os, "pread") and self._thread_count != 0:
+            filename = self._filename
+            thread_count = self._thread_count
+
+            def fetch_pread(addresses, size):
+                fh_local = open(filename, "rb")
+                fd = fh_local.fileno()
+                try:
+                    with ThreadPoolExecutor(max_workers=thread_count) as executor:
+                        return list(executor.map(lambda addr: os.pread(fd, size, addr), addresses))
+                finally:
+                    fh_local.close()
+
+            return fetch_pread
+
+        # Case C: serial fallback in BTreeV1RawDataChunks.
+        return None
 
     def _get_contiguous_data(self, args, fillvalue):
         if isinstance(self._ptype, P5ReferenceType):
