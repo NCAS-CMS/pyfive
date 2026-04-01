@@ -176,6 +176,8 @@ class BTreeV1RawDataChunks(BTreeV1):
         read_size = n_entries * entry_size
         node_data = self.fh.read(read_size)
         mem_view = memoryview(node_data)
+        offset_fmt = f"<{self.dims}Q"
+        offset_size = self.dims * 8
 
         pos = 0
         for _ in range(n_entries):
@@ -183,9 +185,8 @@ class BTreeV1RawDataChunks(BTreeV1):
             chunk_size, filter_mask = struct.unpack_from("<II", mem_view, pos)
             pos += 8
             # chunk_offset dims × uint64
-            fmt = f"<{self.dims}Q"
-            chunk_offset = struct.unpack_from(fmt, mem_view, pos)
-            pos += self.dims * 8
+            chunk_offset = struct.unpack_from(offset_fmt, mem_view, pos)
+            pos += offset_size
             # address
             (chunk_address,) = struct.unpack_from("<Q", mem_view, pos)
             pos += 8
