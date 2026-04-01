@@ -1,7 +1,8 @@
 import io
 import struct
 
-from pyfive.btree import AbstractBTree, BTreeV1RawDataChunks
+from pyfive.btree import BTreeV1, BTreeV1RawDataChunks
+from pyfive.h5d import DatasetID
 
 
 def _build_leaf_node_bytes(*, dims, entries):
@@ -19,6 +20,7 @@ class _WrappedFH:
         self.fh = self
         self.fs = fs
         self.path = path
+        self.closed = False
 
 
 class _DummyFS:
@@ -31,57 +33,21 @@ class _DummyFS:
         return [self.payload_by_start[s] for s in starts]
 
 
-def test_get_cat_ranges_fs_support_detection():
-    fs = _DummyFS({})
-    wrapped = _WrappedFH(fs, "bucket/file.h5")
-    out_fs, out_path = AbstractBTree._get_cat_ranges_fs(wrapped)
-    assert out_fs is fs
-    assert out_path == "bucket/file.h5"
-
-    class NoCatRangesFS:
-        pass
-
-    no_support = _WrappedFH(NoCatRangesFS(), "bucket/file.h5")
-    out_fs, out_path = AbstractBTree._get_cat_ranges_fs(no_support)
-    assert out_fs is None
-    assert out_path is None
-
-
-def test_raw_chunk_tree_reads_leaf_nodes_via_cat_ranges(monkeypatch):
+def test_read_children_with_fetch_fn_fetches_leaves_once(monkeypatch):
     leaf_raw = {
-        1000: _build_leaf_node_bytes(
-            dims=1,
-            entries=[(16, 0, (0,), 7000)],
-        ),
-        1001: _build_leaf_node_bytes(
-            dims=1,
-            entries=[(16, 0, (2,), 7001)],
-        ),
-        2000: _build_leaf_node_bytes(
-            dims=1,
-            entries=[(16, 0, (4,), 7002)],
-        ),
+        1000: _build_leaf_node_bytes(dims=1, entries=[(16, 0, (0,), 7000)]),
+        1001: _build_leaf_node_bytes(dims=1, entries=[(16, 0, (2,), 7001)]),
+        2000: _build_leaf_node_bytes(dims=1, entries=[(16, 0, (4,), 7002)]),
     }
-    fs = _DummyFS(leaf_raw)
 
     tree = BTreeV1RawDataChunks.__new__(BTreeV1RawDataChunks)
-    tree.fh = _WrappedFH(fs, "bucket/file.h5")
+    tree.fh = io.BytesIO(b"")
     tree.dims = 1
     tree.depth = 2
     tree.last_offset = 0
-    tree.all_nodes = {
-        2: [
-            {
-                "node_level": 2,
-                "addresses": [100, 200],
-            }
-        ]
-    }
+    tree.all_nodes = {2: [{"node_level": 2, "addresses": [100, 200]}]}
 
-    children = {
-        100: [1000, 1001],
-        200: [2000],
-    }
+    children = {100: [1000, 1001], 200: [2000]}
 
     def fake_read_node(offset, node_level):
         assert node_level == 1
@@ -92,42 +58,40 @@ def test_raw_chunk_tree_reads_leaf_nodes_via_cat_ranges(monkeypatch):
             "keys": [],
         }
 
+    fetch_calls = []
+
+    def fake_fetch(addresses, size):
+        fetch_calls.append((list(addresses), size))
+        return [leaf_raw[a] for a in addresses]
+
     monkeypatch.setattr(tree, "_read_node", fake_read_node)
-    monkeypatch.setattr(tree, "_estimate_leaf_node_size", lambda _: len(leaf_raw[1000]))
+    monkeypatch.setattr(tree, "_leaf_node_size", lambda: len(leaf_raw[1000]))
+    tree._fetch_fn = fake_fetch
 
     tree._read_children()
 
-    assert len(fs.calls) == 1
-    paths, starts, stops = fs.calls[0]
-    assert paths == ["bucket/file.h5"] * 3
-    assert starts == [1000, 1001, 2000]
-    assert stops == [
-        1000 + len(leaf_raw[1000]),
-        1001 + len(leaf_raw[1001]),
-        2000 + len(leaf_raw[2000]),
-    ]
-
+    assert fetch_calls == [([1000, 1001, 2000], len(leaf_raw[1000]))]
     assert 0 in tree.all_nodes
     assert [node["addresses"][0] for node in tree.all_nodes[0]] == [7000, 7001, 7002]
 
 
-def test_raw_chunk_tree_falls_back_when_cat_ranges_unsupported(monkeypatch):
+def test_read_children_falls_back_when_fetch_fn_none(monkeypatch):
     tree = BTreeV1RawDataChunks.__new__(BTreeV1RawDataChunks)
-    tree.fh = object()
+    tree._fetch_fn = None
 
     called = {"value": False}
 
     def fake_super_read_children(self):
         called["value"] = True
 
-    monkeypatch.setattr(AbstractBTree, "_read_children", fake_super_read_children)
+    monkeypatch.setattr(BTreeV1, "_read_children", fake_super_read_children)
 
     tree._read_children()
 
     assert called["value"] is True
 
 
-def test_estimate_leaf_node_size_uses_header_entries_used():
+def test_leaf_node_size_uses_first_leaf_header():
     header_addr = 32
     buf = bytearray(b"\x00" * header_addr)
     buf.extend(struct.pack("<4sBBHQQ", b"TREE", 1, 0, 3, 0, 0))
@@ -136,6 +100,52 @@ def test_estimate_leaf_node_size_uses_header_entries_used():
     tree = BTreeV1RawDataChunks.__new__(BTreeV1RawDataChunks)
     tree.fh = fh
     tree.dims = 2
+    tree.all_nodes = {1: [{"addresses": [header_addr]}]}
 
     # Header (24) + entries_used (3) * entry_size (8 + 16 + 8)
-    assert tree._estimate_leaf_node_size(header_addr) == 120
+    assert tree._leaf_node_size() == 120
+
+
+def test_make_btree_fetch_fn_cat_ranges_case():
+    dsid = DatasetID.__new__(DatasetID)
+    dsid.posix = False
+    dsid._cat_range_allowed = True
+    dsid._thread_count = 0
+
+    fs = _DummyFS({10: b"abcd", 20: b"efgh"})
+    dsid._DatasetID__fh = _WrappedFH(fs, "bucket/file.h5")
+
+    fetch_fn = dsid._make_btree_fetch_fn()
+    assert fetch_fn is not None
+
+    out = fetch_fn([10, 20], 4)
+    assert out == [b"abcd", b"efgh"]
+    assert fs.calls == [(["bucket/file.h5", "bucket/file.h5"], [10, 20], [14, 24])]
+
+
+def test_make_btree_fetch_fn_pread_case(tmp_path):
+    dsid = DatasetID.__new__(DatasetID)
+    dsid.posix = True
+    dsid._cat_range_allowed = False
+    dsid._thread_count = 2
+    payload = b"abcdefghijklmnopqrstuvwxyz"
+    fpath = tmp_path / "pread.bin"
+    fpath.write_bytes(payload)
+    dsid._filename = str(fpath)
+
+    fetch_fn = dsid._make_btree_fetch_fn()
+    assert fetch_fn is not None
+
+    out = fetch_fn([0, 4, 8], 3)
+    assert out == [b"abc", b"efg", b"ijk"]
+
+
+def test_make_btree_fetch_fn_serial_case():
+    dsid = DatasetID.__new__(DatasetID)
+    dsid.posix = True
+    dsid._cat_range_allowed = False
+    dsid._thread_count = 0
+
+    fetch_fn = dsid._make_btree_fetch_fn()
+    assert fetch_fn is None
+
