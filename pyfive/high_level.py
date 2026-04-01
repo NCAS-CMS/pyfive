@@ -4,6 +4,7 @@ from __future__ import annotations
 from collections import deque
 from collections.abc import Callable
 from collections.abc import Mapping, Sequence
+from abc import ABC
 import os
 import posixpath
 import warnings
@@ -371,7 +372,7 @@ class File(Group):
         self.close()
 
 
-class Dataset(object):
+class Dataset(ABC):
     """
     A HDF5 Dataset containing an n-dimensional array and meta-data attributes.
 
