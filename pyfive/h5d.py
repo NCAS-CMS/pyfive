@@ -46,7 +46,7 @@ class ChunkRead:
     # Shared helpers                                                       #
     # ------------------------------------------------------------------ #
 
-    def set_parallelism(self, thread_count=0, cat_range_allowed=False):
+    def set_parallelism(self, thread_count=5, cat_range_allowed=True):
         """
         Configure experimental chunk-read parallelism.
 
