@@ -55,6 +55,16 @@ class AbstractBTree(object):
         self.last_offset = max(offset, self.last_offset)
         return node
 
+    @staticmethod
+    def _get_cat_ranges_fs(fh):
+        """Return (fs, path) when cat_ranges is supported, else (None, None)."""
+        actual_fh = getattr(fh, "fh", fh)
+        fs = getattr(actual_fh, "fs", None)
+        path = getattr(actual_fh, "path", None)
+        if fs is not None and path is not None and hasattr(fs, "cat_ranges"):
+            return fs, path
+        return None, None
+
     def _read_node_header(self, offset):
         """Return a single node header in the b-tree located at a give offset."""
         raise NotImplementedError
@@ -131,6 +141,42 @@ class BTreeV1RawDataChunks(BTreeV1):
         self.dims = dims
         super().__init__(fh, offset)
 
+    def _read_children(self):
+        """Read child nodes; fetch leaf-level nodes in bulk when possible."""
+        fs, path = self._get_cat_ranges_fs(self.fh)
+        if fs is None:
+            super()._read_children()
+            return
+
+        # Leaf-level root node: already read in _read_root_node.
+        if self.depth == 0:
+            return
+
+        # Traverse internal levels sequentially; each level depends on the prior.
+        for node_level in range(self.depth, 0, -1):
+            for parent_node in self.all_nodes[node_level]:
+                for child_addr in parent_node["addresses"]:
+                    if node_level - 1 > 0:
+                        child_node = self._read_node(child_addr, node_level - 1)
+                        self._add_node(child_node)
+
+        # Collect leaf addresses from the lowest internal level.
+        leaf_addresses = []
+        for node in self.all_nodes.get(1, []):
+            leaf_addresses.extend(node["addresses"])
+
+        if not leaf_addresses:
+            return
+
+        leaf_size = self._estimate_leaf_node_size(leaf_addresses[0])
+        starts = list(leaf_addresses)
+        stops = [addr + leaf_size for addr in starts]
+        raw_leaves = fs.cat_ranges([path] * len(starts), starts, stops)
+
+        for addr, raw in zip(starts, raw_leaves):
+            node = self._parse_leaf_from_buffer(raw, addr)
+            self._add_node(node)
+
     def _read_node(self, offset, node_level):
         """Return a single node in the b-tree located at a give offset."""
         node = self._read_node_header(offset, node_level)
@@ -169,6 +215,50 @@ class BTreeV1RawDataChunks(BTreeV1):
         node["keys"] = keys
         node["addresses"] = addresses
         self.last_offset = max(offset, self.last_offset)
+        return node
+
+    def _estimate_leaf_node_size(self, first_leaf_addr):
+        """Estimate leaf-node byte size using the first leaf header."""
+        node = self._read_node_header(first_leaf_addr, 0)
+        header_size = struct.calcsize("<" + "".join(self.B_LINK_NODE.values()))
+        entry_size = 8 + (8 * self.dims) + 8
+        return header_size + (node["entries_used"] * entry_size)
+
+    def _parse_leaf_from_buffer(self, raw, addr):
+        """Parse a level-0 raw-data chunk node from a bytes buffer."""
+        node = _unpack_struct_from(self.B_LINK_NODE, raw)
+        assert node["signature"] == b"TREE"
+        assert node["node_type"] == self.NODE_TYPE
+        assert node["node_level"] == 0
+
+        keys = []
+        addresses = []
+        entry_offset_fmt = "<" + "Q" * self.dims
+        entry_offset_size = struct.calcsize(entry_offset_fmt)
+        cursor = struct.calcsize("<" + "".join(self.B_LINK_NODE.values()))
+
+        for _ in range(node["entries_used"]):
+            chunk_size, filter_mask = struct.unpack_from("<II", raw, cursor)
+            cursor += 8
+            chunk_offset = struct.unpack_from(entry_offset_fmt, raw, cursor)
+            cursor += entry_offset_size
+            chunk_address = struct.unpack_from("<Q", raw, cursor)[0]
+            cursor += 8
+
+            keys.append(
+                OrderedDict(
+                    (
+                        ("chunk_size", chunk_size),
+                        ("filter_mask", filter_mask),
+                        ("chunk_offset", chunk_offset),
+                    )
+                )
+            )
+            addresses.append(chunk_address)
+
+        node["keys"] = keys
+        node["addresses"] = addresses
+        self.last_offset = max(addr, self.last_offset)
         return node
 
     @classmethod
