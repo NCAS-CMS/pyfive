@@ -158,12 +158,23 @@ class BTreeV1RawDataChunks(BTreeV1):
         if not leaf_addresses:
             return
 
-        leaf_size = self._leaf_node_size()
-        raw_buffers = self._fetch_fn(leaf_addresses, leaf_size)
+        # Leaf nodes can differ in entries_used, so fetch just headers first,
+        # then group addresses by exact node size.
+        header_size = struct.calcsize("<" + "".join(self.B_LINK_NODE.values()))
+        header_buffers = self._fetch_fn(leaf_addresses, header_size)
 
-        for addr, raw in zip(leaf_addresses, raw_buffers):
-            node = self._parse_node_from_buffer(raw, addr, node_level=0)
-            self._add_node(node)
+        size_to_addresses = OrderedDict()
+        entry_size = 8 + self.dims * 8 + 8
+        for addr, header in zip(leaf_addresses, header_buffers):
+            entries_used = struct.unpack_from("<H", header, 6)[0]
+            node_size = header_size + entries_used * entry_size
+            size_to_addresses.setdefault(node_size, []).append(addr)
+
+        for node_size, addresses in size_to_addresses.items():
+            raw_buffers = self._fetch_fn(addresses, node_size)
+            for addr, raw in zip(addresses, raw_buffers):
+                node = self._parse_node_from_buffer(raw, addr, node_level=0)
+                self._add_node(node)
 
     def _read_node(self, offset, node_level):
         """Return a single node in the b-tree located at a give offset."""
