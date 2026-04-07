@@ -22,7 +22,9 @@ skinparam stereotypeCBackgroundColor white
 ' Packages
 ' ------------------------------------------------------------------
 
-package "pyfive.high_level" {
+package pyfive {
+
+package "high_level" {
     class File {
         + filename : str
         + mode : str
@@ -54,7 +56,7 @@ package "pyfive.high_level" {
     }
 }
 
-package "pyfive.h5d" {
+package "h5d" {
     class ChunkRead {
         + set_parallelism(thread_count, cat_range_allowed)
         + _select_chunks(indexer, out, dtype)
@@ -77,7 +79,7 @@ package "pyfive.h5d" {
     ChunkRead  <|- DatasetID 
 }
 
-package "pyfive.dataobjects" {
+package "dataobjects" {
     class DataObjects {
         + offset : int
         + is_group : bool
@@ -87,7 +89,7 @@ package "pyfive.dataobjects" {
     }
 }
 
-package "pyfive.misc_low_level" {
+package "misc_low_level" {
     class SuperBlock {
         + version : int
         + offset_to_dataobjects : int
@@ -97,13 +99,22 @@ package "pyfive.misc_low_level" {
     class GlobalHeap HEAP_STEREO
     class FractalHeap HEAP_STEREO
     class SymbolTable
+
+    SymbolTable -[hidden]- Heap 
+    SymbolTable -[hidden]- GlobalHeap
+    SymbolTable -[hidden]- FractalHeap
 }
 
-package "pyfive.btree" {
+package "btree" {
     class AbstractBTree BTREE_STEREO
     class BTreeV1 BTREE_STEREO
     class BTreeV1\nGroups BTREE_STEREO
-    class BTreeV1\nRawDataChunks BTREE_STEREO
+    class BTreeV1\nRawDataChunks BTREE_STEREO {
+        + fh : int
+        + offset : int
+        + dims : int
+        fetch_fn()
+    }
     class BTreeV2 BTREE_STEREO
     class BTreeV2\nGroupNames BTREE_STEREO
     class BTreeV2\nGroupOrders BTREE_STEREO
@@ -116,11 +127,13 @@ package "pyfive.btree" {
     BTreeV1\nRawDataChunks --|> BTreeV1
     BTreeV2\nGroupNames --|> BTreeV2
     BTreeV2\nGroupOrders --|> BTreeV2
-    BTreeV2\nAttrCreationOrder --|> BTreeV2
+    BTreeV2\nAttrCreationOrder -|> BTreeV2
     BTreeV2\nAttrNames --|> BTreeV2
+
+
 }
 
-package "pyfive.utilities" {
+package "utilities" {
     class MetadataBufferingWrapper
 }
 
@@ -152,7 +165,22 @@ DataObjects ..> BTreeV2\nGroupNames : iterates children
 DataObjects ..> BTreeV2\nGroupOrders : iterates children
 DataObjects ..> BTreeV2\nAttrCreationOrder : iterates attrs
 DataObjects ..> BTreeV2\nAttrNames : iterates attrs
-DatasetID ..> BTreeV1\nRawDataChunks : finds data chunks
+DatasetID ..> BTreeV1\nRawDataChunks : finds\ndata\nchunks
 File ..> MetadataBufferingWrapper : wraps remote handles
+
+note as N1
+b-tree 
+- built by <i>_build_index</i> 
+- parallelism passed 
+  via the <i>fetch_fn</i> to
+  <i>BTreeV1RawDataChunks</i>
+end note
+
+DatasetID .. N1
+N1 .. BTreeV1\nRawDataChunks
+
+}
+
+
 
 @enduml
