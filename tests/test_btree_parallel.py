@@ -166,8 +166,7 @@ def test_leaf_node_size_uses_first_leaf_header():
 def test_make_btree_fetch_fn_cat_ranges_case():
     dsid = DatasetID.__new__(DatasetID)
     dsid.posix = False
-    dsid._cat_range_allowed = True
-    dsid._thread_count = 0
+    dsid.set_parallelism(thread_count=0, cat_range_allowed=True, _btree_parallel=True)
 
     fs = _DummyFS({10: b"abcd", 20: b"efgh"})
     dsid._DatasetID__fh = _WrappedFH(fs, "bucket/file.h5")
@@ -183,8 +182,7 @@ def test_make_btree_fetch_fn_cat_ranges_case():
 def test_make_btree_fetch_fn_pread_case(tmp_path):
     dsid = DatasetID.__new__(DatasetID)
     dsid.posix = True
-    dsid._cat_range_allowed = False
-    dsid._thread_count = 2
+    dsid.set_parallelism(thread_count=2, cat_range_allowed=False, _btree_parallel=True)
     payload = b"abcdefghijklmnopqrstuvwxyz"
     fpath = tmp_path / "pread.bin"
     fpath.write_bytes(payload)
@@ -200,8 +198,7 @@ def test_make_btree_fetch_fn_pread_case(tmp_path):
 def test_make_btree_fetch_fn_serial_case():
     dsid = DatasetID.__new__(DatasetID)
     dsid.posix = True
-    dsid._cat_range_allowed = False
-    dsid._thread_count = 0
+    dsid.set_parallelism(thread_count=0, cat_range_allowed=False, _btree_parallel=False)
 
     fetch_fn = dsid._make_btree_fetch_fn()
     assert fetch_fn is None
@@ -210,7 +207,7 @@ def test_make_btree_fetch_fn_serial_case():
 def test_parallel_pread_matches_serial_results_for_chunked_dataset():
     with pyfive.File(DATASET_CHUNKED_HDF5_FILE) as hfile:
         serial = hfile["dataset1"]
-        serial.id.set_parallelism(thread_count=0, cat_range_allowed=False)
+        serial.id.set_parallelism(thread_count=0, cat_range_allowed=False, _btree_parallel=False)
         serial_data = serial[:]
         serial_chunk_info = [
             serial.id.get_chunk_info(i) for i in range(serial.id.get_num_chunks())
@@ -218,7 +215,7 @@ def test_parallel_pread_matches_serial_results_for_chunked_dataset():
 
     with pyfive.File(DATASET_CHUNKED_HDF5_FILE) as hfile:
         parallel = hfile["dataset1"]
-        parallel.id.set_parallelism(thread_count=2, cat_range_allowed=False)
+        parallel.id.set_parallelism(thread_count=2, cat_range_allowed=False, _btree_parallel=True)
         parallel_data = parallel[:]
         parallel_chunk_info = [
             parallel.id.get_chunk_info(i) for i in range(parallel.id.get_num_chunks())
@@ -231,7 +228,7 @@ def test_parallel_pread_matches_serial_results_for_chunked_dataset():
 def test_parallel_fsspec_cat_ranges_matches_serial_results():
     with pyfive.File(DATASET_CHUNKED_HDF5_FILE) as hfile:
         serial = hfile["dataset1"]
-        serial.id.set_parallelism(thread_count=0, cat_range_allowed=False)
+        serial.id.set_parallelism(thread_count=0, cat_range_allowed=False, _btree_parallel=False)
         serial_data = serial[:]
         serial_chunk_info = [
             serial.id.get_chunk_info(i) for i in range(serial.id.get_num_chunks())
@@ -254,7 +251,7 @@ def test_parallel_fsspec_cat_ranges_matches_serial_results():
     with memfs.open(mem_path, "rb") as fh:
         with pyfive.File(fh) as hfile:
             ds = hfile["dataset1"]
-            ds.id.set_parallelism(thread_count=0, cat_range_allowed=True)
+            ds.id.set_parallelism(thread_count=0, cat_range_allowed=True, _btree_parallel=True)
             fsspec_data = ds[:]
             fsspec_chunk_info = [
                 ds.id.get_chunk_info(i) for i in range(ds.id.get_num_chunks())
@@ -268,7 +265,7 @@ def test_parallel_fsspec_cat_ranges_matches_serial_results():
 def test_parallel_s3fs_cat_ranges_matches_serial_results(s3fs_s3):
     with pyfive.File(DATASET_CHUNKED_HDF5_FILE) as hfile:
         serial = hfile["dataset1"]
-        serial.id.set_parallelism(thread_count=0, cat_range_allowed=False)
+        serial.id.set_parallelism(thread_count=0, cat_range_allowed=False, _btree_parallel=False)
         serial_data = serial[:]
         serial_chunk_info = [
             serial.id.get_chunk_info(i) for i in range(serial.id.get_num_chunks())
@@ -295,7 +292,7 @@ def test_parallel_s3fs_cat_ranges_matches_serial_results(s3fs_s3):
     with s3fs_s3.open(s3_key, "rb") as fh:
         with pyfive.File(fh) as hfile:
             ds = hfile["dataset1"]
-            ds.id.set_parallelism(thread_count=0, cat_range_allowed=True)
+            ds.id.set_parallelism(thread_count=0, cat_range_allowed=True, _btree_parallel=True)
             s3_data = ds[:]
             s3_chunk_info = [
                 ds.id.get_chunk_info(i) for i in range(ds.id.get_num_chunks())

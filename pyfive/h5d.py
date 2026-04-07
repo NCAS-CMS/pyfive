@@ -46,16 +46,20 @@ class ChunkRead:
     # Shared helpers                                                       #
     # ------------------------------------------------------------------ #
 
-    def set_parallelism(self, thread_count=5, cat_range_allowed=True):
+    def set_parallelism(self, thread_count=5, cat_range_allowed=True, _btree_parallel=False):
         """
         Configure experimental chunk-read parallelism.
 
         ``thread_count`` controls POSIX threaded reads via ``os.pread``:
         - ``0`` disables threaded reads
         - ``>0`` enables threaded reads with that many workers
+        - Default 5
 
         ``cat_range_allowed`` enables fsspec bulk reads via ``cat_ranges``
-        for compatible non-posix file handles.
+        for compatible non-posix file handles. Default True
+
+        ``parallel_btree`` enables parallel reads for b-tree nodes when building 
+        the chunk index. Default False.
 
         This is a ``pyfive`` API extension, and is opt-in by default as it may not be suitable for all use cases.
         It is recommended to enable it when working with remote files, but it may not be suitable for local files.
@@ -69,7 +73,9 @@ class ChunkRead:
 
         self._thread_count = thread_count
         self._cat_range_allowed = bool(cat_range_allowed)
-        logger.info('Parallelism set with thread_count=%d and cat_range_allowed=%s', self._thread_count, self._cat_range_allowed)
+        self._btree_parallel = bool(_btree_parallel)
+        logger.info('Parallelism: thread_count=%d, cat_range_allowed=%s, btree_parallel=%s',
+                    self._thread_count, self._cat_range_allowed, self._btree_parallel)
 
 
     def _get_required_chunks(self, indexer):
@@ -613,6 +619,10 @@ class DatasetID(ChunkRead):
 
     def _make_btree_fetch_fn(self):
         """Return fetch_fn(addresses, size) for b-tree leaf reads, or None."""
+
+        if not self._btree_parallel:
+            return None
+
         actual_fh = None
         if not self.posix:
             fh = self._fh
