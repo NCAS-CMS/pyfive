@@ -26,7 +26,6 @@ StoreInfo = namedtuple("StoreInfo", "chunk_offset filter_mask byte_offset size")
 ChunkIndex = namedtuple("ChunkIndex", "chunk_address chunk_dims")
 
 
-
 class ChunkRead:
     """
     Mixin providing parallel and bulk chunk-reading strategies.
@@ -46,7 +45,9 @@ class ChunkRead:
     # Shared helpers                                                       #
     # ------------------------------------------------------------------ #
 
-    def set_parallelism(self, thread_count=5, cat_range_allowed=True, _btree_parallel=False):
+    def set_parallelism(
+        self, thread_count=5, cat_range_allowed=True, _btree_parallel=False
+    ):
         """
         Configure experimental chunk-read parallelism.
 
@@ -58,7 +59,7 @@ class ChunkRead:
         ``cat_range_allowed`` enables fsspec bulk reads via ``cat_ranges``
         for compatible non-posix file handles. Default True
 
-        ``parallel_btree`` enables parallel reads for b-tree nodes when building 
+        ``parallel_btree`` enables parallel reads for b-tree nodes when building
         the chunk index. Default False.
 
         This is a ``pyfive`` API extension, and is opt-in by default as it may not be suitable for all use cases.
@@ -74,9 +75,12 @@ class ChunkRead:
         self._thread_count = thread_count
         self._cat_range_allowed = bool(cat_range_allowed)
         self._btree_parallel = bool(_btree_parallel)
-        logger.info('Parallelism: thread_count=%d, cat_range_allowed=%s, btree_parallel=%s',
-                    self._thread_count, self._cat_range_allowed, self._btree_parallel)
-
+        logger.info(
+            "Parallelism: thread_count=%d, cat_range_allowed=%s, btree_parallel=%s",
+            self._thread_count,
+            self._cat_range_allowed,
+            self._btree_parallel,
+        )
 
     def _get_required_chunks(self, indexer):
         """
@@ -120,7 +124,9 @@ class ChunkRead:
             fh = self._fh
             actual_fh = getattr(fh, "fh", fh)  # support wrapped file-like objects
             if hasattr(actual_fh, "fs") and hasattr(actual_fh.fs, "cat_ranges"):
-                logger.info(f"[pyfive] chunk read strategy: fsspec_cat_ranges ({len(chunks)} chunks)")
+                logger.info(
+                    f"[pyfive] chunk read strategy: fsspec_cat_ranges ({len(chunks)} chunks)"
+                )
                 self._read_bulk_fsspec(fh, chunks, out, dtype)
                 return
 
@@ -181,7 +187,9 @@ class ChunkRead:
         finally:
             fh.close()
 
-        logger.info('pyfive thread pool read completed using %d threads', self._thread_count)
+        logger.info(
+            "pyfive thread pool read completed using %d threads", self._thread_count
+        )
 
         for chunk_sel, out_sel, filter_mask, chunk_buffer in results:
             out[out_sel] = self._decode_chunk(chunk_buffer, filter_mask, dtype)[
@@ -650,7 +658,11 @@ class DatasetID(ChunkRead):
                 fd = fh_local.fileno()
                 try:
                     with ThreadPoolExecutor(max_workers=thread_count) as executor:
-                        return list(executor.map(lambda addr: os.pread(fd, size, addr), addresses))
+                        return list(
+                            executor.map(
+                                lambda addr: os.pread(fd, size, addr), addresses
+                            )
+                        )
                 finally:
                     fh_local.close()
 
