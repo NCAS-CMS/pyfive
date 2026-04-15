@@ -1,0 +1,186 @@
+@startuml
+skinparam classAttributeIconSize 0
+'skinparam linetype ortho
+'Use portrait layout
+top to bottom direction
+skinparam ClassBackgroundColor palegoldenrod
+skinparam ClassBorderColor Black
+
+
+
+skinparam stereotypeCBackgroundColor white
+
+
+
+!define BTREE_COLOR white
+!define BTREE_STEREO <<(B,BTREE_COLOR)>>
+!define HEAP_COLOR white
+!define HEAP_STEREO <<(H,HEAP_COLOR)>>
+
+
+' ------------------------------------------------------------------
+' Packages
+' ------------------------------------------------------------------
+
+package pyfive {
+
+package "high_level" {
+    class File {
+        + filename : str
+        + mode : str
+        + __init__(filename, mode, metadata_buffer_size)
+        + close()
+        + __enter__()
+        + __exit__()
+        + consolidated_metadata : bool
+    }
+
+    class Group {
+        + name : str
+        + attrs : dict
+        + __init__(name, dataobjects, parent)
+        + __getitem__(name)
+        + visit(func)
+        + visititems(func, noindex)
+        + get_lazy_view(name)
+    }
+
+    class Dataset {
+        + name : str
+        + shape : tuple
+        + dtype : dtype
+        + size : int
+        + chunks : tuple
+        + __init__(name, datasetid, parent)
+        + __getitem__(args)
+    }
+}
+
+package "h5d" {
+    class ChunkRead {
+        + set_parallelism(thread_count, cat_range_allowed)
+        + _select_chunks(indexer, out, dtype)
+    }
+
+    class DatasetID {
+        + rank : int
+        + shape : tuple
+        + dtype : dtype
+        + chunks : tuple
+        + layout_class : int
+        + __init__(dataobjects)
+        + get_data(args, fillvalue)
+        + get_chunk_info(index)
+        + get_num_chunks()
+        + _build_index()
+        + _make_btree_fetch_fn()
+    }
+
+    ChunkRead  <|- DatasetID 
+}
+
+package "dataobjects" {
+    class DataObjects {
+        + offset : int
+        + is_group : bool
+        + is_dataset : bool
+        + get_attributes()
+        + get_links()
+    }
+}
+
+package "misc_low_level" {
+    class SuperBlock {
+        + version : int
+        + offset_to_dataobjects : int
+    }
+    
+    class Heap HEAP_STEREO
+    class GlobalHeap HEAP_STEREO
+    class FractalHeap HEAP_STEREO
+    class SymbolTable
+
+    SymbolTable -[hidden]- Heap 
+    SymbolTable -[hidden]- GlobalHeap
+    SymbolTable -[hidden]- FractalHeap
+}
+
+package "btree" {
+    class AbstractBTree BTREE_STEREO
+    class BTreeV1 BTREE_STEREO
+    class BTreeV1\nGroups BTREE_STEREO
+    class BTreeV1\nRawDataChunks BTREE_STEREO {
+        + fh : int
+        + offset : int
+        + dims : int
+        fetch_fn()
+    }
+    class BTreeV2 BTREE_STEREO
+    class BTreeV2\nGroupNames BTREE_STEREO
+    class BTreeV2\nGroupOrders BTREE_STEREO
+    class BTreeV2\nAttrCreationOrder BTREE_STEREO
+    class BTreeV2\nAttrNames BTREE_STEREO
+
+    BTreeV1 --|> AbstractBTree
+    BTreeV2 --|> AbstractBTree
+    BTreeV1\nGroups --|> BTreeV1
+    BTreeV1\nRawDataChunks --|> BTreeV1
+    BTreeV2\nGroupNames --|> BTreeV2
+    BTreeV2\nGroupOrders --|> BTreeV2
+    BTreeV2\nAttrCreationOrder -|> BTreeV2
+    BTreeV2\nAttrNames --|> BTreeV2
+
+
+}
+
+package "utilities" {
+    class MetadataBufferingWrapper
+}
+
+' ------------------------------------------------------------------
+' Relationships
+' ------------------------------------------------------------------
+
+' High-Level Hierarchy
+File --|> Group  
+Group o-- Dataset  
+Group o-- Group
+
+' Composition
+File *-- SuperBlock : parses >
+SuperBlock --> DataObjects : points to (root)
+Group *-- DataObjects : uses >
+Dataset *-- DatasetID : wraps >
+DatasetID --> DataObjects : uses metadata >
+
+' Lower Level internal mechanics
+DataObjects ..> Heap : reads names
+DataObjects ..> GlobalHeap : reads strings
+DataObjects ..> FractalHeap : reads messages
+DataObjects ..> SymbolTable : reads entries
+
+' B-Tree usage
+DataObjects ..> BTreeV1\nGroups : iterates children
+DataObjects ..> BTreeV2\nGroupNames : iterates children
+DataObjects ..> BTreeV2\nGroupOrders : iterates children
+DataObjects ..> BTreeV2\nAttrCreationOrder : iterates attrs
+DataObjects ..> BTreeV2\nAttrNames : iterates attrs
+DatasetID ..> BTreeV1\nRawDataChunks : finds\ndata\nchunks
+File ..> MetadataBufferingWrapper : wraps remote handles
+
+note as N1
+b-tree 
+- built by <i>_build_index</i> 
+- parallelism passed 
+  via the <i>fetch_fn</i> to
+  <i>BTreeV1RawDataChunks</i>
+end note
+
+DatasetID .. N1
+N1 .. BTreeV1\nRawDataChunks
+
+}
+
+
+
+@enduml
