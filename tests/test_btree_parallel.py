@@ -301,4 +301,3 @@ def test_parallel_s3fs_cat_ranges_matches_serial_results(s3fs_s3):
     assert calls, "Expected s3fs cat_ranges to be used for leaf-node reads"
     assert_array_equal(s3_data, serial_data)
     assert s3_chunk_info == serial_chunk_info
-
