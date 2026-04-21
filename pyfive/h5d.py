@@ -46,23 +46,24 @@ class ChunkRead:
     # Shared helpers                                                       #
     # ------------------------------------------------------------------ #
 
-    def set_parallelism(self, thread_count=5, cat_range_allowed=True, _btree_parallel=False):
+    def set_parallelism(self, thread_count=0, cat_range_allowed=True, btree_parallel=False):
         """
-        Configure experimental chunk-read parallelism.
+        Configure chunk-read parallelism.
 
         ``thread_count`` controls POSIX threaded reads via ``os.pread``:
         - ``0`` disables threaded reads
         - ``>0`` enables threaded reads with that many workers
-        - Default 5
+        - Default 4
 
         ``cat_range_allowed`` enables fsspec bulk reads via ``cat_ranges``
         for compatible non-posix file handles. Default True
 
-        ``parallel_btree`` enables parallel reads for b-tree nodes when building 
+        ``btree_parallel`` enables parallel reads for b-tree nodes when building
         the chunk index. Default False.
 
-        This is a ``pyfive`` API extension, and is opt-in by default as it may not be suitable for all use cases.
-        It is recommended to enable it when working with remote files, but it may not be suitable for local files.
+        This is a ``pyfive`` API extension. It is recommended to enable it when working
+        with remote files, but it may not be suitable for local files. Hence defaults
+        are that cat_ranges is on (for remote files) and threads are off (for local files).
 
         """
         if thread_count is None:
@@ -72,8 +73,8 @@ class ChunkRead:
             raise ValueError("thread_count must be >= 0")
 
         self._thread_count = thread_count
-        self._cat_range_allowed = bool(cat_range_allowed)
-        self._btree_parallel = bool(_btree_parallel)
+        self._cat_range_allowed = cat_range_allowed
+        self._btree_parallel = btree_parallel
         logger.info('Parallelism: thread_count=%d, cat_range_allowed=%s, btree_parallel=%s',
                     self._thread_count, self._cat_range_allowed, self._btree_parallel)
 
@@ -287,7 +288,6 @@ class DatasetID(ChunkRead):
         self.shape = dataobject.shape
         self.rank = len(self.shape)
         self.chunks = dataobject.chunks
-        # Experimental chunk-read settings are opt-in by default.
         self.set_parallelism()
 
         # experimental code. We need to find out whether or not this
@@ -618,7 +618,11 @@ class DatasetID(ChunkRead):
         self.__index_built = True
 
     def _make_btree_fetch_fn(self):
-        """Return fetch_fn(addresses, size) for b-tree leaf reads, or None."""
+        """
+        Return fetch_fn(addresses, size) for b-tree leaf reads, or None.
+        The default here is None (self._btree_parallel is None),
+        which means that b-tree nodes will be read serially via the file handle's read method.
+        """
 
         if not self._btree_parallel:
             return None

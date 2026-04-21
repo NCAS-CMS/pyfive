@@ -14,11 +14,6 @@ from pyfive.dataobjects import DataObjects
 import pytest
 
 
-# Configure logging to capture pyfive diagnostic messages
-logging.basicConfig(level=logging.DEBUG)
-logger = logging.getLogger('pyfive')
-
-
 class TestFileHandleReuse:
     """Test whether file handles are reused across DataObjects instances."""
 
@@ -51,26 +46,24 @@ class TestFileHandleReuse:
             assert id(fh) == fh_id_first
 
 
-    def test_file_handle_identity_in_logging(self, caplog, tmp_path):
-        """Test that file handle ID is logged consistently."""
-        from pyfive.dataobjects import DataObjects
+    def test_file_handle_identity_in_logging(self, caplog):
+        """Test that DataObjects.__init__ emits a diagnostic log recording the file handle ID."""
+        from pyfive import File
 
-        test_file = tmp_path / "test.hdf5"
-
-        with open(test_file, 'wb') as f:
-            f.write(b'\x89HDF\r\n\x1a\n')
-            f.write(b'\x00' * 100)
+        test_file = Path(__file__).parent / "compact.hdf5"
 
         with caplog.at_level(logging.DEBUG, logger='pyfive'):
             with open(test_file, 'rb') as fh:
-                try:
-                    do1 = DataObjects(fh, 0)
-                except Exception:
-                    pass
+                expected_fh_id = str(id(fh))
+                f = File(fh)
+                list(f.keys())
+                f.close()
 
-                # Check if any pyfive diagnostic logs were captured
-                pyfive_logs = [r for r in caplog.records if 'pyfive' in r.getMessage()]
-                # Just verify we can create DataObjects without error
+        init_logs = [r.getMessage() for r in caplog.records if 'DataObjects init' in r.getMessage()]
+        assert init_logs, "Expected at least one 'DataObjects init' log entry from DataObjects.__init__"
+        assert any(expected_fh_id in msg for msg in init_logs), (
+            f"Expected fh_id={expected_fh_id} in log messages, got: {init_logs}"
+        )
 
 
 class TestAttributeReadCaching:
@@ -148,24 +141,16 @@ class TestS3FileHandleLifecycle:
             def close(self):
                 pass
 
-        # Mock fsspec to use our MockS3File
-        with patch('fsspec.open', return_value=MagicMock(__enter__=lambda self: MockS3File())):
-            if access_pattern == "sequential":
-                # Each access creates a new file
-                for i in range(3):
-                    try:
-                        f = MockS3File()
-                        f.read(100)
-                    except Exception:
-                        pass
-            else:  # repeated
-                # Same file accessed multiple times
+        if access_pattern == "sequential":
+            # Each access creates a new file handle
+            for i in range(3):
                 f = MockS3File()
-                for i in range(3):
-                    try:
-                        f.read(100)
-                    except Exception:
-                        pass
+                f.read(100)
+        else:  # repeated
+            # Same file handle accessed multiple times
+            f = MockS3File()
+            for i in range(3):
+                f.read(100)
 
         # Verify that in "repeated" pattern, the same handle is used
         if access_pattern == "repeated":
@@ -185,24 +170,29 @@ class TestDuplicateAttributeReads:
     or cached reads of the same data.
     """
 
+    @pytest.mark.skip(
+        reason=(
+            "Not yet automated: needs a real or fully-mocked HDF5 file that triggers "
+            "both collect_dimensions_from_root() and dump_header() so that duplicate "
+            "DataObjects reads of the same offset can be asserted against captured logs "
+            "or a mock read counter."
+        )
+    )
     def test_duplicate_attribute_read_detection(self, caplog):
         """
         Test framework to detect duplicate attribute reads.
 
         Logs should show if same file handle is reading same offset twice.
+
+        Expected behavior to verify:
+        1. If fh_id is SAME both times and offset is SAME but timing is DIFFERENT
+           → fsspec cache NOT working properly (both are misses)
+        2. If fh_id is SAME, offset is SAME, timing is FAST second time
+           → fsspec cache IS working (first miss, second hit)
+        3. If fh_id is DIFFERENT each time
+           → file handles being recreated unnecessarily
         """
-        # This is a framework test - in practice, run with:
-        # python -m pytest tests/test_s3_caching.py::TestDuplicateAttributeReads::test_duplicate_attribute_read_detection -v -s --log-cli-level=DEBUG
-
-        # Expected behavior to verify:
-        # 1. If fh_id is SAME both times and offset is SAME but timing is DIFFERENT
-        #    → fsspec cache NOT working properly (both are misses)
-        # 2. If fh_id is SAME, offset is SAME, timing is FAST second time
-        #    → fsspec cache IS working (first miss, second hit)
-        # 3. If fh_id is DIFFERENT each time
-        #    → file handles being recreated unnecessarily
-
-        assert True, "See log output for file handle reuse patterns"
+        raise NotImplementedError("Replace with assertions against captured logs or mock read counts")
 
 
 class TestReadAheadCacheStatistics:
