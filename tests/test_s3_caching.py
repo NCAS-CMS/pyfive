@@ -25,14 +25,14 @@ class TestFileHandleReuse:
         test_file = tmp_path / "test.hdf5"
 
         # Create a minimal HDF5 file by writing bytes
-        with open(test_file, 'wb') as f:
+        with open(test_file, "wb") as f:
             # HDF5 signature
-            f.write(b'\x89HDF\r\n\x1a\n')
+            f.write(b"\x89HDF\r\n\x1a\n")
             # Minimal superblock (rest can be zeros for this test)
-            f.write(b'\x00' * 100)
+            f.write(b"\x00" * 100)
 
         # Open file and create DataObjects instances
-        with open(test_file, 'rb') as fh:
+        with open(test_file, "rb") as fh:
             fh_id_first = id(fh)
 
             # Create first DataObjects instance
@@ -45,22 +45,27 @@ class TestFileHandleReuse:
             # The file handle should be the same object
             assert id(fh) == fh_id_first
 
-
     def test_file_handle_identity_in_logging(self, caplog):
         """Test that DataObjects.__init__ emits a diagnostic log recording the file handle ID."""
         from pyfive import File
 
         test_file = Path(__file__).parent / "compact.hdf5"
 
-        with caplog.at_level(logging.DEBUG, logger='pyfive'):
-            with open(test_file, 'rb') as fh:
+        with caplog.at_level(logging.DEBUG, logger="pyfive"):
+            with open(test_file, "rb") as fh:
                 expected_fh_id = str(id(fh))
                 f = File(fh)
                 list(f.keys())
                 f.close()
 
-        init_logs = [r.getMessage() for r in caplog.records if 'DataObjects init' in r.getMessage()]
-        assert init_logs, "Expected at least one 'DataObjects init' log entry from DataObjects.__init__"
+        init_logs = [
+            r.getMessage()
+            for r in caplog.records
+            if "DataObjects init" in r.getMessage()
+        ]
+        assert init_logs, (
+            "Expected at least one 'DataObjects init' log entry from DataObjects.__init__"
+        )
         assert any(expected_fh_id in msg for msg in init_logs), (
             f"Expected fh_id={expected_fh_id} in log messages, got: {init_logs}"
         )
@@ -77,16 +82,16 @@ class TestAttributeReadCaching:
         # to track whether attributes are being cached
 
         test_file = tmp_path / "test.hdf5"
-        with open(test_file, 'wb') as f:
-            f.write(b'\x89HDF\r\n\x1a\n')
-            f.write(b'\x00' * 100)
+        with open(test_file, "wb") as f:
+            f.write(b"\x89HDF\r\n\x1a\n")
+            f.write(b"\x00" * 100)
 
-        with caplog.at_level(logging.INFO, logger='pyfive'):
-            with open(test_file, 'rb') as fh:
+        with caplog.at_level(logging.INFO, logger="pyfive"):
+            with open(test_file, "rb") as fh:
                 try:
                     do = DataObjects(fh, 0)
                     # Try to get attributes if possible
-                    if hasattr(do, 'get_attributes'):
+                    if hasattr(do, "get_attributes"):
                         do.get_attributes()
                 except Exception:
                     pass
@@ -94,8 +99,9 @@ class TestAttributeReadCaching:
         # Check for expected log message pattern
         # Format: "[pyfive] Obtained N attributes from offset Y (fh_id=X type=Y) in Z.XXXXs"
         logs_with_obtained = [
-            r for r in caplog.records 
-            if 'Obtained' in r.getMessage() and 'attributes' in r.getMessage()
+            r
+            for r in caplog.records
+            if "Obtained" in r.getMessage() and "attributes" in r.getMessage()
         ]
         # We may not have valid attributes, but the logging setup should be there
 
@@ -103,10 +109,13 @@ class TestAttributeReadCaching:
 class TestS3FileHandleLifecycle:
     """Test S3 file handle lifecycle and reuse patterns."""
 
-    @pytest.mark.parametrize("access_pattern", [
-        "sequential",  # Access each variable once
-        "repeated",    # Access same variables multiple times
-    ])
+    @pytest.mark.parametrize(
+        "access_pattern",
+        [
+            "sequential",  # Access each variable once
+            "repeated",  # Access same variables multiple times
+        ],
+    )
     def test_s3_file_handle_reuse(self, access_pattern):
         """
         Test whether S3 file handles are reused across variable accesses.
@@ -120,6 +129,7 @@ class TestS3FileHandleLifecycle:
 
         class MockS3File:
             """Mock S3 file that tracks handle creation and reads."""
+
             _instance_counter = 0
 
             def __init__(self, *args, **kwargs):
@@ -129,11 +139,8 @@ class TestS3FileHandleLifecycle:
                 file_handle_ids.append(self.id)
 
             def read(self, size=-1):
-                read_operations.append({
-                    'handle_id': self.id,
-                    'size': size
-                })
-                return b'\x00' * size if size > 0 else b''
+                read_operations.append({"handle_id": self.id, "size": size})
+                return b"\x00" * size if size > 0 else b""
 
             def seek(self, offset):
                 return offset
@@ -154,8 +161,9 @@ class TestS3FileHandleLifecycle:
 
         # Verify that in "repeated" pattern, the same handle is used
         if access_pattern == "repeated":
-            assert len(set(r['handle_id'] for r in read_operations)) == 1, \
+            assert len(set(r["handle_id"] for r in read_operations)) == 1, (
                 "Expected same handle for repeated access"
+            )
 
 
 class TestDuplicateAttributeReads:
@@ -192,7 +200,9 @@ class TestDuplicateAttributeReads:
         3. If fh_id is DIFFERENT each time
            → file handles being recreated unnecessarily
         """
-        raise NotImplementedError("Replace with assertions against captured logs or mock read counts")
+        raise NotImplementedError(
+            "Replace with assertions against captured logs or mock read counts"
+        )
 
 
 class TestReadAheadCacheStatistics:
@@ -238,10 +248,10 @@ class TestFileHandleIdTracking:
 
     def test_dataobjects_init_logs_handle_id(self, caplog):
         """Test that DataObjects.__init__ logs file handle ID."""
-        test_data = io.BytesIO(b'\x89HDF\r\n\x1a\n' + b'\x00' * 100)
+        test_data = io.BytesIO(b"\x89HDF\r\n\x1a\n" + b"\x00" * 100)
         test_data.seek(0)
 
-        with caplog.at_level(logging.DEBUG, logger='pyfive'):
+        with caplog.at_level(logging.DEBUG, logger="pyfive"):
             try:
                 do = DataObjects(test_data, 0)
             except Exception:
@@ -249,9 +259,13 @@ class TestFileHandleIdTracking:
 
         # Look for the diagnostic log with fh_id, type, s3, offset
         # Format: "[pyfive] DataObjects init: fh_id=<id> type=<type> s3=<bool> offset=<offset>"
-        logs = [r.getMessage() for r in caplog.records if 'DataObjects init' in r.getMessage()]
+        logs = [
+            r.getMessage()
+            for r in caplog.records
+            if "DataObjects init" in r.getMessage()
+        ]
         # Framework in place to capture this
 
 
-if __name__ == '__main__':
-    pytest.main([__file__, '-v', '-s'])
+if __name__ == "__main__":
+    pytest.main([__file__, "-v", "-s"])
