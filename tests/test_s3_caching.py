@@ -206,7 +206,10 @@ class TestDuplicateAttributeReads:
         # 3. If fh_id is DIFFERENT each time
         #    → file handles being recreated unnecessarily
 
-        assert True, "See log output for file handle reuse patterns"
+        pytest.skip(
+            "This diagnostic test collected pyfive logs without asserting on them; "
+            "skip it until it is rewritten with concrete log expectations."
+        )
 
 
 class TestReadAheadCacheStatistics:
