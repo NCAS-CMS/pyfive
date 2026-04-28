@@ -1,6 +1,5 @@
 """HDF5 B-Trees and contents."""
 
-from collections import OrderedDict
 import struct
 import zlib
 
@@ -66,7 +65,7 @@ class BTreeV1(AbstractBTree):
     """
 
     # III.A.1. Disk Format: Level 1A1 - Version 1 B-trees
-    B_LINK_NODE = OrderedDict(
+    B_LINK_NODE = dict(
         (
             ("signature", "4s"),
             ("node_type", "B"),
@@ -126,25 +125,84 @@ class BTreeV1RawDataChunks(BTreeV1):
 
     NODE_TYPE = 1  # type: ignore[assignment]
 
-    def __init__(self, fh, offset, dims):
+    def __init__(self, fh, offset, dims, fetch_fn=None):
         """initalize."""
         self.dims = dims
+        self._fetch_fn = fetch_fn
         super().__init__(fh, offset)
+
+    def _read_children(self):
+        """Read children; fetch leaf nodes via fetch_fn when provided."""
+        if self._fetch_fn is None:
+            super()._read_children()
+            return
+
+        # Leaf-level root node: already read in _read_root_node.
+        if self.depth == 0:
+            return
+
+        # Traverse internal levels sequentially; each level depends on the prior.
+        for node_level in range(self.depth, 0, -1):
+            for parent_node in self.all_nodes[node_level]:
+                for child_addr in parent_node["addresses"]:
+                    if node_level - 1 > 0:
+                        child_node = self._read_node(child_addr, node_level - 1)
+                        self._add_node(child_node)
+
+        # Collect leaf addresses from the lowest internal level.
+        leaf_addresses = []
+        for node in self.all_nodes.get(1, []):
+            leaf_addresses.extend(node["addresses"])
+
+        if not leaf_addresses:
+            return
+
+        # Leaf nodes can differ in entries_used, so fetch just headers first,
+        # then group addresses by exact node size.
+        header_size = struct.calcsize("<" + "".join(self.B_LINK_NODE.values()))
+        header_buffers = self._fetch_fn(leaf_addresses, header_size)
+
+        size_to_addresses = dict()
+        entry_size = 8 + self.dims * 8 + 8
+        for addr, header in zip(leaf_addresses, header_buffers):
+            entries_used = struct.unpack_from("<H", header, 6)[0]
+            node_size = header_size + entries_used * entry_size
+            size_to_addresses.setdefault(node_size, []).append(addr)
+
+        for node_size, addresses in size_to_addresses.items():
+            raw_buffers = self._fetch_fn(addresses, node_size)
+            for addr, raw in zip(addresses, raw_buffers):
+                node = self._parse_node_from_buffer(raw, addr, node_level=0)
+                self._add_node(node)
 
     def _read_node(self, offset, node_level):
         """Return a single node in the b-tree located at a give offset."""
         node = self._read_node_header(offset, node_level)
+
         keys = []
         addresses = []
-        for _ in range(node["entries_used"]):
-            chunk_size, filter_mask = struct.unpack("<II", self.fh.read(8))
-            fmt = "<" + "Q" * self.dims
-            fmt_size = struct.calcsize(fmt)
-            chunk_offset = struct.unpack(fmt, self.fh.read(fmt_size))
-            chunk_address = struct.unpack("<Q", self.fh.read(8))[0]
+        n_entries = node["entries_used"]
+        entry_size = 8 + self.dims * 8 + 8
+        read_size = n_entries * entry_size
+        node_data = self.fh.read(read_size)
+        mem_view = memoryview(node_data)
+        offset_fmt = f"<{self.dims}Q"
+        offset_size = self.dims * 8
+
+        pos = 0
+        for _ in range(n_entries):
+            # chunk_size, filter_mask
+            chunk_size, filter_mask = struct.unpack_from("<II", mem_view, pos)
+            pos += 8
+            # chunk_offset dims × uint64
+            chunk_offset = struct.unpack_from(offset_fmt, mem_view, pos)
+            pos += offset_size
+            # address
+            (chunk_address,) = struct.unpack_from("<Q", mem_view, pos)
+            pos += 8
 
             keys.append(
-                OrderedDict(
+                dict(
                     (
                         ("chunk_size", chunk_size),
                         ("filter_mask", filter_mask),
@@ -156,6 +214,55 @@ class BTreeV1RawDataChunks(BTreeV1):
         node["keys"] = keys
         node["addresses"] = addresses
         self.last_offset = max(offset, self.last_offset)
+        return node
+
+    def _leaf_node_size(self):
+        """Compute the byte size of a leaf node by peeking at the first one."""
+        header_size = struct.calcsize("<" + "".join(self.B_LINK_NODE.values()))
+        entry_size = 8 + 8 * self.dims + 8
+
+        first_leaf_addr = self.all_nodes[1][0]["addresses"][0]
+        self.fh.seek(first_leaf_addr)
+        header_bytes = self.fh.read(header_size)
+        entries_used = struct.unpack_from("<H", header_bytes, 6)[0]
+        return header_size + entries_used * entry_size
+
+    def _parse_node_from_buffer(self, raw, addr, node_level):
+        """Parse a raw-data-chunk b-tree node from an in-memory bytes buffer."""
+        node = _unpack_struct_from(self.B_LINK_NODE, raw)
+        assert node["signature"] == b"TREE"
+        assert node["node_type"] == self.NODE_TYPE
+        assert node["node_level"] == node_level
+
+        keys = []
+        addresses = []
+        mv = memoryview(raw)
+        offset_fmt = f"<{self.dims}Q"
+        offset_fmt_size = self.dims * 8
+        cursor = struct.calcsize("<" + "".join(self.B_LINK_NODE.values()))
+
+        for _ in range(node["entries_used"]):
+            chunk_size, filter_mask = struct.unpack_from("<II", mv, cursor)
+            cursor += 8
+            chunk_offset = struct.unpack_from(offset_fmt, mv, cursor)
+            cursor += offset_fmt_size
+            chunk_address = struct.unpack_from("<Q", mv, cursor)[0]
+            cursor += 8
+
+            keys.append(
+                dict(
+                    (
+                        ("chunk_size", chunk_size),
+                        ("filter_mask", filter_mask),
+                        ("chunk_offset", chunk_offset),
+                    )
+                )
+            )
+            addresses.append(chunk_address)
+
+        node["keys"] = keys
+        node["addresses"] = addresses
+        self.last_offset = max(addr, self.last_offset)
         return node
 
     @classmethod
@@ -229,7 +336,7 @@ class BTreeV2(AbstractBTree):
     """
 
     # III.A.2. Disk Format: Level 1A2 - Version 2 B-trees
-    B_TREE_HEADER = OrderedDict(
+    B_TREE_HEADER = dict(
         (
             ("signature", "4s"),
             ("version", "B"),
@@ -245,7 +352,7 @@ class BTreeV2(AbstractBTree):
         )
     )
 
-    B_LINK_NODE = OrderedDict(
+    B_LINK_NODE = dict(
         (
             ("signature", "4s"),
             ("version", "B"),
@@ -447,10 +554,10 @@ LZF_FILTER = 32000
 # Attribute message B-Tree node types
 # haven't tested type 8 yet, not sure how to get some.
 #
-V2_BTREE_NODE_TYPE_8_LAYOUT = OrderedDict(
+V2_BTREE_NODE_TYPE_8_LAYOUT = dict(
     (("heapid", "8s"), ("flags", "B"), ("creationorder", "I"), ("namehash", "I"))
 )
 
-V2_BTREE_NODE_TYPE_9_LAYOUT = OrderedDict(
+V2_BTREE_NODE_TYPE_9_LAYOUT = dict(
     (("heapid", "8s"), ("flags", "B"), ("creationorder", "I"))
 )

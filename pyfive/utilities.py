@@ -77,6 +77,20 @@ class MetadataBufferingWrapper:
         """Return whether file is closed."""
         return self._is_closed
 
+    @property
+    def fs(self):
+        """Return underlying filesystem if available."""
+        return getattr(self.fh, "fs", None)
+
+    @property
+    def path(self):
+        """Return underlying file path if available."""
+        return getattr(self.fh, "path", None)
+
+    def __getattr__(self, name: str):
+        """Return attributes from underlying file handle for any attributes not defined on wrapper."""
+        return getattr(self.fh, name)
+
     def _ensure_buffer(self):
         """Eagerly read metadata buffer on first access."""
         if self.buffer is None:
