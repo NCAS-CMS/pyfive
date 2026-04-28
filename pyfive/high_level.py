@@ -416,6 +416,11 @@ class Dataset(ABC):
 
     """
 
+    # Dataset is now an ABC to allow for the possibility of other dataset types, which
+    # may not support all of the same attributes or methods. Examples already include
+    # the ppfive Datastet class, which does not support accessing HDF5, but does
+    # support the same interface for accessing data and attributes in pp/fields files.
+
     def __init__(self, name: str, datasetid: DatasetID, parent: Group) -> None:
         """initalize."""
         self.parent = parent
