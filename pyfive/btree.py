@@ -1,6 +1,5 @@
 """HDF5 B-Trees and contents."""
 
-from typing import Dict
 import struct
 import zlib
 
@@ -66,7 +65,7 @@ class BTreeV1(AbstractBTree):
     """
 
     # III.A.1. Disk Format: Level 1A1 - Version 1 B-trees
-    B_LINK_NODE = Dict(
+    B_LINK_NODE = dict(
         (
             ("signature", "4s"),
             ("node_type", "B"),
@@ -163,7 +162,7 @@ class BTreeV1RawDataChunks(BTreeV1):
         header_size = struct.calcsize("<" + "".join(self.B_LINK_NODE.values()))
         header_buffers = self._fetch_fn(leaf_addresses, header_size)
 
-        size_to_addresses = Dict()
+        size_to_addresses = dict()
         entry_size = 8 + self.dims * 8 + 8
         for addr, header in zip(leaf_addresses, header_buffers):
             entries_used = struct.unpack_from("<H", header, 6)[0]
@@ -203,7 +202,7 @@ class BTreeV1RawDataChunks(BTreeV1):
             pos += 8
 
             keys.append(
-                Dict(
+                dict(
                     (
                         ("chunk_size", chunk_size),
                         ("filter_mask", filter_mask),
@@ -251,7 +250,7 @@ class BTreeV1RawDataChunks(BTreeV1):
             cursor += 8
 
             keys.append(
-                Dict(
+                dict(
                     (
                         ("chunk_size", chunk_size),
                         ("filter_mask", filter_mask),
@@ -337,7 +336,7 @@ class BTreeV2(AbstractBTree):
     """
 
     # III.A.2. Disk Format: Level 1A2 - Version 2 B-trees
-    B_TREE_HEADER = Dict(
+    B_TREE_HEADER = dict(
         (
             ("signature", "4s"),
             ("version", "B"),
@@ -353,7 +352,7 @@ class BTreeV2(AbstractBTree):
         )
     )
 
-    B_LINK_NODE = Dict(
+    B_LINK_NODE = dict(
         (
             ("signature", "4s"),
             ("version", "B"),
@@ -555,10 +554,10 @@ LZF_FILTER = 32000
 # Attribute message B-Tree node types
 # haven't tested type 8 yet, not sure how to get some.
 #
-V2_BTREE_NODE_TYPE_8_LAYOUT = Dict(
+V2_BTREE_NODE_TYPE_8_LAYOUT = dict(
     (("heapid", "8s"), ("flags", "B"), ("creationorder", "I"), ("namehash", "I"))
 )
 
-V2_BTREE_NODE_TYPE_9_LAYOUT = Dict(
+V2_BTREE_NODE_TYPE_9_LAYOUT = dict(
     (("heapid", "8s"), ("flags", "B"), ("creationorder", "I"))
 )
