@@ -236,6 +236,8 @@ class DataObjects(object):
             raise NotImplementedError("Multiple Attribute Info Messages not supported")
         offset = attr_info[0]["offset_to_message"]
         data = _unpack_struct_from(ATTR_INFO_MESSAGE, self.msg_data, offset)
+        if not data["flags"] & 1:
+            data = _unpack_struct_from(ATTR_INFO_MESSAGE_NO_MCI, self.msg_data, offset)
         heap_address = data["fractal_heap_address"]
         # I can't find any documentation on this, but at least some
         # files seem to use this to indicate no attribute info.
@@ -250,7 +252,7 @@ class DataObjects(object):
             f"Fractal heap {heap_address} loaded with {heap.nobjects} objects in {t1:.4f}s"
         )
         ordered = order_btree_address is not None
-        if ordered:
+        if ordered & (data["flags"] & 2):
             btree = BTreeV2AttrCreationOrder(self.fh, order_btree_address)
         else:
             btree = BTreeV2AttrNames(self.fh, name_btree_address)
@@ -890,6 +892,15 @@ ATTR_INFO_MESSAGE = OrderedDict(
     )
 )
 
+ATTR_INFO_MESSAGE_NO_MCI = OrderedDict(
+    (
+        ("version", "B"),
+        ("flags", "B"),
+        ("fractal_heap_address", "Q"),
+        ("name_btree_address", "Q"),
+        ("creation_order_btree_address", "Q"),
+    )
+)
 
 # IV.A.1.a Version 1 Data Object Header Prefix
 OBJECT_HEADER_V1 = OrderedDict(
