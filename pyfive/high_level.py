@@ -6,6 +6,7 @@ from collections.abc import Callable
 from collections.abc import Mapping, Sequence
 from abc import ABC
 import os
+import warnings
 import posixpath
 import warnings
 import logging
@@ -601,8 +602,8 @@ class DimensionManager(Sequence):
         if "DIMENSION_LABELS" in dset.attrs:
             dim_labels = dset.attrs["DIMENSION_LABELS"]
         self._dims = [
-            DimensionProxy(dset.file, label, refs)
-            for label, refs in zip(dim_labels, dim_list)
+            DimensionProxy(dset, dset.file, label, refs, axis)
+            for axis, (label, refs) in enumerate(zip(dim_labels, dim_list))
         ]
 
     def __len__(self):
@@ -615,7 +616,7 @@ class DimensionManager(Sequence):
 class DimensionProxy(Sequence):
     """Represents a HDF5 "dimension"."""
 
-    def __init__(self, dset_file, label, refs):
+    def __init__(self, dset, dset_file, label, refs, axis):
         try:
             # decode a byte string
             label = label.decode("utf-8")
@@ -623,15 +624,65 @@ class DimensionProxy(Sequence):
             # str doesn't have a decode method
             pass
 
+        self._dset = dset
         self.label = label
         self._refs = refs
         self._file = dset_file
+        self._axis = axis
 
     def __len__(self):
         return len(self._refs)
 
     def __getitem__(self, x):
-        return self._file[self._refs[x]]
+        dscale = self._file[self._refs[x]]
+        dscale_shape = dscale.shape
+        dset_shape = self._dset.shape
+
+        # If a dimension scale size does not match this dataset axis size,
+        # present an alias (for example time_counter_1) to expose corruption.
+        if dscale_shape and self._axis < len(dset_shape):
+            axis_size = dset_shape[self._axis]
+            scale_size = dscale_shape[0]
+            if axis_size != scale_size:
+                alias_name = _append_dimension_suffix(dscale.name, scale_size)
+                warnings.warn(
+                    (
+                        f"Dimension scale '{os.path.basename(dscale.name)}' has size {scale_size}, "
+                        f"but dataset '{os.path.basename(self._dset.name)}' axis {self._axis} "
+                        f"has size {axis_size}. Using alias '{os.path.basename(alias_name)}'."
+                    ),
+                    UserWarning,
+                    stacklevel=2,
+                )
+                return _AliasedDimensionScale(dscale, alias_name)
+
+        return dscale
+
+
+def _append_dimension_suffix(path, suffix):
+    """Append a suffix to the final component of an HDF5 path."""
+    if "/" in path:
+        prefix, base = path.rsplit("/", 1)
+        return f"{prefix}/{base}_{suffix}"
+    return f"{path}_{suffix}"
+
+
+class _AliasedDimensionScale:
+    """Proxy around a dimension scale dataset with an aliased name."""
+
+    def __init__(self, dset, alias_name):
+        self._dset = dset
+        self.name = alias_name
+
+    def __repr__(self):
+        info = (os.path.basename(self.name), self.shape, self.dtype)
+        return '<HDF5 dataset "%s": shape %s, type "%s">' % info
+
+    def __getitem__(self, args):
+        return self._dset[args]
+
+    def __getattr__(self, attr):
+        return getattr(self._dset, attr)
 
 
 class AstypeContext(object):
