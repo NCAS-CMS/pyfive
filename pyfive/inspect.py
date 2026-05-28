@@ -34,6 +34,16 @@ def clean_types(dtype):
         return str(dtype)  # fallback
 
 
+def _next_available_dim_name(dim_name, alldims):
+    """Return a dimension name not already present in alldims."""
+    alt_count = 1
+    alt_name = f"_{dim_name}_{alt_count}"
+    while alt_name in alldims:
+        alt_count += 1
+        alt_name = f"_{dim_name}_{alt_count}"
+    return alt_name
+
+
 def collect_dimensions_from_root(root):
     """
     Collect true netCDF-style dimensions from the root group only.
@@ -82,20 +92,37 @@ def gather_dimensions(obj, alldims, phonys, real_dimensions):
 
     for axis, size in enumerate(obj.shape):
         if obj.dims[axis]:  # real scale exists
-            edim = (obj.dims[axis][0].name.split("/")[-1], size)
+            dim_name = obj.dims[axis][0].name.split("/")[-1]
 
         elif size in real_dimensions.values():
             dim_name = next(name for name, sz in real_dimensions.items() if sz == size)
-            edim = (dim_name, size)
         else:
             # make or reuse a phony dimension name
             if size not in phonys:
                 phonys[size] = f"phony_dim_{len(phonys)}"
-            pname = phonys[size]
-            edim = (pname, size)
+            dim_name = phonys[size]
 
+        # Warn if dimension has size 0
+        if size == 0:
+            logger.warning(
+                f"Dimension '{dim_name}' has size 0 in variable '{oname}'. "
+                f"This may indicate a corrupt file."
+            )
+
+        if dim_name not in alldims:
+            alldims[dim_name] = size
+        elif alldims[dim_name] != size:
+            alt_name = _next_available_dim_name(dim_name, alldims)
+            logger.warning(
+                f"Variable '{oname}' has dimension '{dim_name}' with size {size}, "
+                f"but this dimension already exists with size {alldims[dim_name]}. "
+                f"Using alternative name '{alt_name}' for this variable."
+            )
+            dim_name = alt_name
+            alldims[dim_name] = size
+
+        edim = (dim_name, size)
         obj.__inspected_dims.append(edim)
-        alldims.add(edim)
 
     return obj, alldims, phonys
 
@@ -113,7 +140,7 @@ def dump_header(obj, indent, real_dimensions, special):
                     v = f'"{v}"'
                 safe_print(f"{indent}{dindent}{dindent}{name}:{k} = {v} ;")
 
-    dims = set()
+    dims = {}
     datasets = {}
     groups = {}
     phonys = {}
@@ -137,8 +164,8 @@ def dump_header(obj, indent, real_dimensions, special):
     if dims:
         safe_print(f"{indent}dimensions:")
     dindent = "        "
-    for d in dims:
-        safe_print(f"{indent}{dindent}{d[0]} = {d[1]};")
+    for name, size in dims.items():
+        safe_print(f"{indent}{dindent}{name} = {size};")
 
     t1 = time() - t0
     log_msgs.append(
