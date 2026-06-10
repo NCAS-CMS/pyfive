@@ -9,7 +9,7 @@ exclude: |
   .readthedocs.yaml|
   codecov.yml|
   ^.github/|
-  ^doc/
+  ^doc/|
   ^joss_paper/
 
 repos:
