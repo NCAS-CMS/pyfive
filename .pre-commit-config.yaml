@@ -10,6 +10,7 @@ exclude: |
   codecov.yml|
   ^.github/|
   ^doc/
+  ^joss_paper/
 
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
