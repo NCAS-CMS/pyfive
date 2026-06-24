@@ -4,6 +4,7 @@ import netCDF4 as nc
 import io
 import numpy as np
 import warnings
+import h5netcdf
 
 
 def make_file_hdf5(our_file, vlen_strings):
@@ -153,6 +154,15 @@ def make_pathological_nc(our_file):
     return validation
 
 
+def make_vlen_dtype_file(our_file, vlen_strings):
+    with h5netcdf.File(our_file, "w") as hfile:
+        hfile.dimensions["x"] = len(vlen_strings)
+        var = hfile.create_variable(
+            "x", ("x",), dtype=h5py.string_dtype(encoding="utf-8")
+        )
+        var[...] = np.asarray(vlen_strings, dtype=object)
+
+
 def test_vlen_string_hdf5(tmp_path):
     # tfile = io.BytesIO()
     our_file = tmp_path / "h5py_vlen.hdf5"
@@ -271,3 +281,26 @@ def test_vlen_contiguous_chunked(tmp_path):
             (slice(0, 2), slice(0, 2)),
         ):
             assert np.array_equal(contiguous[index], chunked[index])
+
+
+def test_issue_228(tmp_path):
+    """
+    Test issues around using check_dtype with vlen strings and whether or
+    not we get the same answers as h5py.
+    """
+    name = tmp_path / "test_issue_228.h5"
+    input_string = ["foó", "bár", "baź"]
+    make_vlen_dtype_file(name, input_string)
+
+    with h5py.File(name, "r") as hf:
+        with pyfive.File(name, "r") as pf:
+            for k in hf.keys():
+                assert hf[k].dtype == pf[k].dtype
+                assert [x for x in hf[k]] == [x for x in pf[k]]
+                h5py_dtype = hf[k].dtype
+                pyfive_dtype = pf[k].dtype
+                assert h5py.check_dtype(vlen=h5py_dtype) == pyfive.check_dtype(
+                    vlen=pyfive_dtype
+                )
+                assert h5py.check_dtype(vlen=h5py_dtype) == str
+                assert pyfive.check_dtype(vlen=pyfive_dtype) == str
