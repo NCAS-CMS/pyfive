@@ -556,6 +556,7 @@ class BTreeV2HugeObjectsIndirect(BTreeV2):
     def __init__(self, fh, offset, sizeof_offsets, sizeof_lengths):
         self._sizeof_offsets = sizeof_offsets
         self._sizeof_lengths = sizeof_lengths
+        self.record_by_id = {}
         super().__init__(fh, offset)
 
     def _parse_record(self, record):
@@ -570,10 +571,16 @@ class BTreeV2HugeObjectsIndirect(BTreeV2):
 
     def find(self, huge_object_id):
         """Return the record matching a huge-object ID/key."""
-        for record in self.iter_records():
-            if record["id"] == huge_object_id:
-                return record
-        raise KeyError(f"Huge object ID not found in v2 B-tree: {huge_object_id}")
+        # read the b-tree and cache.
+        if self.record_by_id == {}:
+            for record in self.iter_records():
+                self.record_by_id[record["id"]] = record
+        try:
+            return self.record_by_id[huge_object_id]
+        except KeyError as e:
+            raise KeyError(
+                f"Huge object ID not found in v2 B-tree: {huge_object_id}"
+            ) from e
 
 
 # IV.A.2.l The Data Storage - Filter Pipeline message

@@ -17,7 +17,7 @@ def name(tmp_path_factory):
 @pytest.mark.parametrize("payload_size", [4033, 4032])
 @pytest.mark.parametrize("n_attrs", [10, 11])
 def test_huge_object(name, payload_size, n_attrs):
-    """Tests simpe huge objects"""
+    """Tests simple huge objects"""
     err = nullcontext()
 
     with h5py.File(name, "w", track_order=True) as f:
