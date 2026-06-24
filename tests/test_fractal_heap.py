@@ -122,7 +122,5 @@ def test_huge_cmip_payload():
         assert "history" in attrs
         assert len(attrs["history"]) > 200
         mip_era = attrs["mip_era"]
-        if isinstance(mip_era, (bytes, np.bytes_)):
-            mip_era = mip_era.decode("utf-8")
-        assert mip_era == "CMIP6"
+        assert str(mip_era) == "b'CMIP6'"
         assert attrs.get("fred") is None
