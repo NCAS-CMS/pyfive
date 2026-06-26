@@ -9,8 +9,7 @@ version: 2
 build:
   os: ubuntu-lts-latest
   tools:
-    # DO NOT use mambaforge-*; that is currently sunsetted
-    python: "miniconda-latest"
+    python: "miniforge3-latest"
   jobs:
     post_create_environment:
       - conda run -n ${CONDA_DEFAULT_ENV} pip install . --no-deps
