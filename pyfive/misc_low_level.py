@@ -12,6 +12,7 @@ from .core import _unpack_integer
 from .core import InvalidHDF5File
 from .core import UNDEFINED_ADDRESS
 from .core import Reference
+from .btree import BTreeV2HugeObjectsIndirect
 from math import prod
 import numpy as np
 
@@ -226,21 +227,70 @@ class FractalHeap(object):
         Read the heap header and construct the linear block mapping
         """
         # fh = Interceptor(fh)
+        self.fh = fh
         fh.seek(offset)
         header = _unpack_struct_from_file(FRACTAL_HEAP_HEADER, fh)
         assert header["signature"] == b"FRHP"
         assert header["version"] == 0
+
+        # Only 64-bit offsets/lengths are currently supported by pyfive.
+        self._sizeof_offsets = 8
+        self._sizeof_lengths = 8
+        heap_id_len = header["object_index_size"]
+        direct_unfiltered_id_size = 1 + self._sizeof_offsets + self._sizeof_lengths
+        direct_filtered_id_size = direct_unfiltered_id_size + 4 + self._sizeof_lengths
+
+        self._huge_ids_are_filtered = header["filter_info_size"] > 0
+        self.huge_ids_are_filtered = self._huge_ids_are_filtered
+        if self._huge_ids_are_filtered:
+            self._huge_ids_are_direct = heap_id_len >= direct_filtered_id_size
+        else:
+            self._huge_ids_are_direct = heap_id_len >= direct_unfiltered_id_size
+        self.huge_ids_are_direct = self._huge_ids_are_direct
+
+        # For indirectly accessed huge objects, the key stored in the heap ID
+        # may be smaller than the file's length-size; HDF5 bounds it by
+        # min(id_len - 1, sizeof(hsize_t)).
+        if self._huge_ids_are_direct:
+            self._huge_id_size = self._sizeof_lengths
+        else:
+            self._huge_id_size = min(heap_id_len - 1, 8)
+
+        self._huge_btree = None
+
+        # Tiny objects are stored directly in the heap ID.
+        # HDF5 uses two tiny-ID encodings:
+        # - normal: low 4 bits of first byte store (length - 1)
+        # - extended: low 4 bits plus a second byte store (length - 1)
+        tiny_len_short = 16
+        if (heap_id_len - 1) <= tiny_len_short:
+            self._tiny_max_len = heap_id_len - 1
+            self._tiny_len_extended = False
+        elif (heap_id_len - 1) == (tiny_len_short + 1):
+            self._tiny_max_len = tiny_len_short
+            self._tiny_len_extended = False
+        else:
+            self._tiny_max_len = heap_id_len - 2
+            self._tiny_len_extended = True
 
         if header["filter_info_size"]:
             raise NotImplementedError
 
         if header["btree_address_huge_objects"] == UNDEFINED_ADDRESS:
             header["btree_address_huge_objects"] = None
-        else:
-            raise NotImplementedError
 
         if header["root_block_address"] == UNDEFINED_ADDRESS:
             header["root_block_address"] = None
+
+        if (not self._huge_ids_are_direct) and header[
+            "btree_address_huge_objects"
+        ] is not None:
+            self._huge_btree = BTreeV2HugeObjectsIndirect(
+                fh,
+                header["btree_address_huge_objects"],
+                self._sizeof_offsets,
+                self._sizeof_lengths,
+            )
 
         nbits = header["log2_maximum_heap_size"]
         block_offset_size = self._min_size_nbits(nbits)
@@ -367,10 +417,43 @@ class FractalHeap(object):
 
                 return None
 
-            case 1:  # tiny
-                raise NotImplementedError
-            case 2:  # huge
-                raise NotImplementedError
+            case 1:  # huge
+                assert version == 0
+                # Determine the sub-type from the heap header flags / ID length
+                # The sub-type is determined at heap-construction time by checking
+                # whether (offset_size + length_size + 1) fits in the heap ID length.
+                # The HDF5 library uses a heuristic: if the total size of address+length
+                # fits in the heap ID, it's "direct"; otherwise "indirect".
+                if self._huge_ids_are_direct:
+                    # Sub-type 3 or 4: address and length embedded in the ID
+                    addr = _unpack_integer(self._sizeof_offsets, heapid, data_offset)
+                    data_offset += self._sizeof_offsets
+                    length = _unpack_integer(self._sizeof_lengths, heapid, data_offset)
+                    if self._huge_ids_are_filtered:
+                        raise NotImplementedError
+                    else:
+                        self.fh.seek(addr)
+                        return self.fh.read(length)
+                else:
+                    # Sub-type 1 or 2: look up via v2 B-tree
+                    if self._huge_btree is None:
+                        raise NotImplementedError
+                    key = _unpack_integer(self._huge_id_size, heapid, data_offset)
+                    record = self._huge_btree.find(key)
+                    self.fh.seek(record["address"])
+                    data = self.fh.read(record["length"])
+                    if self._huge_ids_are_filtered:
+                        raise NotImplementedError
+                    return data
+            case 2:  # tiny
+                assert version == 0
+                if self._tiny_len_extended:
+                    encoded_size = heapid[data_offset] | ((firstbyte & 15) << 8)
+                    data_offset += 1
+                else:
+                    encoded_size = firstbyte & 15
+                size = encoded_size + 1
+                return heapid[data_offset : data_offset + size]
             case _:
                 raise NotImplementedError
 
