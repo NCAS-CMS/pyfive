@@ -53,9 +53,14 @@ class ChunkRead:
             # ideally now everything gets raised immediately on error,
             # but some apparently fsspec backends don't respect on_error,
             # either by not accepting it, or not properly honouring it.
-        except TypeError:
+        except TypeError as e:
             # we need to handle the case of not accepting it
-            buffers = fs.cat_ranges(paths, starts, stops)
+            msg = str(e)
+            if "on_error" in msg and "unexpected keyword" in msg:
+                buffers = fs.cat_ranges(paths, starts, stops)
+            else:
+                # could be something else, so re-raise
+                raise
 
         # and handle the case of not honouring the on_error argument
         for buffer in buffers:
