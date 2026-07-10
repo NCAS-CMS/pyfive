@@ -45,6 +45,30 @@ class ChunkRead:
     # Shared helpers                                                       #
     # ------------------------------------------------------------------ #
 
+    @staticmethod
+    def _cat_ranges_raise(fs, paths, starts, stops):
+        """Return cat_ranges buffers, raising any read exceptions immediately."""
+        try:
+            buffers = fs.cat_ranges(paths, starts, stops, on_error="raise")
+            # ideally now everything gets raised immediately on error,
+            # but some apparently fsspec backends don't respect on_error,
+            # either by not accepting it, or not properly honouring it.
+        except TypeError as e:
+            # we need to handle the case of not accepting it
+            msg = str(e)
+            if "on_error" in msg and "unexpected keyword" in msg:
+                buffers = fs.cat_ranges(paths, starts, stops)
+            else:
+                # could be something else, so re-raise
+                raise
+
+        # and handle the case of not honouring the on_error argument
+        for buffer in buffers:
+            if isinstance(buffer, Exception):
+                raise buffer
+
+        return buffers
+
     def set_parallelism(
         self, thread_count=0, cat_range_allowed=True, btree_parallel=False
     ):
@@ -210,7 +234,12 @@ class ChunkRead:
         path = actual_fh.path
         starts = [si.byte_offset for _, _, _, si in chunks]
         stops = [si.byte_offset + si.size for _, _, _, si in chunks]
-        buffers = actual_fh.fs.cat_ranges([path] * len(chunks), starts, stops)
+        buffers = self._cat_ranges_raise(
+            actual_fh.fs,
+            [path] * len(chunks),
+            starts,
+            stops,
+        )
 
         for (_coords, chunk_sel, out_sel, storeinfo), chunk_buffer in zip(
             chunks, buffers
@@ -648,7 +677,12 @@ class DatasetID(ChunkRead):
 
                 def fetch_cat_ranges(addresses, size):
                     stops = [addr + size for addr in addresses]
-                    return fs.cat_ranges([path] * len(addresses), addresses, stops)
+                    return self._cat_ranges_raise(
+                        fs,
+                        [path] * len(addresses),
+                        addresses,
+                        stops,
+                    )
 
                 return fetch_cat_ranges
 

@@ -15,6 +15,10 @@ DIRNAME = os.path.dirname(__file__)
 DATASET_CHUNKED_HDF5_FILE = os.path.join(DIRNAME, "data", "chunked.hdf5")
 
 
+class _ConnectionTimeoutError(Exception):
+    pass
+
+
 def _build_leaf_node_bytes(*, dims, entries):
     header = struct.pack("<4sBBHQQ", b"TREE", 1, 0, len(entries), 0, 0)
     body = bytearray()
@@ -38,8 +42,8 @@ class _DummyFS:
         self.payload_by_start = payload_by_start
         self.calls = []
 
-    def cat_ranges(self, paths, starts, stops):
-        self.calls.append((paths, starts, stops))
+    def cat_ranges(self, paths, starts, stops, **kwargs):
+        self.calls.append((paths, starts, stops, kwargs))
         return [self.payload_by_start[s] for s in starts]
 
 
@@ -176,7 +180,45 @@ def test_make_btree_fetch_fn_cat_ranges_case():
 
     out = fetch_fn([10, 20], 4)
     assert out == [b"abcd", b"efgh"]
-    assert fs.calls == [(["bucket/file.h5", "bucket/file.h5"], [10, 20], [14, 24])]
+    assert fs.calls == [
+        (
+            ["bucket/file.h5", "bucket/file.h5"],
+            [10, 20],
+            [14, 24],
+            {"on_error": "raise"},
+        )
+    ]
+
+
+def test_make_btree_fetch_fn_cat_ranges_raises_returned_exception():
+    dsid = DatasetID.__new__(DatasetID)
+    dsid.posix = False
+    dsid.set_parallelism(thread_count=0, cat_range_allowed=True, btree_parallel=True)
+
+    timeout = _ConnectionTimeoutError("timed out")
+    fs = _DummyFS({10: timeout})
+    dsid._DatasetID__fh = _WrappedFH(fs, "bucket/file.h5")
+
+    fetch_fn = dsid._make_btree_fetch_fn()
+    assert fetch_fn is not None
+
+    with pytest.raises(_ConnectionTimeoutError, match="timed out"):
+        fetch_fn([10], 4)
+
+
+def test_read_bulk_fsspec_raises_returned_exception():
+    dsid = DatasetID.__new__(DatasetID)
+    timeout = _ConnectionTimeoutError("timed out")
+    fs = _DummyFS({10: timeout})
+    fh = _WrappedFH(fs, "bucket/file.h5")
+
+    storeinfo = type(
+        "StoreInfo", (), {"byte_offset": 10, "size": 4, "filter_mask": 0}
+    )()
+    chunks = [((0,), slice(None), slice(None), storeinfo)]
+
+    with pytest.raises(_ConnectionTimeoutError, match="timed out"):
+        dsid._read_bulk_fsspec(fh, chunks, out=None, dtype=None)
 
 
 def test_make_btree_fetch_fn_pread_case(tmp_path):
