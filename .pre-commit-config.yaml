@@ -17,6 +17,7 @@ repos:
     rev: v6.0.0
     hooks:
       - id: check-added-large-files
+        exclude: ^tests/data/cmip_bad_eg\.nc$
       - id: check-ast
       - id: check-case-conflict
       - id: check-merge-conflict
@@ -35,7 +36,7 @@ repos:
   #     - id: codespell
   #       additional_dependencies: [tomli]  # required for Python 3.10
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: "v0.15.17"
+    rev: "v0.15.18"
     hooks:
       - id: ruff-check
         args: [--fix]
