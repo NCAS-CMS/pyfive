@@ -56,7 +56,7 @@ class DataObjects(object):
     HDF5 DataObjects.
     """
 
-    def __init__(self, fh, offset, order="C"):
+    def __init__(self, fh, offset, order="C", decode_strings=False):
         """initalize."""
         # Log file handle info for diagnostics
         fh_id = id(fh)
@@ -96,6 +96,7 @@ class DataObjects(object):
         self._chunk_address = None
         self._cached_attributes = None  # Cache parsed attributes
         self.order = order
+        self.decode_strings = decode_strings
 
     @staticmethod
     def _parse_v1_objects(fh):
@@ -350,7 +351,10 @@ class DataObjects(object):
             for i in range(count):
                 if isinstance(ptype, P5StringType):
                     _, vlen_data = self._vlen_size_and_data(buf, offset)
-                    value[i] = vlen_data.decode("utf-8")
+                    if self.decode_strings and vlen_data is not None:
+                        value[i] = vlen_data.decode(ptype.encoding.lower())
+                    else:
+                        value[i] = vlen_data
                     offset += 16
                 elif isinstance(ptype, P5ReferenceType):
                     (address,) = struct.unpack_from("<Q", buf, offset=offset)

@@ -325,6 +325,7 @@ class DatasetID(ChunkRead):
         self.shape = dataobject.shape
         self.rank = len(self.shape)
         self.chunks = dataobject.chunks
+        self._decode_strings = dataobject.decode_strings
         self.set_parallelism()
 
         # experimental code. We need to find out whether or not this
@@ -738,6 +739,7 @@ class DatasetID(ChunkRead):
                 self.shape,
                 self._ptype,
                 fillvalue,
+                self._decode_strings,
             )
             if self.posix:
                 fh.close()
@@ -955,6 +957,7 @@ class DatasetID(ChunkRead):
                     global_heaps,
                     chunk_shape,
                     self._ptype,
+                    self._decode_strings,
                 )
                 chunk_data = chunk_data.reshape(chunk_shape)
                 out[out_selection] = chunk_data[chunk_selection]

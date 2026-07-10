@@ -243,6 +243,11 @@ class File(Group):
         Size of metadata buffer for S3/remote files in MiB (default: 1MiB).
         Larger values reduce network calls but use more memory.
         (This is a pyfive extension for optimizing remote file access, ignored for local files.)
+    decode_strings : bool (default False)
+        If False, variable-length strings are returned as bytes like h5py.
+        If True, variable-length strings in dataset data, fill values, and
+        attributes are decoded to Python str objects.
+        (This is a pyfive extension for user convenience.)
 
     Attributes
     ----------
@@ -260,6 +265,7 @@ class File(Group):
         filename: str | BinaryIO | MetadataBufferingWrapper,
         mode: str = "r",
         metadata_buffer_size: int = 1,
+        decode_strings: bool = False,
     ) -> None:
         """initalize."""
         if mode != "r":
@@ -267,6 +273,7 @@ class File(Group):
                 "pyfive only provides support for reading and treats all reads as binary"
             )
         self._close = False
+        self.decode_strings = decode_strings
         if hasattr(filename, "read"):
             if not hasattr(filename, "seek"):
                 raise ValueError("File like object must have a seek method")
@@ -337,7 +344,11 @@ class File(Group):
         cached = self._dataobjects_cache.get(obj_addr)
         if cached is not None:
             return cached
-        dataobjects = DataObjects(self._fh, obj_addr)
+        dataobjects = DataObjects(
+            self._fh,
+            obj_addr,
+            decode_strings=self.decode_strings,
+        )
         self._dataobjects_cache[obj_addr] = dataobjects
         return dataobjects
 

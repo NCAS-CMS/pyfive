@@ -80,8 +80,8 @@ def test_string_scalar_attr_datatypes():
         assert hfile.attrs["string_one"] == b"H"
         assert hfile.attrs["string_two"] == b"Hi"
 
-        assert hfile.attrs["vlen_string"] == "Hello"
-        assert hfile.attrs["vlen_unicode"] == ("Hello" + b"\xc2\xa7".decode("utf-8"))
+        assert hfile.attrs["vlen_string"] == b"Hello"
+        assert hfile.attrs["vlen_unicode"] == b"Hello\xc2\xa7"
 
 
 def test_numeric_array_attr_datatypes():
@@ -109,11 +109,11 @@ def test_string_array_attr_datatypes(attr_datatypes_hdf5):
         assert hfile.attrs["vlen_str_array"].dtype == np.dtype("S6")
 
         # strings
-        assert hfile.attrs["vlen_str_array1"][0] == "Hello"
-        assert hfile.attrs["vlen_str_array1"][1] == "World!"
+        assert hfile.attrs["vlen_str_array1"][0] == b"Hello"
+        assert hfile.attrs["vlen_str_array1"][1] == b"World!"
 
         assert hfile.attrs["vlen_str_array1"].dtype == np.dtype("O")
-        assert hfile.attrs["vlen_str_array1"].dtype.metadata == {"vlen": bytes}
+        assert hfile.attrs["vlen_str_array1"].dtype.metadata["vlen"] is bytes
 
 
 def test_vlen_sequence_attr_datatypes():
@@ -158,7 +158,7 @@ def test_attributes_2(attr_datatypes_hdf5_2):
     ascii = "ascii"
     unicode = "unicodé"
 
-    with pyfive.File(attr_datatypes_hdf5_2) as ds:
+    with pyfive.File(attr_datatypes_hdf5_2, decode_strings=True) as ds:
         foobar = "foobár"
         assert isinstance(ds.attrs["unicode"], str)
         assert ds.attrs["unicode"] == unicode
@@ -238,3 +238,20 @@ def test_attributes_2(attr_datatypes_hdf5_2):
         np.testing.assert_equal(ds.attrs["int_array"], np.arange(10))
         np.testing.assert_equal(ds.attrs["empty_list"], np.array([]))
         np.testing.assert_equal(ds.attrs["empty_array"], np.array([]))
+
+
+def test_attributes_2_default_bytes(attr_datatypes_hdf5_2):
+    with pyfive.File(attr_datatypes_hdf5_2) as ds:
+        assert ds.attrs["unicode"] == "unicodé".encode("utf-8")
+        assert ds.attrs["unicode_0dim"] == "unicodé".encode("utf-8")
+        assert (
+            ds.attrs["unicode_arrary"] == [b"unicod\xc3\xa9", b"foob\xc3\xa1r"]
+        ).all()
+
+        assert ds.attrs["ascii"] == b"ascii"
+        assert ds.attrs["ascii_0dim"] == b"ascii"
+        assert (ds.attrs["ascii_array"] == [b"ascii", b"foobar"]).all()
+
+        assert ds.attrs["bytes"] == b"ascii"
+        assert ds.attrs["bytes_0dim"] == b"ascii"
+        assert (ds.attrs["bytes_array"] == [b"ascii", b"foobar"]).all()

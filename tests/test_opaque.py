@@ -12,6 +12,7 @@ def test_opaque_dataset1_hdf5(name, data):
     # expected to get it right.
 
     (ordinary_data, string_data, opdata) = data
+    string_data_bytes = np.array([value.encode("utf-8") for value in string_data])
 
     with h5py.File(name, "r") as f:
         dset = f["opaque_datetimes"]
@@ -27,7 +28,7 @@ def test_opaque_dataset1_hdf5(name, data):
         assert_array_equal(dset[...], opdata)
 
         # make sure the other things are fine
-        assert_array_equal(hfile["string_data"][...], string_data)
+        assert_array_equal(hfile["string_data"][...], string_data_bytes)
         assert_array_equal(hfile["ordinary_data"][...], ordinary_data)
 
         # check the dtype interrogation functions
@@ -49,6 +50,9 @@ def test_opaque_dataset1_hdf5(name, data):
 
         with pytest.raises(TypeError):
             pyfive.check_dtype(fred=1, jane=2)
+
+    with pyfive.File(name, decode_strings=True) as hfile:
+        assert_array_equal(hfile["string_data"][...], string_data)
 
 
 def test_opaque_dataset2_fixed(really_opaque):
