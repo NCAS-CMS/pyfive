@@ -112,7 +112,14 @@ class ChunkRead:
             self.chunks, order=self._order
         )
 
-    def _select_chunks(self, indexer, out, dtype, max_block: int | None = None, batch_size: int | None = None):
+    def _select_chunks(
+        self,
+        indexer,
+        out,
+        dtype,
+        max_block: int | None = None,
+        batch_size: int | None = None,
+    ):
         """
         Collect required chunks and dispatch I/O to the best strategy.
         Called by ``_get_selection_via_chunks`` in place of the serial loop.
@@ -122,18 +129,20 @@ class ChunkRead:
             return
 
         # Case A: fsspec - bulk parallel fetch via cat_ranges
-        if not self.posix and self._cat_range_allowed:
-            fh = self._fh
+        if not self.posix and self._cat_range_allowed:  # type: ignore[attr-defined]
+            fh = self._fh  # type: ignore[attr-defined]
             actual_fh = getattr(fh, "fh", fh)  # support wrapped file-like objects
             if hasattr(actual_fh, "fs") and hasattr(actual_fh.fs, "cat_ranges"):
                 logger.info(
                     f"[pyfive] chunk read strategy: fsspec_cat_ranges ({len(chunks)} chunks)"
                 )
-                self._read_bulk_fsspec(fh, chunks, out, dtype, max_block=max_block, batch_size=batch_size)
+                self._read_bulk_fsspec(
+                    fh, chunks, out, dtype, max_block=max_block, batch_size=batch_size
+                )
                 return
 
         # Case B: POSIX - thread-parallel reads via os.pread
-        if self.posix and hasattr(os, "pread") and self._thread_count != 0:
+        if self.posix and hasattr(os, "pread") and self._thread_count != 0:  # type: ignore[attr-defined]
             logger.info(
                 "[pyfive] chunk read strategy: posix_pread_threads workers=%s (%d chunks)",
                 self._thread_count,
@@ -198,7 +207,15 @@ class ChunkRead:
                 chunk_sel
             ]
 
-    def _read_bulk_fsspec(self, fh, chunks, out, dtype, max_block: int | None = None, batch_size: int | None = None):
+    def _read_bulk_fsspec(
+        self,
+        fh,
+        chunks,
+        out,
+        dtype,
+        max_block: int | None = None,
+        batch_size: int | None = None,
+    ):
         """
         Bulk read via ``fsspec`` ``cat_ranges``.
 
@@ -213,7 +230,9 @@ class ChunkRead:
 
         paths = [actual_fh.path] * len(chunks)
         if max_block is not None:
-            paths, starts, stops = futils.merge_offset_ranges(paths, starts, stops, max_block=max_block)
+            paths, starts, stops = futils.merge_offset_ranges(
+                paths, starts, stops, max_block=max_block
+            )
 
         buffers = actual_fh.fs.cat_ranges(paths, starts, stops, batch_size=batch_size)
 
@@ -939,7 +958,13 @@ class DatasetID(ChunkRead):
                 fh.close()
 
         else:
-            self._select_chunks(indexer, out, dtype, max_block=self._max_block, batch_size=self._batch_size)
+            self._select_chunks(
+                indexer,
+                out,
+                dtype,
+                max_block=self._max_block,
+                batch_size=self._batch_size,
+            )
 
         if isinstance(self._ptype, P5ReferenceType):
             to_reference = np.vectorize(Reference)

@@ -41,13 +41,13 @@ class Group(Mapping):
     """
 
     def __init__(
-            self,
-            name: str,
-            dataobjects: DataObjects,
-            parent: "Group",
-            max_request_block: int | None = None,
-            batch_request_size: int | None = None
-        ) -> None:
+        self,
+        name: str,
+        dataobjects: DataObjects,
+        parent: "Group",
+        max_request_block: int | None = None,
+        batch_request_size: int | None = None,
+    ) -> None:
         """initalize."""
 
         self.parent = parent
@@ -150,10 +150,13 @@ class Group(Mapping):
             return Dataset(
                 obj_name,
                 DatasetID(
-                    dataobjs, noindex=noindex,
+                    dataobjs,
+                    noindex=noindex,
                     max_request_block=self._max_request_block,
-                    batch_request_size=self._batch_request_size)
-                , self)
+                    batch_request_size=self._batch_request_size,
+                ),
+                self,
+            )
 
         try:
             # if true, this may well raise a NotImplementedError, if so, we need
@@ -276,7 +279,7 @@ class File(Group):
         filename: str | BinaryIO | MetadataBufferingWrapper,
         mode: str = "r",
         metadata_buffer_size: int = 1,
-        **kwargs
+        **kwargs,
     ) -> None:
         """initalize."""
 
