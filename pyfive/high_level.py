@@ -40,7 +40,14 @@ class Group(Mapping):
 
     """
 
-    def __init__(self, name: str, dataobjects: DataObjects, parent: "Group") -> None:
+    def __init__(
+        self,
+        name: str,
+        dataobjects: DataObjects,
+        parent: "Group",
+        max_request_block: int | None = None,
+        batch_request_size: int | None = None,
+    ) -> None:
         """initalize."""
 
         self.parent = parent
@@ -50,6 +57,9 @@ class Group(Mapping):
         self._links = dataobjects.get_links()
         self._dataobjects = dataobjects
         self._attrs = None  # cached property
+
+        self._max_request_block = max_request_block
+        self._batch_request_size = batch_request_size
 
     def __repr__(self):
         return '<HDF5 group "%s" (%d members)>' % (self.name, len(self))
@@ -137,7 +147,16 @@ class Group(Mapping):
         if dataobjs.is_dataset:
             if additional_obj != ".":
                 raise KeyError("%s is a dataset, not a group" % (obj_name))
-            return Dataset(obj_name, DatasetID(dataobjs, noindex=noindex), self)
+            return Dataset(
+                obj_name,
+                DatasetID(
+                    dataobjs,
+                    noindex=noindex,
+                    max_request_block=self._max_request_block,
+                    batch_request_size=self._batch_request_size,
+                ),
+                self,
+            )
 
         try:
             # if true, this may well raise a NotImplementedError, if so, we need
@@ -260,8 +279,10 @@ class File(Group):
         filename: str | BinaryIO | MetadataBufferingWrapper,
         mode: str = "r",
         metadata_buffer_size: int = 1,
+        **kwargs,
     ) -> None:
         """initalize."""
+
         if mode != "r":
             raise NotImplementedError(
                 "pyfive only provides support for reading and treats all reads as binary"
@@ -306,7 +327,7 @@ class File(Group):
         self.file = self
         self.mode = "r"
         self.userblock_size = 0
-        super(File, self).__init__("/", dataobjects, self)
+        super(File, self).__init__("/", dataobjects, self, **kwargs)
 
     @property
     def consolidated_metadata(self) -> bool:
