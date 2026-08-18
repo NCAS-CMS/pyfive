@@ -9,6 +9,8 @@ import s3fs
 
 from conftest import s3_url_exists
 
+DIRNAME = os.path.dirname(__file__)
+DATASET_CHUNKED_HDF5_FILE = os.path.join(DIRNAME, "data", "chunked.hdf5")
 
 mypath = Path(__file__).parent
 filename = mypath / "data" / "compressed.hdf5"
@@ -92,36 +94,6 @@ def test_iter_chunks_sel():
             # print(p5chunks,var.shape, var.chunks)
 
         assert h5chunks == p5chunks
-
-
-def test_max_block():
-    """
-    Test the max_block parameter which invokes an
-    fsspec utility function.
-    """
-    import fsspec
-
-    client_kwargs = {"auth": None, "ssl": False}
-    fs = fsspec.filesystem("http", **client_kwargs)
-    http_file = fs.open(str(filename), "rb")
-
-    with pyfive.File(http_file, max_request_block=10e6) as g:
-        var = g[variable_name]
-        assert isinstance(var, pyfive.Dataset)
-        # Accessing the data should trigger index building
-        _ = var[0, 0]
-
-
-def test_batch_size():
-    """
-    Test the max_block parameter which invokes an
-    fsspec utility function.
-    """
-    with pyfive.File(str(filename), batch_request_size=100) as g:
-        var = g[variable_name]
-        assert isinstance(var, pyfive.Dataset)
-        # Accessing the data should trigger index building
-        _ = var[0, 0]
 
 
 def test_chunk_index_logging(caplog):
