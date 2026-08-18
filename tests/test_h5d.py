@@ -93,6 +93,7 @@ def test_iter_chunks_sel():
 
         assert h5chunks == p5chunks
 
+
 def test_max_block():
     """
     Test the max_block parameter which invokes an
@@ -105,6 +106,7 @@ def test_max_block():
             # Accessing the data should trigger index building
             _ = var[0, 0]
 
+
 def test_batch_size():
     """
     Test the max_block parameter which invokes an
@@ -116,6 +118,7 @@ def test_batch_size():
             assert isinstance(var, pyfive.Dataset)
             # Accessing the data should trigger index building
             _ = var[0, 0]
+
 
 def test_chunk_index_logging(caplog):
     """Test that logging.info messages are generated when building chunk index."""
