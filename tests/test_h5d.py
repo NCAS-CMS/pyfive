@@ -9,9 +9,6 @@ import s3fs
 
 from conftest import s3_url_exists
 
-DIRNAME = os.path.dirname(__file__)
-DATASET_CHUNKED_HDF5_FILE = os.path.join(DIRNAME, "data", "chunked.hdf5")
-
 mypath = Path(__file__).parent
 filename = mypath / "data" / "compressed.hdf5"
 variable_name = "dataset3"
