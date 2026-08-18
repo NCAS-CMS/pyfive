@@ -286,13 +286,15 @@ def test_parallel_fsspec_cat_ranges_matches_serial_results():
             ds = np.array(hfile["cl"][:100])
             assert ds.shape == (100, 85, 144, 192)
 
-    assert len(calls[0]) > 0, (
+    assert len(calls[0][0]) > 0, (
         "Expected fsspec cat_ranges to be used for leaf-node reads"
     )
-    assert len(standard_calls[0]) > 0, (
+    assert len(standard_calls[0][0]) > 0, (
         "Expected fsspec cat_ranges to be used for leaf-node reads"
     )
-    assert len(calls[0]) != len(standard_calls[0]), "Expected differing cat_range spans"
+    assert len(calls[0][0]) != len(standard_calls[0][0]), (
+        "Expected differing cat_range spans"
+    )
 
 
 def test_parallel_s3fs_cat_ranges_matches_serial_results(s3fs_s3):
