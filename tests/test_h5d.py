@@ -99,7 +99,13 @@ def test_max_block():
     Test the max_block parameter which invokes an
     fsspec utility function.
     """
-    with pyfive.File(str(filename), max_request_block=10e6) as g:
+    import fsspec
+
+    client_kwargs = {"auth": None, "ssl": False}
+    fs = fsspec.filesystem("http", **client_kwargs)
+    http_file = fs.open(str(filename), "rb")
+
+    with pyfive.File(http_file, max_request_block=10e6) as g:
         var = g[variable_name]
         assert isinstance(var, pyfive.Dataset)
         # Accessing the data should trigger index building
