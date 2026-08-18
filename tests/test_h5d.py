@@ -99,12 +99,11 @@ def test_max_block():
     Test the max_block parameter which invokes an
     fsspec utility function.
     """
-    with pytest.raises(NotImplementedError):
-        with pyfive.File(str(filename), max_request_block=10e6) as g:
-            var = g[variable_name]
-            assert isinstance(var, pyfive.Dataset)
-            # Accessing the data should trigger index building
-            _ = var[0, 0]
+    with pyfive.File(str(filename), max_request_block=10e6) as g:
+        var = g[variable_name]
+        assert isinstance(var, pyfive.Dataset)
+        # Accessing the data should trigger index building
+        _ = var[0, 0]
 
 
 def test_batch_size():
@@ -112,12 +111,11 @@ def test_batch_size():
     Test the max_block parameter which invokes an
     fsspec utility function.
     """
-    with pytest.raises(NotImplementedError):
-        with pyfive.File(str(filename), batch_request_size=100) as g:
-            var = g[variable_name]
-            assert isinstance(var, pyfive.Dataset)
-            # Accessing the data should trigger index building
-            _ = var[0, 0]
+    with pyfive.File(str(filename), batch_request_size=100) as g:
+        var = g[variable_name]
+        assert isinstance(var, pyfive.Dataset)
+        # Accessing the data should trigger index building
+        _ = var[0, 0]
 
 
 def test_chunk_index_logging(caplog):
