@@ -273,7 +273,7 @@ def test_parallel_fsspec_cat_ranges_matches_serial_results():
     calls = []
 
     with memfs.open(mem_path, "rb") as fh:
-        with pyfive.File(fh, max_request_block=10e6, batch_size=100) as hfile:
+        with pyfive.File(fh, max_request_block=10e6, batch_request_size=100) as hfile:
             ds = hfile["dataset1"]
             ds.id.set_parallelism(
                 thread_count=0, cat_range_allowed=True, btree_parallel=True
