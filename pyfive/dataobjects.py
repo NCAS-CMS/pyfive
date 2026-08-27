@@ -44,6 +44,7 @@ from pyfive.p5t import (
 )
 from pyfive.h5d import DatasetID
 from pyfive.h5py import Empty
+from pyfive.utilities import unwrap_file_handle
 
 # these constants happen to have the same value...
 UNLIMITED_SIZE = UNDEFINED_ADDRESS
@@ -59,9 +60,10 @@ class DataObjects(object):
     def __init__(self, fh, offset, order="C", decode_strings=False):
         """initalize."""
         # Log file handle info for diagnostics
-        fh_id = id(fh)
-        fh_type = type(fh).__name__
-        is_s3 = hasattr(fh, "fs") or "S3" in fh_type
+        actual_fh = unwrap_file_handle(fh)
+        fh_id = id(actual_fh)
+        fh_type = type(actual_fh).__name__
+        is_s3 = hasattr(actual_fh, "fs") or "S3" in fh_type
 
         fh.seek(offset)
         version_hint = struct.unpack_from("<B", fh.read(1))[0]
@@ -215,8 +217,9 @@ class DataObjects(object):
                     " -> ".join(f"{f.function}" for f in pyfive_stack[1:]),
                 )
         if offsets and logger.isEnabledFor(logging.INFO):
-            fh_id = id(self.fh)
-            fh_type = type(self.fh).__name__
+            actual_fh = unwrap_file_handle(self.fh)
+            fh_id = id(actual_fh)
+            fh_type = type(actual_fh).__name__
             logger.info(
                 "[pyfive] Obtained %d%s attributes from offset %d (fh_id=%s type=%s) in %.4fs",
                 len(attrs),

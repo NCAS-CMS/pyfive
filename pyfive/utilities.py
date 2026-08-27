@@ -7,6 +7,16 @@ import logging
 logger = logging.getLogger(__name__)
 
 
+def unwrap_file_handle(fh):
+    """Return the underlying file handle for diagnostics and capability checks."""
+    unwrapped = fh
+    while True:
+        next_fh = getattr(unwrapped, "fh", getattr(unwrapped, "_fh", None))
+        if next_fh is None or next_fh is unwrapped:
+            return unwrapped
+        unwrapped = next_fh
+
+
 class Interceptor:
     """Intercepts file-io and logs what is going on.
 
