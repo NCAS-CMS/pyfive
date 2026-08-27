@@ -45,6 +45,38 @@ class Interceptor:
         return self._fh.read(size)
 
 
+class HDF5OffsetWrapper:
+    """Expose an HDF5 file view whose logical offset 0 starts at base_address."""
+
+    def __init__(self, fh, base_address: int):
+        self._fh = fh
+        self.base_address = base_address
+
+    def __getattr__(self, name: str):
+        """Return attributes from the underlying file handle."""
+        return getattr(self._fh, name)
+
+    def seek(self, offset: int, whence: int = 0) -> int:
+        """Seek in the HDF5-relative address space."""
+        if whence == 0:
+            position = self._fh.seek(offset + self.base_address, whence)
+            return position - self.base_address
+        position = self._fh.seek(offset, whence)
+        return position - self.base_address
+
+    def read(self, size: int = -1) -> bytes:
+        """Read from the current HDF5-relative offset."""
+        return self._fh.read(size)
+
+    def tell(self) -> int:
+        """Return the current HDF5-relative file position."""
+        return self._fh.tell() - self.base_address
+
+    def close(self):
+        """Close the underlying file."""
+        self._fh.close()
+
+
 class MetadataBufferingWrapper:
     """
     Wraps a file-like object to eagerly buffer metadata from S3 or remote sources.
