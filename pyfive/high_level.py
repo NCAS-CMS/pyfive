@@ -311,8 +311,11 @@ class File(Group):
         superblock_offset = self._find_superblock_offset(self._fh)
         initial_superblock = SuperBlock(self._fh, superblock_offset)
         base_address = initial_superblock._contents["base_address"]
-        self._fh = HDF5OffsetWrapper(self._fh, base_address)
-        logical_superblock_offset = superblock_offset - base_address
+        if base_address:
+            self._fh = HDF5OffsetWrapper(self._fh, base_address)
+            logical_superblock_offset = superblock_offset - base_address
+        else:
+            logical_superblock_offset = superblock_offset
         self._superblock = SuperBlock(self._fh, logical_superblock_offset)
         self._dataobjects_cache: dict = {}
         offset = self._superblock.offset_to_dataobjects
