@@ -158,15 +158,22 @@ class GlobalHeap(object):
         if self._objects is None:
             self._objects = OrderedDict()
             offset = 0
-            while offset < len(self.heap_data):
+            # Note: Need to add 16 to the offset to ensure at least 16
+            #       bytes remain in the buffer to unpack a complete
+            #       GLOBAL_HEAP_OBJECT header, preventing struct.error
+            #       on trailing padding (< 16B). See
+            #       https://github.com/NCAS-CMS/pyfive/issues/259
+            while offset + 16 <= len(self.heap_data):
                 info = _unpack_struct_from(GLOBAL_HEAP_OBJECT, self.heap_data, offset)
                 if info["object_index"] == 0:
                     break
+
                 offset += GLOBAL_HEAP_OBJECT_SIZE
                 fmt = "<" + str(info["object_size"]) + "s"
                 obj_data = struct.unpack_from(fmt, self.heap_data, offset)[0]
                 self._objects[info["object_index"]] = obj_data
                 offset += _padded_size(info["object_size"])
+
         return self._objects
 
 
