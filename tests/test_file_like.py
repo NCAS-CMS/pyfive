@@ -47,15 +47,15 @@ def test_read_latest_fileobj():
 
             # sub-group
             subgroup = grp["subgroup1"]
-            assert subgroup.attrs["attr5"] == "Test"
-            assert isinstance(subgroup.attrs["attr5"], str)
+            assert subgroup.attrs["attr5"] == b"Test"
+            assert isinstance(subgroup.attrs["attr5"], bytes)
 
             dset3 = subgroup["dataset3"]
             assert_array_equal(dset2[:], np.arange(4))
             assert dset3.dtype == np.dtype("<f4")
-            ref_attr6 = "Test" + b"\xc2\xa7".decode("utf-8")
+            ref_attr6 = b"Test\xc2\xa7"
             assert dset3.attrs["attr6"] == ref_attr6
-            assert isinstance(dset3.attrs["attr6"], string_type)
+            assert isinstance(dset3.attrs["attr6"], bytes)
 
 
 def write_compressed_tobytes(file_like):

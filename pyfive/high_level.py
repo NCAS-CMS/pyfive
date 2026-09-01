@@ -14,13 +14,16 @@ import numpy as np
 from typing import Any, BinaryIO, cast
 from typing_extensions import Self  # Python 3.10-compat
 from pyfive.core import Reference
+from pyfive.core import InvalidHDF5File
 from pyfive.dataobjects import DataObjects, DatasetID
-from pyfive.misc_low_level import SuperBlock
+from pyfive.misc_low_level import FORMAT_SIGNATURE, SuperBlock
 from pyfive.h5py import Datatype
 from pyfive.p5t import P5VlenStringType, P5ReferenceType, P5SequenceType
-from pyfive.utilities import MetadataBufferingWrapper
+from pyfive.utilities import HDF5OffsetWrapper, MetadataBufferingWrapper
 
 logger = logging.getLogger(__name__)
+
+FileHandle = BinaryIO | MetadataBufferingWrapper | HDF5OffsetWrapper
 
 
 class Group(Mapping):
@@ -243,6 +246,11 @@ class File(Group):
         Size of metadata buffer for S3/remote files in MiB (default: 1MiB).
         Larger values reduce network calls but use more memory.
         (This is a pyfive extension for optimizing remote file access, ignored for local files.)
+    decode_strings : bool (default False)
+        If False, variable-length strings are returned as bytes like h5py.
+        If True, variable-length strings in dataset data, fill values, and
+        attributes are decoded to Python str objects.
+        (This is a pyfive extension for user convenience.)
 
     Attributes
     ----------
@@ -251,15 +259,16 @@ class File(Group):
     mode : str
         String indicating that the file is open readonly ("r").
     userblock_size : int
-        Size of the user block in bytes (currently always 0).
+        Size of the user block in bytes before the HDF5 superblock.
 
     """
 
     def __init__(
         self,
-        filename: str | BinaryIO | MetadataBufferingWrapper,
+        filename: str | FileHandle,
         mode: str = "r",
         metadata_buffer_size: int = 1,
+        decode_strings: bool = False,
     ) -> None:
         """initalize."""
         if mode != "r":
@@ -267,6 +276,7 @@ class File(Group):
                 "pyfive only provides support for reading and treats all reads as binary"
             )
         self._close = False
+        self.decode_strings = decode_strings
         if hasattr(filename, "read"):
             if not hasattr(filename, "seek"):
                 raise ValueError("File like object must have a seek method")
@@ -278,7 +288,7 @@ class File(Group):
             self.filename = filename
 
         # Wrap S3 file handles with metadata buffering to reduce network calls
-        self._fh: BinaryIO | MetadataBufferingWrapper
+        self._fh: FileHandle
         if isinstance(fh, MetadataBufferingWrapper):
             # Already wrapped
             self._fh = fh
@@ -298,15 +308,42 @@ class File(Group):
             # str | BytesIO = MetadataBufferingWrapper
             self._fh = fh
 
-        self._superblock = SuperBlock(self._fh, 0)
+        superblock_offset = self._find_superblock_offset(self._fh)
+        initial_superblock = SuperBlock(self._fh, superblock_offset)
+        base_address = initial_superblock._contents["base_address"]
+        if base_address:
+            self._fh = HDF5OffsetWrapper(self._fh, base_address)
+            logical_superblock_offset = superblock_offset - base_address
+        else:
+            logical_superblock_offset = superblock_offset
+        self._superblock = SuperBlock(self._fh, logical_superblock_offset)
         self._dataobjects_cache: dict = {}
         offset = self._superblock.offset_to_dataobjects
         dataobjects = self._get_dataobjects(offset)
 
         self.file = self
         self.mode = "r"
-        self.userblock_size = 0
+        self.userblock_size = base_address
         super(File, self).__init__("/", dataobjects, self)
+
+    @staticmethod
+    def _find_superblock_offset(fh: FileHandle) -> int:
+        """Locate the HDF5 signature at the standard superblock offsets."""
+        original_offset = fh.tell()
+        try:
+            fh.seek(0, os.SEEK_END)
+            file_size = fh.tell()
+            offset = 0
+
+            while offset + len(FORMAT_SIGNATURE) <= file_size:
+                fh.seek(offset)
+                if fh.read(len(FORMAT_SIGNATURE)) == FORMAT_SIGNATURE:
+                    return offset
+                offset = 512 if offset == 0 else offset * 2
+        finally:
+            fh.seek(original_offset)
+
+        raise InvalidHDF5File("Unable to locate HDF5 file signature")
 
     @property
     def consolidated_metadata(self) -> bool:
@@ -337,7 +374,11 @@ class File(Group):
         cached = self._dataobjects_cache.get(obj_addr)
         if cached is not None:
             return cached
-        dataobjects = DataObjects(self._fh, obj_addr)
+        dataobjects = DataObjects(
+            self._fh,
+            obj_addr,
+            decode_strings=self.decode_strings,
+        )
         self._dataobjects_cache[obj_addr] = dataobjects
         return dataobjects
 

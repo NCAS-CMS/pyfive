@@ -114,12 +114,16 @@ def test_uninitialized_data(tmp_path):
     make_uninitialized_data_file_nc(tfile)
 
     with pyfive.File(tfile, "r") as pfile:
-        assert np.array_equal(pfile["string"][1], [""] * 4)
+        assert np.array_equal(pfile["string"][1], [b""] * 4)
         assert np.array_equal(pfile["char"][1], [b""] * 4)
         assert np.array_equal(pfile["int32"][1], [-2147483647] * 4)
         assert np.array_equal(pfile["float64"][1], [9.969209968386869e36] * 4)
 
-        assert np.array_equal(pfile["string_2"][1], ["NA"] * 4)
+        assert np.array_equal(pfile["string_2"][1], [b"NA"] * 4)
         assert np.array_equal(pfile["char_2"][1], [b"x"] * 4)
         assert np.array_equal(pfile["int32_2"][1], [999] * 4)
         assert np.array_equal(pfile["float64_2"][1], [999.9] * 4)
+
+    with pyfive.File(tfile, "r", decode_strings=True) as pfile:
+        assert np.array_equal(pfile["string"][1], [""] * 4)
+        assert np.array_equal(pfile["string_2"][1], ["NA"] * 4)

@@ -536,7 +536,7 @@ class FractalHeap(object):
 
 
 def get_vlen_string_data_contiguous(
-    fh, data_offset, global_heaps, shape, dtype, fillvalue
+    fh, data_offset, global_heaps, shape, dtype, fillvalue, decode_strings=False
 ):
     """Return the data for a variable which is made up of variable length string data"""
     # we need to import this from DatasetID, and that's imported from Dataobjects hence
@@ -570,15 +570,15 @@ def get_vlen_string_data_contiguous(
 
         offset += 16
 
-    # If character_set == 0 ascii character set, return as
-    # bytes. Otherwise return as UTF-8.
-    if dtype.character_set:
-        value = _convert_to_utf8_string_objects(value)
+    if decode_strings:
+        value = _convert_string_objects(value, dtype.encoding.lower())
 
     return value
 
 
-def get_vlen_string_data_from_chunk(fh, data_offset, global_heaps, shape, dtype):
+def get_vlen_string_data_from_chunk(
+    fh, data_offset, global_heaps, shape, dtype, decode_strings=False
+):
     """Return the data for a data chunk which is made up of variable
     length string data.
 
@@ -602,20 +602,15 @@ def get_vlen_string_data_from_chunk(fh, data_offset, global_heaps, shape, dtype)
         value[i] = gheap.objects[gheap_id["object_index"]]
         offset += 16
 
-    # If character_set == 0 ascii character set, return as
-    # bytes. Otherwise return as UTF-8.
-    if dtype.character_set:
-        value = _convert_to_utf8_string_objects(value)
+    if decode_strings:
+        value = _convert_string_objects(value, dtype.encoding.lower())
 
     return value
 
 
-def _convert_to_utf8_string_objects(array):
-    """Convert an numpy array of byte string objects to an array of UTF-8
-    string objects.
-
-    """
-    decode = np.vectorize(lambda x: x.decode("utf-8"))
+def _convert_string_objects(array, encoding):
+    """Convert a numpy object array of bytes to decoded Python strings."""
+    decode = np.vectorize(lambda x: x.decode(encoding) if x is not None else None)
     array = decode(array)
     array = array.astype("O")
     return array
