@@ -158,7 +158,12 @@ class GlobalHeap(object):
         if self._objects is None:
             self._objects = OrderedDict()
             offset = 0
-            while offset < len(self.heap_data):
+            # Only read an object when a full GLOBAL_HEAP_OBJECT header fits in the
+            # remaining bytes. The collection's trailing free space is marked by an
+            # object with index 0, but libhdf5 writes that marker only when at least one
+            # 16-byte object header fits. A smaller remainder (e.g. 8 bytes) is just
+            # padding.
+            while offset + GLOBAL_HEAP_OBJECT_SIZE <= len(self.heap_data):
                 info = _unpack_struct_from(GLOBAL_HEAP_OBJECT, self.heap_data, offset)
                 if info["object_index"] == 0:
                     break
