@@ -273,28 +273,22 @@ def test_parallel_fsspec_cat_ranges_matches_serial_results():
     standard_calls = list(calls)
     calls = []
 
-    client_kwargs = {"auth": None, "ssl": False}
-    fs = fsspec.filesystem("http", **client_kwargs)
+    with memfs.open(mem_path, "rb") as fh:
+        with pyfive.File(
+            fh, max_request_block=10_000_000, batch_request_size=100
+        ) as hfile:
+            ds = hfile["dataset1"]
+            merged_data = ds[:]
+            merged_chunk_info = [
+                ds.id.get_chunk_info(i) for i in range(ds.id.get_num_chunks())
+            ]
 
-    original_cat_ranges = fs.cat_ranges
-    fs.cat_ranges = cat_ranges_spy
-
-    uri = "https://esgf.ceda.ac.uk/thredds/fileServer/esg_cmip6/CMIP6/AerChemMIP/MOHC/UKESM1-0-LL/ssp370SST-lowNTCF/r1i1p1f2/Amon/cl/gn/latest/cl_Amon_UKESM1-0-LL_ssp370SST-lowNTCF_r1i1p1f2_gn_205001-209912.nc"
-
-    with fs.open(uri, "rb") as fh:
-        with pyfive.File(fh, max_request_block=10e6, batch_request_size=100) as hfile:
-            ds = np.array(hfile["cl"][:100])
-            assert ds.shape == (100, 85, 144, 192)
-
-    assert len(calls[0][0]) > 0, (
-        "Expected fsspec cat_ranges to be used for leaf-node reads"
-    )
-    assert len(standard_calls[0][0]) > 0, (
-        "Expected fsspec cat_ranges to be used for leaf-node reads"
-    )
-    assert len(calls[0][0]) != len(standard_calls[0][0]), (
-        "Expected differing cat_range spans"
-    )
+    assert calls, "Expected fsspec cat_ranges to be used for merged range reads"
+    assert_array_equal(merged_data, serial_data)
+    assert merged_chunk_info == serial_chunk_info
+    assert sum(len(paths) for paths, _, _ in calls) < sum(
+        len(paths) for paths, _, _ in standard_calls
+    ), "Expected max_request_block to reduce the number of cat_range spans"
 
 
 def test_parallel_s3fs_cat_ranges_matches_serial_results(s3fs_s3):

@@ -229,6 +229,7 @@ class ChunkRead:
         stops = [si.byte_offset + si.size for _, _, _, si in chunks]
 
         paths = [actual_fh.path] * len(chunks)
+        chunk_ranges = list(zip(paths, starts, stops))
         if max_block is not None:
             paths, starts, stops = futils.merge_offset_ranges(
                 paths, starts, stops, max_block=max_block
@@ -236,8 +237,25 @@ class ChunkRead:
 
         buffers = actual_fh.fs.cat_ranges(paths, starts, stops, batch_size=batch_size)
 
+        chunk_buffers = []
+        for path, start, stop in chunk_ranges:
+            for merged_path, merged_start, merged_stop, buffer in zip(
+                paths, starts, stops, buffers
+            ):
+                if (
+                    path == merged_path
+                    and merged_start <= start
+                    and stop <= merged_stop
+                ):
+                    chunk_buffers.append(
+                        buffer[start - merged_start : stop - merged_start]
+                    )
+                    break
+            else:
+                raise RuntimeError("Merged range does not contain requested chunk")
+
         for (_coords, chunk_sel, out_sel, storeinfo), chunk_buffer in zip(
-            chunks, buffers
+            chunks, chunk_buffers
         ):
             out[out_sel] = self._decode_chunk(
                 chunk_buffer, storeinfo.filter_mask, dtype
