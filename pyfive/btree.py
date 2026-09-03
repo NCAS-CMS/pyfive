@@ -283,22 +283,21 @@ class BTreeV1RawDataChunks(BTreeV1):
                 chunk_buffer = zlib.decompress(chunk_buffer)
             elif filter_id == SHUFFLE_FILTER:
                 buffer_size = len(chunk_buffer)
-                if buffer_size % itemsize != 0:
-                    if (buffer_size - 4) % itemsize == 0:
-                        chunk_buffer = chunk_buffer[:-4]
-                        buffer_size = len(chunk_buffer)
-                    else:
-                        raise ValueError(
-                            "shuffle filter length mismatch: "
-                            f"len={buffer_size}, itemsize={itemsize}"
-                        )
-                unshuffled_buffer = bytearray(buffer_size)
-                step = buffer_size // itemsize
+                # The HDF5 shuffle filter only operates on the largest prefix
+                # of the buffer that is an exact multiple of itemsize; any
+                # trailing remainder bytes (e.g. from a filter applied before
+                # shuffle in the pipeline, such as fletcher32) are left
+                # unshuffled and simply copied through unchanged.
+                remainder = buffer_size % itemsize
+                main_size = buffer_size - remainder
+                tail = chunk_buffer[main_size:]
+                unshuffled_buffer = bytearray(main_size)
+                step = main_size // itemsize
                 for j in range(itemsize):
                     start = j * step
                     end = (j + 1) * step
                     unshuffled_buffer[j::itemsize] = chunk_buffer[start:end]
-                chunk_buffer = unshuffled_buffer
+                chunk_buffer = bytes(unshuffled_buffer) + tail
             elif filter_id == FLETCH32_FILTER:
                 cls._verify_fletcher32(chunk_buffer)
                 # strip off 4-byte checksum from end of buffer
