@@ -347,6 +347,13 @@ class File(Group):
                 if fh.read(len(FORMAT_SIGNATURE)) == FORMAT_SIGNATURE:
                     return offset
                 offset = 512 if offset == 0 else offset * 2
+
+            # Not an HDF5 file - check if it's a classic NetCDF3 file instead,
+            # so we can raise a more specific/useful error.
+            fh.seek(0)
+            magic = fh.read(4)
+            if magic[:3] == b"CDF" and magic[3:4] in (b"\x01", b"\x02", b"\x05"):
+                raise InvalidHDF5File("NetCDF3 files are not supported")
         finally:
             fh.seek(original_offset)
 

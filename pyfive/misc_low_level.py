@@ -43,8 +43,6 @@ class SuperBlock(object):
             )
 
         # verify contents
-        if contents["format_signature"] != FORMAT_SIGNATURE:
-            raise InvalidHDF5File("Incorrect file signature")
         if contents["offset_size"] != 8 or contents["length_size"] != 8:
             raise NotImplementedError("File uses none 64-bit addressing")
         self.version = contents["superblock_version"]
