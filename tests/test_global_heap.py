@@ -3,7 +3,9 @@
 import io
 import struct
 
+import h5py
 import pytest
+import pyfive
 from pyfive.misc_low_level import GLOBAL_HEAP_HEADER_SIZE, GlobalHeap
 
 
@@ -68,6 +70,42 @@ def test_collection_exactly_full():
         [(1, b"hello"), (2, b"abcdefgh")], trailing_pad=0
     )
     assert read_objects(raw) == {1: b"hello", 2: b"abcdefgh"}
+
+
+def make_shared_global_heap_file(tmp_path):
+    """Create a file where many datasets and attrs point into the same GCOL."""
+    path = tmp_path / "shared_global_heap.h5"
+    shared = ["alpha", "beta", "gamma"]
+    with h5py.File(path, "w") as f:
+        for i in range(5):
+            ds = f.create_dataset(f"ds{i}", (2,), dtype=h5py.special_dtype(vlen=str))
+            ds[:] = [shared[0], shared[1]]
+            ds.attrs["row"] = shared
+            ds.attrs["other"] = shared
+    return path
+
+
+def test_global_heap_is_cached_per_file(tmp_path, monkeypatch):
+    """A GCOL referenced by many datasets should be loaded only once per file."""
+    path = make_shared_global_heap_file(tmp_path)
+    original = pyfive.misc_low_level.GlobalHeap
+    calls = []
+
+    def tracked(fh, offset):
+        calls.append(offset)
+        return original(fh, offset)
+
+    monkeypatch.setattr(pyfive.misc_low_level, "GlobalHeap", tracked)
+    monkeypatch.setattr(pyfive.dataobjects, "GlobalHeap", tracked)
+
+    with pyfive.File(path) as hfile:
+        for name in hfile:
+            _ = hfile[name].attrs
+            _ = hfile[name][:]
+
+    assert len(calls) == 1
+    assert len(set(calls)) == 1
+    assert len(hfile._global_heaps) == 1
 
 
 @pytest.mark.parametrize("pad", [1, 4, 8, 15])

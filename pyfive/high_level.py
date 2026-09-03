@@ -140,7 +140,13 @@ class Group(Mapping):
         if dataobjs.is_dataset:
             if additional_obj != ".":
                 raise KeyError("%s is a dataset, not a group" % (obj_name))
-            return Dataset(obj_name, DatasetID(dataobjs, noindex=noindex), self)
+            return Dataset(
+                obj_name,
+                DatasetID(
+                    dataobjs, noindex=noindex, global_heaps=dataobjs._global_heaps
+                ),
+                self,
+            )
 
         try:
             # if true, this may well raise a NotImplementedError, if so, we need
@@ -318,6 +324,7 @@ class File(Group):
             logical_superblock_offset = superblock_offset
         self._superblock = SuperBlock(self._fh, logical_superblock_offset)
         self._dataobjects_cache: dict = {}
+        self._global_heaps: dict = {}
         offset = self._superblock.offset_to_dataobjects
         dataobjects = self._get_dataobjects(offset)
 
@@ -378,6 +385,7 @@ class File(Group):
             self._fh,
             obj_addr,
             decode_strings=self.decode_strings,
+            global_heaps=self._global_heaps,
         )
         self._dataobjects_cache[obj_addr] = dataobjects
         return dataobjects

@@ -269,6 +269,7 @@ class DatasetID(ChunkRead):
         dataobject: "DataObjects",  # type: ignore[name-defined]  # noqa: F821
         noindex: bool = False,
         pseudo_chunking_size_MB: int = 4,
+        global_heaps: dict | None = None,
     ) -> None:
         """
         Instantiated with the ``pyfive`` ``datasetdataobject``, we copy and cache everything
@@ -328,12 +329,9 @@ class DatasetID(ChunkRead):
         self._decode_strings = dataobject.decode_strings
         self.set_parallelism()
 
-        # experimental code. We need to find out whether or not this
-        # is unnecessary duplication. At the moment it seems best for
-        # each variable to have it's own copy of those needed for
-        # data access. Though that's clearly not optimal if they include
-        # other data. To be determined.
-        self._global_heaps: dict = {}
+        # Share the per-file global-heap cache so all datasets/attrs that point into
+        # the same GCOL reuse the same parsed collection instead of re-reading it.
+        self._global_heaps: dict = {} if global_heaps is None else global_heaps
 
         self._msg_offset, self.layout_class, self.property_offset = (
             dataobject.get_id_storage_params()
