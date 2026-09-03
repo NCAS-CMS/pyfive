@@ -57,7 +57,7 @@ class DataObjects(object):
     HDF5 DataObjects.
     """
 
-    def __init__(self, fh, offset, order="C", decode_strings=False):
+    def __init__(self, fh, offset, order="C", decode_strings=False, global_heaps=None):
         """initalize."""
         # Log file handle info for diagnostics
         actual_fh = unwrap_file_handle(fh)
@@ -87,7 +87,7 @@ class DataObjects(object):
         self.msgs = msgs
         self.msg_data = msg_data
         self.offset = offset
-        self._global_heaps = {}
+        self._global_heaps = {} if global_heaps is None else global_heaps
         self._header = header
 
         # cached attributes
