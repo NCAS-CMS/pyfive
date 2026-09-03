@@ -270,10 +270,11 @@ class BTreeV1RawDataChunks(BTreeV1):
     def _filter_chunk(cls, chunk_buffer, filter_mask, filter_pipeline, itemsize):
         """Apply decompression filters to a chunk of data."""
         num_filters = len(filter_pipeline)
-        for i, pipeline_entry in enumerate(filter_pipeline[::-1]):
-            # A filter is skipped is the bit corresponding to its index in the
-            # pipeline is set in filter_mask
-            filter_index = num_filters - i - 1  # 0 to num_filters - 1
+        for filter_index in range(num_filters - 1, -1, -1):
+            pipeline_entry = filter_pipeline[filter_index]
+
+            # A filter is skipped if the bit corresponding to its index in the
+            # pipeline is set in filter_mask.
             if filter_mask & (1 << filter_index):
                 continue
 
@@ -282,6 +283,15 @@ class BTreeV1RawDataChunks(BTreeV1):
                 chunk_buffer = zlib.decompress(chunk_buffer)
             elif filter_id == SHUFFLE_FILTER:
                 buffer_size = len(chunk_buffer)
+                if buffer_size % itemsize != 0:
+                    if (buffer_size - 4) % itemsize == 0:
+                        chunk_buffer = chunk_buffer[:-4]
+                        buffer_size = len(chunk_buffer)
+                    else:
+                        raise ValueError(
+                            "shuffle filter length mismatch: "
+                            f"len={buffer_size}, itemsize={itemsize}"
+                        )
                 unshuffled_buffer = bytearray(buffer_size)
                 step = buffer_size // itemsize
                 for j in range(itemsize):
