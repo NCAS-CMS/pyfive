@@ -43,7 +43,14 @@ class Group(Mapping):
 
     """
 
-    def __init__(self, name: str, dataobjects: DataObjects, parent: "Group") -> None:
+    def __init__(
+        self,
+        name: str,
+        dataobjects: DataObjects,
+        parent: "Group",
+        max_request_block: int | None = None,
+        batch_request_size: int | None = None,
+    ) -> None:
         """initalize."""
 
         self.parent = parent
@@ -53,6 +60,9 @@ class Group(Mapping):
         self._links = dataobjects.get_links()
         self._dataobjects = dataobjects
         self._attrs = None  # cached property
+
+        self._max_request_block = max_request_block
+        self._batch_request_size = batch_request_size
 
     def __repr__(self):
         return '<HDF5 group "%s" (%d members)>' % (self.name, len(self))
@@ -143,7 +153,11 @@ class Group(Mapping):
             return Dataset(
                 obj_name,
                 DatasetID(
-                    dataobjs, noindex=noindex, global_heaps=dataobjs._global_heaps
+                    dataobjs,
+                    noindex=noindex,
+                    max_request_block=self._max_request_block,
+                    batch_request_size=self._batch_request_size,
+                    global_heaps=dataobjs._global_heaps,
                 ),
                 self,
             )
@@ -275,8 +289,10 @@ class File(Group):
         mode: str = "r",
         metadata_buffer_size: int = 1,
         decode_strings: bool = False,
+        **kwargs,
     ) -> None:
         """initalize."""
+
         if mode != "r":
             raise NotImplementedError(
                 "pyfive only provides support for reading and treats all reads as binary"
@@ -331,7 +347,7 @@ class File(Group):
         self.file = self
         self.mode = "r"
         self.userblock_size = base_address
-        super(File, self).__init__("/", dataobjects, self)
+        super(File, self).__init__("/", dataobjects, self, **kwargs)
 
     @staticmethod
     def _find_superblock_offset(fh: FileHandle) -> int:

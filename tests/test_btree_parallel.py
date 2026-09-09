@@ -4,6 +4,7 @@ import struct
 
 import fsspec
 import pytest
+import numpy as np
 from numpy.testing import assert_array_equal
 
 import pyfive
@@ -310,6 +311,26 @@ def test_parallel_fsspec_cat_ranges_matches_serial_results():
     assert calls, "Expected fsspec cat_ranges to be used for leaf-node reads"
     assert_array_equal(fsspec_data, serial_data)
     assert fsspec_chunk_info == serial_chunk_info
+
+    standard_calls = list(calls)
+    calls = []
+
+    with memfs.open(mem_path, "rb") as fh:
+        with pyfive.File(
+            fh, max_request_block=10_000_000, batch_request_size=100
+        ) as hfile:
+            ds = hfile["dataset1"]
+            merged_data = ds[:]
+            merged_chunk_info = [
+                ds.id.get_chunk_info(i) for i in range(ds.id.get_num_chunks())
+            ]
+
+    assert calls, "Expected fsspec cat_ranges to be used for merged range reads"
+    assert_array_equal(merged_data, serial_data)
+    assert merged_chunk_info == serial_chunk_info
+    assert sum(len(paths) for paths, _, _ in calls) < sum(
+        len(paths) for paths, _, _ in standard_calls
+    ), "Expected max_request_block to reduce the number of cat_range spans"
 
 
 def test_parallel_s3fs_cat_ranges_matches_serial_results(s3fs_s3):

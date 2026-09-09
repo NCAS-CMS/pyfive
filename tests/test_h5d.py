@@ -9,7 +9,6 @@ import s3fs
 
 from conftest import s3_url_exists
 
-
 mypath = Path(__file__).parent
 filename = mypath / "data" / "compressed.hdf5"
 variable_name = "dataset3"
