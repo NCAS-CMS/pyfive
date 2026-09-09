@@ -46,6 +46,30 @@ class ChunkRead:
     # Shared helpers                                                       #
     # ------------------------------------------------------------------ #
 
+    @staticmethod
+    def _cat_ranges_raise(fs, paths, starts, stops):
+        """Return cat_ranges buffers, raising any read exceptions immediately."""
+        try:
+            buffers = fs.cat_ranges(paths, starts, stops, on_error="raise")
+            # ideally now everything gets raised immediately on error,
+            # but some apparently fsspec backends don't respect on_error,
+            # either by not accepting it, or not properly honouring it.
+        except TypeError as e:
+            # we need to handle the case of not accepting it
+            msg = str(e)
+            if "on_error" in msg and "unexpected keyword" in msg:
+                buffers = fs.cat_ranges(paths, starts, stops)
+            else:
+                # could be something else, so re-raise
+                raise
+
+        # and handle the case of not honouring the on_error argument
+        for buffer in buffers:
+            if isinstance(buffer, Exception):
+                raise buffer
+
+        return buffers
+
     def set_parallelism(
         self, thread_count=0, cat_range_allowed=True, btree_parallel=False
     ):
@@ -235,7 +259,23 @@ class ChunkRead:
                 paths, starts, stops, max_block=max_block
             )
 
-        buffers = actual_fh.fs.cat_ranges(paths, starts, stops, batch_size=batch_size)
+        buffers = self._cat_ranges_raise(
+            actual_fh.fs,
+            paths,
+            starts,
+            stops,
+            # batch_size is only supported by some backends; keep the original
+            # request size in the per-call metadata if the backend accepts it.
+        )
+        if batch_size is not None:
+            try:
+                buffers = actual_fh.fs.cat_ranges(
+                    paths, starts, stops, batch_size=batch_size, on_error="raise"
+                )
+            except TypeError:
+                buffers = actual_fh.fs.cat_ranges(
+                    paths, starts, stops, batch_size=batch_size
+                )
 
         chunk_buffers = []
         for path, start, stop in chunk_ranges:
@@ -284,6 +324,7 @@ class DatasetID(ChunkRead):
         pseudo_chunking_size_MB: int = 4,
         max_request_block: int | None = None,
         batch_request_size: int | None = None,
+        global_heaps: dict | None = None,
     ) -> None:
         """
         Instantiated with the ``pyfive`` ``datasetdataobject``, we copy and cache everything
@@ -343,14 +384,12 @@ class DatasetID(ChunkRead):
         self.shape = dataobject.shape
         self.rank = len(self.shape)
         self.chunks = dataobject.chunks
+        self._decode_strings = dataobject.decode_strings
         self.set_parallelism()
 
-        # experimental code. We need to find out whether or not this
-        # is unnecessary duplication. At the moment it seems best for
-        # each variable to have it's own copy of those needed for
-        # data access. Though that's clearly not optimal if they include
-        # other data. To be determined.
-        self._global_heaps: dict = {}
+        # Share the per-file global-heap cache so all datasets/attrs that point into
+        # the same GCOL reuse the same parsed collection instead of re-reading it.
+        self._global_heaps: dict = {} if global_heaps is None else global_heaps
 
         self._msg_offset, self.layout_class, self.property_offset = (
             dataobject.get_id_storage_params()
@@ -695,7 +734,12 @@ class DatasetID(ChunkRead):
 
                 def fetch_cat_ranges(addresses, size):
                     stops = [addr + size for addr in addresses]
-                    return fs.cat_ranges([path] * len(addresses), addresses, stops)
+                    return self._cat_ranges_raise(
+                        fs,
+                        [path] * len(addresses),
+                        addresses,
+                        stops,
+                    )
 
                 return fetch_cat_ranges
 
@@ -751,6 +795,7 @@ class DatasetID(ChunkRead):
                 self.shape,
                 self._ptype,
                 fillvalue,
+                self._decode_strings,
             )
             if self.posix:
                 fh.close()
@@ -968,6 +1013,7 @@ class DatasetID(ChunkRead):
                     global_heaps,
                     chunk_shape,
                     self._ptype,
+                    self._decode_strings,
                 )
                 chunk_data = chunk_data.reshape(chunk_shape)
                 out[out_selection] = chunk_data[chunk_selection]

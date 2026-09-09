@@ -17,7 +17,7 @@ repos:
     rev: v6.0.0
     hooks:
       - id: check-added-large-files
-        exclude: ^tests/data/cmip_bad_eg\.nc$
+        exclude: ^tests/data/(cmip_bad_eg\.nc|Data_20230106_01_014\.mat)$
       - id: check-ast
       - id: check-case-conflict
       - id: check-merge-conflict

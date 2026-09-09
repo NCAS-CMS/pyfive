@@ -43,8 +43,6 @@ class SuperBlock(object):
             )
 
         # verify contents
-        if contents["format_signature"] != FORMAT_SIGNATURE:
-            raise InvalidHDF5File("Incorrect file signature")
         if contents["offset_size"] != 8 or contents["length_size"] != 8:
             raise NotImplementedError("File uses none 64-bit addressing")
         self.version = contents["superblock_version"]
@@ -158,7 +156,12 @@ class GlobalHeap(object):
         if self._objects is None:
             self._objects = OrderedDict()
             offset = 0
-            while offset < len(self.heap_data):
+            # Only read an object when a full GLOBAL_HEAP_OBJECT header fits in the
+            # remaining bytes. The collection's trailing free space is marked by an
+            # object with index 0, but libhdf5 writes that marker only when at least one
+            # 16-byte object header fits. A smaller remainder (e.g. 8 bytes) is just
+            # padding.
+            while offset + GLOBAL_HEAP_OBJECT_SIZE <= len(self.heap_data):
                 info = _unpack_struct_from(GLOBAL_HEAP_OBJECT, self.heap_data, offset)
                 if info["object_index"] == 0:
                     break
@@ -536,7 +539,7 @@ class FractalHeap(object):
 
 
 def get_vlen_string_data_contiguous(
-    fh, data_offset, global_heaps, shape, dtype, fillvalue
+    fh, data_offset, global_heaps, shape, dtype, fillvalue, decode_strings=False
 ):
     """Return the data for a variable which is made up of variable length string data"""
     # we need to import this from DatasetID, and that's imported from Dataobjects hence
@@ -570,15 +573,15 @@ def get_vlen_string_data_contiguous(
 
         offset += 16
 
-    # If character_set == 0 ascii character set, return as
-    # bytes. Otherwise return as UTF-8.
-    if dtype.character_set:
-        value = _convert_to_utf8_string_objects(value)
+    if decode_strings:
+        value = _convert_string_objects(value, dtype.encoding.lower())
 
     return value
 
 
-def get_vlen_string_data_from_chunk(fh, data_offset, global_heaps, shape, dtype):
+def get_vlen_string_data_from_chunk(
+    fh, data_offset, global_heaps, shape, dtype, decode_strings=False
+):
     """Return the data for a data chunk which is made up of variable
     length string data.
 
@@ -602,20 +605,15 @@ def get_vlen_string_data_from_chunk(fh, data_offset, global_heaps, shape, dtype)
         value[i] = gheap.objects[gheap_id["object_index"]]
         offset += 16
 
-    # If character_set == 0 ascii character set, return as
-    # bytes. Otherwise return as UTF-8.
-    if dtype.character_set:
-        value = _convert_to_utf8_string_objects(value)
+    if decode_strings:
+        value = _convert_string_objects(value, dtype.encoding.lower())
 
     return value
 
 
-def _convert_to_utf8_string_objects(array):
-    """Convert an numpy array of byte string objects to an array of UTF-8
-    string objects.
-
-    """
-    decode = np.vectorize(lambda x: x.decode("utf-8"))
+def _convert_string_objects(array, encoding):
+    """Convert a numpy object array of bytes to decoded Python strings."""
+    decode = np.vectorize(lambda x: x.decode(encoding) if x is not None else None)
     array = decode(array)
     array = array.astype("O")
     return array

@@ -169,6 +169,17 @@ def test_vlen_string_hdf5(tmp_path):
         ds2 = hfile["var_len_str_fv"][:]
         print(ds1)
         print(ds2)
+        assert np.array_equal(
+            ds1[:2], [value.encode("utf-8") for value in vlen_strings]
+        )
+        assert np.array_equal(
+            ds2[:2], [value.encode("utf-8") for value in vlen_strings]
+        )
+        assert ds2[3] == b"this really fills the data"
+
+    with pyfive.File(our_file, decode_strings=True) as hfile:
+        ds1 = hfile["var_len_str"][:]
+        ds2 = hfile["var_len_str_fv"][:]
         assert np.array_equal(ds1[:2], vlen_strings)
         assert np.array_equal(ds2[:2], vlen_strings)
         assert ds2[3] == "this really fills the data"
@@ -212,6 +223,10 @@ def test_vlen_string_nc2(tmp_path):
 
     with pyfive.File(tfile) as hfile:
         ds1 = hfile["months"][:].tolist()
+        assert np.array_equal(m_array_bytes, ds1)
+
+    with pyfive.File(tfile, decode_strings=True) as hfile:
+        ds1 = hfile["months"][:].tolist()
         assert np.array_equal(m_array, ds1)
 
 
@@ -219,7 +234,7 @@ def test_pathological_strings(tmp_path):
     tfile = tmp_path / "test_strings.nc"
     validation = make_pathological_nc(tfile)
     warnings.warn("Validation of variable length strings assumes h5py is wrong")
-    with pyfive.File(tfile) as pfile:
+    with pyfive.File(tfile, decode_strings=True) as pfile:
         with h5py.File(tfile) as hfile:
             for k, v in validation.items():
                 hdata = hfile[k][...]
@@ -271,3 +286,48 @@ def test_vlen_contiguous_chunked(tmp_path):
             (slice(0, 2), slice(0, 2)),
         ):
             assert np.array_equal(contiguous[index], chunked[index])
+
+
+def test_issue228(tmp_path):
+    """Test unicode variable-length strings can be decoded on request."""
+    input_strings = ["foó", "bár", "baź"]
+    tfile = tmp_path / "issue228.h5"
+
+    with h5py.File(tfile, "w") as hfile:
+        dtype = h5py.string_dtype("utf-8")
+        dataset = hfile.create_dataset("x", (len(input_strings),), dtype=dtype)
+        dataset[...] = input_strings
+
+    with h5py.File(tfile, "r") as hfile:
+        dataset = hfile["x"]
+        assert h5py.check_dtype(vlen=dataset.dtype) is str
+        assert dataset.asstr()[...].tolist() == input_strings
+
+    with pyfive.File(tfile, decode_strings=True) as hfile:
+        dataset = hfile["x"]
+        string_info = pyfive.check_dtype(vlen=dataset.dtype)
+        assert string_info is not None
+        assert string_info.encoding == "utf-8"
+        assert string_info.length is None
+        assert dataset[...].tolist() == input_strings
+
+
+def test_issue228_default_read_matches_h5py(tmp_path):
+    """Default vlen string reads should match h5py's byte-oriented behavior."""
+    input_strings = ["foó", "bár", "baź"]
+    input_bytes = [value.encode("utf-8") for value in input_strings]
+    tfile = tmp_path / "issue228_default_read.h5"
+
+    with h5py.File(tfile, "w") as hfile:
+        dtype = h5py.string_dtype("utf-8")
+        dataset = hfile.create_dataset("x", (len(input_strings),), dtype=dtype)
+        dataset[...] = input_strings
+
+    with h5py.File(tfile, "r") as hfile:
+        h5py_data = hfile["x"][...].tolist()
+
+    with pyfive.File(tfile) as hfile:
+        pyfive_data = hfile["x"][...].tolist()
+
+    assert h5py_data == input_bytes
+    assert pyfive_data == input_bytes

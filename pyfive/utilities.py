@@ -7,6 +7,16 @@ import logging
 logger = logging.getLogger(__name__)
 
 
+def unwrap_file_handle(fh):
+    """Return the underlying file handle for diagnostics and capability checks."""
+    unwrapped = fh
+    while True:
+        next_fh = getattr(unwrapped, "fh", getattr(unwrapped, "_fh", None))
+        if next_fh is None or next_fh is unwrapped:
+            return unwrapped
+        unwrapped = next_fh
+
+
 class Interceptor:
     """Intercepts file-io and logs what is going on.
 
@@ -43,6 +53,38 @@ class Interceptor:
             pos = self._fh.tell()
             print(f"read: {size} bytes at {pos} (called from {func})")
         return self._fh.read(size)
+
+
+class HDF5OffsetWrapper:
+    """Expose an HDF5 file view whose logical offset 0 starts at base_address."""
+
+    def __init__(self, fh, base_address: int):
+        self._fh = fh
+        self.base_address = base_address
+
+    def __getattr__(self, name: str):
+        """Return attributes from the underlying file handle."""
+        return getattr(self._fh, name)
+
+    def seek(self, offset: int, whence: int = 0) -> int:
+        """Seek in the HDF5-relative address space."""
+        if whence == 0:
+            position = self._fh.seek(offset + self.base_address, whence)
+            return position - self.base_address
+        position = self._fh.seek(offset, whence)
+        return position - self.base_address
+
+    def read(self, size: int = -1) -> bytes:
+        """Read from the current HDF5-relative offset."""
+        return self._fh.read(size)
+
+    def tell(self) -> int:
+        """Return the current HDF5-relative file position."""
+        return self._fh.tell() - self.base_address
+
+    def close(self):
+        """Close the underlying file."""
+        self._fh.close()
 
 
 class MetadataBufferingWrapper:
