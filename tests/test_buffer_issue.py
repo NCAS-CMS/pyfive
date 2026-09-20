@@ -13,6 +13,7 @@ def test_botocore_config():
     print("REQUESTS_CA_BUNDLE =", repr(os.environ.get("REQUESTS_CA_BUNDLE")))
     aws_ca_bundle = repr(os.environ.get("AWS_CA_BUNDLE"))
     req_ca_bundle = repr(os.environ.get("REQUESTS_CA_BUNDLE"))
+    print(x)
 
 
 def _load_nc_file(ncvar):
