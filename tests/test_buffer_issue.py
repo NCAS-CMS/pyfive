@@ -7,6 +7,14 @@ import s3fs
 from conftest import s3_url_exists
 
 
+def test_botocore_config():
+    """Test the exception raised by botocore config."""
+    print("AWS_CA_BUNDLE =", repr(os.environ.get("AWS_CA_BUNDLE")))
+    print("REQUESTS_CA_BUNDLE =", repr(os.environ.get("REQUESTS_CA_BUNDLE")))
+    aws_ca_bundle = repr(os.environ.get("AWS_CA_BUNDLE"))
+    req_ca_bundle = repr(os.environ.get("REQUESTS_CA_BUNDLE"))
+
+
 def _load_nc_file(ncvar):
     """
     Get the netcdf file and its b-tree.
