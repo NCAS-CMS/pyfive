@@ -22,7 +22,6 @@ classifiers = [
     "Natural Language :: English",
     "Operating System :: POSIX :: Linux",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
@@ -37,13 +36,14 @@ dynamic = [
 ]
 dependencies = [
     "numpy>=2",
+    "fsspec",
     "typing-extensions",
 ]
 description = "A pure python HDF5 reader"
 license = "BSD-3-Clause"
 license-files = ["LICENSE.txt"]
 name = "pyfive"
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 
 [project.scripts]
 p5dump = "pyfive.p5dump:main"
