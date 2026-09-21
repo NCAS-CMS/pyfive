@@ -12,7 +12,6 @@ import warnings
 import logging
 import numpy as np
 from typing import Any, BinaryIO, cast
-from typing_extensions import Self  # Python 3.10-compat
 from pyfive.core import Reference
 from pyfive.core import InvalidHDF5File
 from pyfive.dataobjects import DataObjects, DatasetID
@@ -413,7 +412,7 @@ class File(Group):
         self._dataobjects_cache[obj_addr] = dataobjects
         return dataobjects
 
-    def _get_object_by_address(self, obj_addr: BinaryIO) -> Self | Any | None:  # type: ignore[return]
+    def _get_object_by_address(self, obj_addr: BinaryIO) -> Any | Any | None:  # type: ignore[return]
         """Return the object pointed to by a given address."""
         if self._dataobjects.offset == obj_addr:
             return self

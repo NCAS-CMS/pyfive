@@ -403,8 +403,7 @@ class FractalHeap(object):
         idtype = (firstbyte >> 4) & 3  # bit 4-5
         version = firstbyte >> 6  # bit 6-7
         data_offset = 1
-        # throws a flake8 wobbly for Python<3.10; match is Py3.10+ syntax
-        match idtype:  # noqa
+        match idtype:
             case 0:  # managed
                 assert version == 0
                 nbytes = self._managed_object_offset_size

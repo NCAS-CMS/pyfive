@@ -403,8 +403,7 @@ class DatasetID(ChunkRead):
         self._index = None
         self.__index_built = False
         self._index_params = None
-        # throws a flake8 wobbly for Python<3.10; match is Py3.10+ syntax
-        match self.layout_class:  # noqa
+        match self.layout_class:
             case 0:  # compact storage
                 self._data = self._get_compact_data(dataobject)
             case 1:  # contiguous storage
@@ -484,9 +483,8 @@ class DatasetID(ChunkRead):
 
     def get_data(self, args, fillvalue):
         """Called by the dataset getitem method"""
-        # throws a flake8 wobbly for Python<3.10; match is Py3.10+ syntax
         no_storage = False
-        match self.layout_class:  # noqa
+        match self.layout_class:
             case 0:  # compact storage
                 if self._data is None:
                     no_storage = True
