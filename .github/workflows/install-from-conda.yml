@@ -18,7 +18,7 @@ jobs:
     if: github.repository == 'NCAS-CMS/pyfive' # avoid GAs in forks
     strategy:
       matrix:
-        python-version: ["3.10", "3.11", "3.12", "3.13", "3.14"]
+        python-version: ["3.11", "3.12", "3.13", "3.14"]
       # fail-fast set to False allows all other tests
       # in the workflow to run regardless of any fail
       fail-fast: false
