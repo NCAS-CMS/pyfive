@@ -7,7 +7,6 @@ on:
   push:
     branches:
       - main
-      - full_conda_package_test
   schedule:
     - cron: "0 4 * * *"
 
@@ -19,7 +18,7 @@ defaults:
 jobs:
   build:
 
-    name: Test Python ${{ matrix.python-version }}
+    name: Linux Python ${{ matrix.python-version }}
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
