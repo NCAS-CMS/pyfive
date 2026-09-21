@@ -26,7 +26,7 @@ Writing HDF5 output is not a goal of ``pyfive`` and portions of the API which ap
 Dependencies
 ============
 
-``pyfive`` is tested against Python versions 3.10 to 3.14.
+``pyfive`` is tested against Python versions 3.11 to 3.14.
 It may also work with other Python versions.
 
 The only dependencies to run the software besides Python is ``numpy``.
