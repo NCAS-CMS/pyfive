@@ -20,7 +20,7 @@ dependencies:
   - hdf5 >=2
   ###################################################
   - moto
-  - netcdf4 !=1.7.4  # github.com/Unidata/netcdf4-python/issues/1464
+  - netcdf4  # !=1.7.4  # github.com/Unidata/netcdf4-python/issues/1464
   - pre-commit  # with ruff and mypy
   - pytest
   - pytest-cov
