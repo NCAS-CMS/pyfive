@@ -77,10 +77,18 @@ class ChunkRead:
         """
         Configure chunk-read parallelism.
 
-        ``thread_count`` controls POSIX threaded reads via ``os.pread``:
-        - ``0`` disables threaded reads
-        - ``>0`` enables threaded reads with that many workers
-        - Default 4
+        ``thread_count`` sets the number of worker threads used to read and
+        decode chunks:
+        - ``0`` (the default) uses no worker threads: chunks are decoded
+          one at a time on the calling thread
+        - ``>0`` decodes chunks (decompression, shuffle, checksum) on that many
+          worker threads, for POSIX files (also reading with ``os.pread``) and
+          for fsspec files read in bulk with ``cat_ranges``
+
+        The default is ``0`` because pyfive is often called from threads or
+        task schedulers (for example ``dask``) of the caller's own; enabling
+        this on top of them multiplies the number of busy threads. Serial reads
+        of other file-like objects are not threaded, as they share one handle.
 
         ``cat_range_allowed`` enables fsspec bulk reads via ``cat_ranges``
         for compatible non-posix file handles. Default True
@@ -198,39 +206,52 @@ class ChunkRead:
         if self.posix:
             fh.close()
 
+    def _run_chunk_tasks(self, task, items):
+        """
+        Call ``task(item)`` for every item, on ``thread_count`` worker threads
+        when that is non-zero, otherwise serially on the calling thread.
+
+        Each task decodes one chunk and writes its own, disjoint, region of the
+        output array, so tasks need no locking. Exceptions raised by a task are
+        re-raised here.
+        """
+        workers = min(self._thread_count, len(items))
+        if workers == 0:
+            for item in items:
+                task(item)
+            return
+        with ThreadPoolExecutor(max_workers=workers) as executor:
+            # Consuming the iterator surfaces any exception from a worker.
+            for _ in executor.map(task, items):
+                pass
+
     def _read_parallel_threads(self, chunks, out, dtype):
         """
-        Thread-parallel read via ``os.pread``.
+        Thread-parallel read and decode via ``os.pread``.
 
         ``os.pread`` does not advance the file-position pointer, so all
-        worker threads share a single open file descriptor safely.
+        worker threads share a single open file descriptor safely. Each worker
+        reads, decodes and stores one chunk at a time, so reads overlap with
+        decoding and only ``thread_count`` compressed chunks are held at once.
         """
         fh = open(self._filename, "rb")
         fd = fh.fileno()
 
-        def _read_one(item):
+        def _read_decode_store(item):
             _coords, chunk_sel, out_sel, storeinfo = item
-            return (
-                chunk_sel,
-                out_sel,
-                storeinfo.filter_mask,
-                os.pread(fd, storeinfo.size, storeinfo.byte_offset),
-            )
+            chunk_buffer = os.pread(fd, storeinfo.size, storeinfo.byte_offset)
+            out[out_sel] = self._decode_chunk(
+                chunk_buffer, storeinfo.filter_mask, dtype
+            )[chunk_sel]
 
         try:
-            with ThreadPoolExecutor(max_workers=self._thread_count) as executor:
-                results = list(executor.map(_read_one, chunks))
+            self._run_chunk_tasks(_read_decode_store, chunks)
         finally:
             fh.close()
 
         logger.info(
             "pyfive thread pool read completed using %d threads", self._thread_count
         )
-
-        for chunk_sel, out_sel, filter_mask, chunk_buffer in results:
-            out[out_sel] = self._decode_chunk(chunk_buffer, filter_mask, dtype)[
-                chunk_sel
-            ]
 
     def _read_bulk_fsspec(
         self,
@@ -299,12 +320,13 @@ class ChunkRead:
                     continue
             raise RuntimeError("Merged range does not contain requested chunk")
 
-        for (_coords, chunk_sel, out_sel, storeinfo), chunk_buffer in zip(
-            chunks, chunk_buffers
-        ):
+        def _decode_store(item):
+            (_coords, chunk_sel, out_sel, storeinfo), chunk_buffer = item
             out[out_sel] = self._decode_chunk(
                 chunk_buffer, storeinfo.filter_mask, dtype
             )[chunk_sel]
+
+        self._run_chunk_tasks(_decode_store, list(zip(chunks, chunk_buffers)))
 
 
 class DatasetID(ChunkRead):

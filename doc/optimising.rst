@@ -86,6 +86,23 @@ For example, you can use the `concurrent.futures` module to read data from multi
 
 You can do the same thing to parallelise manipulations within the variables, by for example using, ``dask``, but that is beyond the scope of this document.
 
+Reading and decoding the chunks of a *single* variable can also be spread over threads inside ``pyfive``. Decompressing and unshuffling chunks
+is often most of the time spent reading a compressed variable, and it releases Python's global interpreter lock, so it does scale
+with the number of threads. This is off by default, because if you are already calling ``pyfive`` from your own threads (as above, or from ``dask``)
+the two layers of threads multiply. To use it, set the number of worker threads on the dataset identifier before reading:
+
+.. code-block:: python
+
+    import pyfive
+
+    with pyfive.File("data.h5", "r") as f:
+        dset = f['temp']
+        dset.id.set_parallelism(thread_count=4)
+        data = dset[...]  # chunks are read and decoded on four threads
+
+This applies to files on a local file system and to remote files read via ``fsspec``. It does not change the result of any read, only how quickly it completes;
+the benefit is greatest for large, compressed variables made up of many chunks.
+
 In addition, you can use the attributes ``max_request_block`` and ``batch_request_size`` to customise how requests are made to remote servers in the pyfive backend.
 
 .. code-block:: python
