@@ -1,5 +1,6 @@
 import numpy as np
 import fsspec.utils as futils
+from bisect import bisect_right
 from collections import namedtuple
 from operator import mul
 from pyfive.indexing import OrthogonalIndexer, ZarrArrayStub
@@ -277,22 +278,26 @@ class ChunkRead:
                     paths, starts, stops, batch_size=batch_size
                 )
 
+        # Fetched ranges never overlap, so the only range that can contain a
+        # chunk is the last one starting at or before it. Bisecting keeps this
+        # O(K log K); scanning every range for every chunk was O(K^2).
+        fetched = sorted(
+            (path, start, stop, index)
+            for index, (path, start, stop) in enumerate(zip(paths, starts, stops))
+        )
+        fetched_keys = [(path, start) for path, start, _stop, _index in fetched]
+
         chunk_buffers = []
         for path, start, stop in chunk_ranges:
-            for merged_path, merged_start, merged_stop, buffer in zip(
-                paths, starts, stops, buffers
-            ):
-                if (
-                    path == merged_path
-                    and merged_start <= start
-                    and stop <= merged_stop
-                ):
+            position = bisect_right(fetched_keys, (path, start)) - 1
+            if position >= 0:
+                merged_path, merged_start, merged_stop, index = fetched[position]
+                if merged_path == path and stop <= merged_stop:
                     chunk_buffers.append(
-                        buffer[start - merged_start : stop - merged_start]
+                        buffers[index][start - merged_start : stop - merged_start]
                     )
-                    break
-            else:
-                raise RuntimeError("Merged range does not contain requested chunk")
+                    continue
+            raise RuntimeError("Merged range does not contain requested chunk")
 
         for (_coords, chunk_sel, out_sel, storeinfo), chunk_buffer in zip(
             chunks, chunk_buffers
