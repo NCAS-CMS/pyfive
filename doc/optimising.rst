@@ -6,6 +6,8 @@ HDF5 files can be large and complicated, with complex internal structures which 
 These complexities (and the overheads they introduce) can be mitigated by optimising how you access the data, but this requires an understanding of 
 how the data is stored in the file and how the data access library (in this case ``pyfive``) works.
 
+A record of the performance work done in ``pyfive`` itself, and what was measured, is in :doc:`optimisation_changes`.
+
 The data storage complexities arise from two main factors: the use of chunking, and the way attributes are stored in the files.
 
 **Chunking**: HDF5 files can store data in chunks, which allows for more efficient access to large datasets. 

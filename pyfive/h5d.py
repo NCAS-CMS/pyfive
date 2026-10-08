@@ -87,6 +87,7 @@ class ChunkRead:
 
         ``thread_count`` sets the number of worker threads used to read and
         decode chunks:
+
         - ``0`` (the default) uses no worker threads: chunks are decoded
           one at a time on the calling thread
         - ``>0`` decodes chunks (decompression, shuffle, checksum) on that many
