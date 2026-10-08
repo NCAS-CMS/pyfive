@@ -38,9 +38,11 @@ def _read(fs, path, selection=Ellipsis, **file_kwargs):
     with fs.open(path, "rb") as fh:
         with pyfive.File(fh, **file_kwargs) as hfile:
             dataset = hfile["d"]
-            start = time.perf_counter()
+            # CPU time, not wall time: the read is single-threaded and CPU-bound,
+            # and CPU time is not inflated by other work sharing the machine.
+            start = time.process_time()
             result = dataset[selection]
-            return result, time.perf_counter() - start
+            return result, time.process_time() - start
 
 
 @pytest.mark.parametrize("file_kwargs", [{}, {"max_request_block": 1 << 20}])
@@ -60,24 +62,32 @@ def test_bulk_read_matches_for_any_chunk_order(
     np.testing.assert_array_equal(result, data[selection])
 
 
+@pytest.mark.timing_sensitive
 def test_bulk_read_time_is_linear_in_chunk_count(memory_fs, tmp_path):
-    """Matching fetched ranges to chunks was quadratic: 4x chunks cost ~16x.
+    """Matching fetched ranges to chunks was quadratic in the number of chunks.
 
-    Comparing a small and a 4x larger read cancels out machine speed. A linear
-    algorithm gives a ratio near 4; the quadratic one gave about 15.
+    Reading 16x as many chunks should take about 16x as long if the cost is
+    linear, and about 256x as long if it is quadratic (the old code measured
+    over 100x). The threshold of 64 leaves a factor of 4 either side, so that
+    timing noise on a busy machine cannot decide the outcome. Comparing two
+    reads in the same run cancels out the speed of the machine.
     """
     fs, put = memory_fs
-    small_n, large_n = 4000, 16000
+    small_n, large_n = 2000, 32000
     small_path, small_data = put(tmp_path, small_n, "small.h5")
     large_path, large_data = put(tmp_path, large_n, "large.h5")
 
-    small = min(_read(fs, small_path)[1] for _ in range(3))
-    result, first = _read(fs, large_path)
-    large = min([first] + [_read(fs, large_path)[1] for _ in range(2)])
+    # Interleave the runs so that a slow period affects both sizes alike.
+    small = []
+    large = []
+    for _ in range(5):
+        small.append(_read(fs, small_path)[1])
+        result, elapsed = _read(fs, large_path)
+        large.append(elapsed)
     np.testing.assert_array_equal(result, large_data)
 
-    ratio = large / small
-    assert ratio < 8, (
-        f"{large_n} chunks took {large:.3f}s vs {small:.3f}s for {small_n}: "
-        f"x{ratio:.1f} for 4x the chunks suggests superlinear scaling"
+    ratio = min(large) / min(small)
+    assert ratio < 64, (
+        f"{large_n} chunks took {min(large):.3f}s vs {min(small):.3f}s for {small_n}: "
+        f"x{ratio:.0f} for {large_n // small_n}x the chunks suggests superlinear scaling"
     )

@@ -79,6 +79,7 @@ def test_unshuffle_matches_hdf5_library(tmp_path, dtype):
     assert unshuffle(raw, data.dtype.itemsize, mask) == data.tobytes()
 
 
+@pytest.mark.timing_sensitive
 @pytest.mark.skipif((os.cpu_count() or 1) < 4, reason="needs at least 4 CPUs")
 def test_unshuffle_scales_with_threads():
     """Unshuffling must release the GIL: 4 threads should beat 1 thread.
@@ -116,6 +117,7 @@ def test_unshuffle_scales_with_threads():
     )
 
 
+@pytest.mark.timing_sensitive
 def test_unshuffle_is_not_slower_than_bytearray_loop_when_serial():
     itemsize, repeats = 8, 64
     original = np.random.default_rng(1).integers(0, 256, 2**21, dtype="u1").tobytes()

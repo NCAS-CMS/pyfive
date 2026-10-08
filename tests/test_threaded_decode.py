@@ -106,6 +106,7 @@ def test_worker_errors_propagate(compressed_file, monkeypatch, backend):
         dataset[...]
 
 
+@pytest.mark.timing_sensitive
 @pytest.mark.skipif((os.cpu_count() or 1) < 2, reason="needs more than one CPU")
 @pytest.mark.parametrize("backend", ["posix", "fsspec"])
 def test_threaded_decode_is_faster(compressed_file, backend):

@@ -203,4 +203,5 @@ The tests added with these changes are:
   and filter combinations, and can also profile an existing ``fsspec`` URL. It is run with ``PYTHONPATH=. python tests/benchmark_filter_chain.py --output results.json``, and its timings are not pass or fail checks.
 
 The timing tests compare an operation against a baseline in the same run rather than against fixed times, so that they hold on machines of different speeds, and several of them
-were checked to fail against the previous implementation.
+were checked to fail against the previous implementation. Even so, run times on shared machines are noisy enough to fail a correct implementation occasionally, so these
+tests are marked ``timing_sensitive``: they run locally, but are skipped on GitHub Actions unless ``PYFIVE_RUN_TIMING_TESTS=1`` is set.
