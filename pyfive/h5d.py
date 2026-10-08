@@ -48,21 +48,28 @@ class ChunkRead:
     # ------------------------------------------------------------------ #
 
     @staticmethod
-    def _cat_ranges_raise(fs, paths, starts, stops):
+    def _cat_ranges_raise(fs, paths, starts, stops, batch_size=None):
         """Return cat_ranges buffers, raising any read exceptions immediately."""
-        try:
-            buffers = fs.cat_ranges(paths, starts, stops, on_error="raise")
-            # ideally now everything gets raised immediately on error,
-            # but some apparently fsspec backends don't respect on_error,
-            # either by not accepting it, or not properly honouring it.
-        except TypeError as e:
-            # we need to handle the case of not accepting it
-            msg = str(e)
-            if "on_error" in msg and "unexpected keyword" in msg:
-                buffers = fs.cat_ranges(paths, starts, stops)
-            else:
-                # could be something else, so re-raise
-                raise
+        # Not every backend accepts ``batch_size`` or ``on_error``; drop what a
+        # backend rejects rather than failing, so each range is still fetched once.
+        kwargs = {"on_error": "raise"}
+        if batch_size is not None:
+            kwargs["batch_size"] = batch_size
+        while True:
+            try:
+                buffers = fs.cat_ranges(paths, starts, stops, **kwargs)
+                break
+            except TypeError as e:
+                rejected = [
+                    name
+                    for name in kwargs
+                    if "unexpected keyword" in str(e) and name in str(e)
+                ]
+                if not rejected:
+                    # could be something else, so re-raise
+                    raise
+                for name in rejected:
+                    del kwargs[name]
 
         # and handle the case of not honouring the on_error argument
         for buffer in buffers:
@@ -282,22 +289,8 @@ class ChunkRead:
             )
 
         buffers = self._cat_ranges_raise(
-            actual_fh.fs,
-            paths,
-            starts,
-            stops,
-            # batch_size is only supported by some backends; keep the original
-            # request size in the per-call metadata if the backend accepts it.
+            actual_fh.fs, paths, starts, stops, batch_size=batch_size
         )
-        if batch_size is not None:
-            try:
-                buffers = actual_fh.fs.cat_ranges(
-                    paths, starts, stops, batch_size=batch_size, on_error="raise"
-                )
-            except TypeError:
-                buffers = actual_fh.fs.cat_ranges(
-                    paths, starts, stops, batch_size=batch_size
-                )
 
         # Fetched ranges never overlap, so the only range that can contain a
         # chunk is the last one starting at or before it. Bisecting keeps this
