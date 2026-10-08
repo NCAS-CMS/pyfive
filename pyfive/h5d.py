@@ -18,6 +18,7 @@ from time import time
 
 import os
 import struct
+import threading
 import logging
 from importlib.metadata import version
 from concurrent.futures import ThreadPoolExecutor
@@ -288,8 +289,10 @@ class ChunkRead:
                 paths, starts, stops, max_block=max_block
             )
 
-        buffers = self._cat_ranges_raise(
-            actual_fh.fs, paths, starts, stops, batch_size=batch_size
+        buffers = list(
+            self._cat_ranges_raise(
+                actual_fh.fs, paths, starts, stops, batch_size=batch_size
+            )
         )
 
         # Fetched ranges never overlap, so the only range that can contain a
@@ -301,25 +304,36 @@ class ChunkRead:
         )
         fetched_keys = [(path, start) for path, start, _stop, _index in fetched]
 
-        chunk_buffers = []
+        # Locate each chunk within a fetched block, and count the chunks still
+        # needing each block, so that a block can be freed as soon as its last
+        # chunk is decoded rather than holding everything fetched until the end.
+        spans = []
+        pending = [0] * len(buffers)
         for path, start, stop in chunk_ranges:
             position = bisect_right(fetched_keys, (path, start)) - 1
             if position >= 0:
                 merged_path, merged_start, merged_stop, index = fetched[position]
                 if merged_path == path and stop <= merged_stop:
-                    chunk_buffers.append(
-                        buffers[index][start - merged_start : stop - merged_start]
-                    )
+                    spans.append((index, start - merged_start, stop - merged_start))
+                    pending[index] += 1
                     continue
             raise RuntimeError("Merged range does not contain requested chunk")
 
-        def _decode_store(item):
-            (_coords, chunk_sel, out_sel, storeinfo), chunk_buffer = item
+        release = threading.Lock()
+
+        def _decode_store(i):
+            _coords, chunk_sel, out_sel, storeinfo = chunks[i]
+            index, low, high = spans[i]
+            chunk_buffer = buffers[index][low:high]
+            with release:
+                pending[index] -= 1
+                if pending[index] == 0:
+                    buffers[index] = None
             out[out_sel] = self._decode_chunk(
                 chunk_buffer, storeinfo.filter_mask, dtype
             )[chunk_sel]
 
-        self._run_chunk_tasks(_decode_store, list(zip(chunks, chunk_buffers)))
+        self._run_chunk_tasks(_decode_store, range(len(chunks)))
 
 
 class DatasetID(ChunkRead):
