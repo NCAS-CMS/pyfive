@@ -139,8 +139,10 @@ remote ``https://`` or ``s3://`` URL) will be slow to read remotely. It reports 
          chunk size one in dimension(s) [0]
    ...
 
-By default only the upper levels of each chunk index and its first and last leaf node are read, which is fast but only samples the chunk addresses; 
-use ``--full`` (``check_layout(source, full=True)``) to read every leaf node for an exact answer.
+By default only the upper levels of each chunk index and its first and last leaf node are read, which is enough to show that the metadata is
+fragmented. If none is found every leaf is then read to confirm it, which is cheap as an unfragmented index is contiguous. 
+``--full`` (``check_layout(source, full=True)``) always reads every leaf, which makes the list of affected variables exact too.
+The same check provides the ``File.consolidated_metadata`` flag.
 Use ``-v`` to list all chunked variables, and ``--anon`` for anonymous access to ``s3://`` URLs. The same checks are available from 
 Python as ``pyfive.p5check.check_layout(source)``, which returns a report object. As with ``p5dump -s``, the usual remedy is to 
 copy the file with ``h5repack`` using consolidated metadata and larger chunks.

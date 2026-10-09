@@ -139,3 +139,51 @@ def test_multilevel_btree_not_fully_read(modular_tmp_path):
     assert tree.depth >= 1
     assert 0 not in tree.all_nodes
     assert len(tree.leaf_addresses) > 1
+
+
+def test_consolidated_metadata_fragmented_reads_no_full_index(fragmented, monkeypatch):
+    def fail(self):
+        raise AssertionError("full index was built")
+
+    monkeypatch.setattr(pyfive.h5d.DatasetID, "_build_index", fail)
+    with pyfive.File(fragmented) as f:
+        assert not f.consolidated_metadata
+
+
+def test_consolidated_metadata_in_groups(modular_tmp_path):
+    name = modular_tmp_path / "grouped.h5"
+    with h5py.File(name, "w") as f:
+        g = f.create_group("g")
+        g.create_dataset("v", data=np.arange(100, dtype="f4"), chunks=(10,))
+        g.create_dataset("w", data=np.arange(100, dtype="f4"), chunks=(10,))
+    with pyfive.File(name) as f:
+        assert not f.consolidated_metadata
+
+
+def test_visititems_noindex_reaches_subgroups_without_building_index(
+    modular_tmp_path, monkeypatch
+):
+    name = modular_tmp_path / "nested.h5"
+    with h5py.File(name, "w") as f:
+        f.create_group("a/b").create_dataset(
+            "v", data=np.arange(100, dtype="f4"), chunks=(10,)
+        )
+
+    def fail(self):
+        raise AssertionError("index was built")
+
+    monkeypatch.setattr(pyfive.h5d.DatasetID, "_build_index", fail)
+    with pyfive.File(name) as f:
+        seen = []
+        f.visititems(lambda n, o: seen.append(n), noindex=True)
+        assert seen == ["a", "a/b", "a/b/v"]
+
+
+def test_visititems_link_cycle(modular_tmp_path):
+    name = modular_tmp_path / "cycle.h5"
+    with h5py.File(name, "w") as f:
+        g = f.create_group("g")
+        g["loop"] = f  # hard link back to the root
+        g.create_dataset("v", data=np.arange(100, dtype="f4"), chunks=(10,))
+    with pyfive.File(name) as f:
+        assert [p for p, _ in f._lazy_datasets()] == ["/g/v"]

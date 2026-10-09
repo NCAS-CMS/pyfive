@@ -13,115 +13,15 @@ slow, and both can be found without reading any actual data:
 Both can usually be fixed (by the owner of the data) with ``h5repack``.
 """
 
-import math
 import sys
 import signal
-from dataclasses import dataclass, field
 
-from pyfive import File, Group, Dataset
-
-
-@dataclass
-class VariableLayout:
-    """Layout information for one chunked variable."""
-
-    name: str
-    shape: tuple
-    chunks: tuple
-    n_chunks: int
-    btree_range: tuple
-    first_chunk: int
-    unit_chunk_axes: tuple
-    fragmented: bool = False  # index extends past the first chunk of data in the file
-
-    @property
-    def has_issue(self):
-        return self.fragmented or bool(self.unit_chunk_axes)
-
-
-@dataclass
-class LayoutReport:
-    """The result of :func:`check_layout`."""
-
-    source: str
-    variables: list = field(default_factory=list)
-    n_other: int = 0  # compact, contiguous or empty datasets (nothing to check)
-
-    @property
-    def fragmented_metadata(self):
-        """True if the chunk index of any variable extends past the first chunk of data in the file."""
-        return any(v.fragmented for v in self.variables)
-
-    @property
-    def unit_chunks(self):
-        """True if any variable has a dimension (of size > 1) with a chunk size of one."""
-        return any(v.unit_chunk_axes for v in self.variables)
-
-    @property
-    def has_issue(self):
-        return self.fragmented_metadata or self.unit_chunks
-
-
-def _datasets(group, seen):
-    """Yield (path, dataset) for all datasets below group, without reading any chunk index."""
-    for name in group:
-        obj = group.get_lazy_view(name)
-        if isinstance(obj, Dataset):
-            yield obj.name, obj
-        elif isinstance(obj, Group):
-            key = id(
-                obj._dataobjects
-            )  # File caches these, so hard link cycles are caught
-            if key not in seen:
-                seen.add(key)
-                yield from _datasets(obj, seen)
-
-
-def _check_variable(path, dataset, full):
-    dsid = dataset.id
-    if dsid.layout_class != 2:
-        return None
-    if full:
-        # There is no point reading a remote index serially if it can be avoided
-        dsid.set_parallelism(btree_parallel=True)
-        dsid._build_index()
-        if dsid.get_num_chunks() == 0:
-            return None
-        btree_range, first_chunk = dsid.btree_range, dsid.first_chunk
-    else:
-        scan = dsid._scan_index()
-        if scan is None:
-            return None
-        btree_range, first_chunk = scan[:2], scan[2]
-    shape, chunks = tuple(dataset.shape), tuple(dataset.chunks)
-    # the most chunks there could be; a sparse dataset may have fewer
-    n_chunks = math.prod(-(-s // c) for s, c in zip(shape, chunks))
-    return VariableLayout(
-        name=path,
-        shape=shape,
-        chunks=chunks,
-        n_chunks=n_chunks,
-        btree_range=btree_range,
-        first_chunk=first_chunk,
-        unit_chunk_axes=tuple(
-            i for i, (s, c) in enumerate(zip(shape, chunks)) if c == 1 and s > 1
-        ),
-    )
+from pyfive import File
+from pyfive.layout import check_datasets
 
 
 def _check_open_file(f, source, full):
-    report = LayoutReport(source=source)
-    for path, dataset in _datasets(f, {id(f._dataobjects)}):
-        variable = _check_variable(path, dataset, full)
-        if variable is None:
-            report.n_other += 1
-        else:
-            report.variables.append(variable)
-    if report.variables:
-        first_data = min(v.first_chunk for v in report.variables)
-        for v in report.variables:
-            v.fragmented = v.btree_range[1] > first_data
-    return report
+    return check_datasets(f._lazy_datasets(), source, full)
 
 
 def check_layout(source, full=False, **storage_options):
@@ -133,10 +33,12 @@ def check_layout(source, full=False, **storage_options):
     already open file-like object. Only metadata is read.
 
     By default only the internal b-tree nodes, and the first and last leaf of each
-    index, are read: that gives the end of every index exactly, but only some of the chunk
-    addresses, so a file whose indexes are all before the sampled chunks, but
-    not before every chunk, would be missed. ``full=True`` reads every leaf node
-    (slow for large indexes) and is exact.
+    index, are read. That is enough to show that metadata is fragmented, so
+    ``fragmented_metadata`` is exact, but in that case the per-variable
+    ``fragmented`` flags may miss variables whose index is only beyond a chunk that
+    was not sampled. If no fragmentation is seen, every leaf is read to confirm it,
+    which is cheap as the index is then contiguous. ``full=True`` always reads every
+    leaf, so the per-variable flags are exact too.
 
     Returns a :class:`LayoutReport`.
     """
@@ -207,8 +109,10 @@ def main(argv=None):
 
     Usage: p5check [-v] [--full] [--anon] filename
     - v will list all chunked variables, not just those with problems
-    - full will read every chunk index in full, which is exact but can be slow
-      (by default just the upper levels and two leaves of each index are read)
+    - full will always read every chunk index in full, which makes the list of
+      variables with fragmented metadata exact, but can be slow for files with
+      fragmented metadata (by default, the upper levels and two leaves of each index
+      are read, and every leaf only if no fragmentation is found)
     - anon will use anonymous access for s3:// URLs
     """
     if argv is None:
