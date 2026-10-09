@@ -9,9 +9,11 @@ from pyfive.btree import BTreeV1RawDataChunks
 import s3fs
 
 from pyfive.p5check import check_layout, format_report, main
-from tests.conftest import endpoint_uri
 
 DIRNAME = os.path.dirname(__file__)
+
+# needed by the spoofed s3 filesystem
+endpoint_uri = "http://127.0.0.1:5555/"
 
 
 def _write(path, chunks, shape=(40, 20, 30), **kwargs):
