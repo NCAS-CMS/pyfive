@@ -118,3 +118,29 @@ With the ``-s`` option, extra attributes are displayed: *_Storage*,
    // global attributes:
                    q:Conventions = "CF-1.12" ;
    }
+
+p5check
+*******
+
+``p5check`` is a lightweight companion to ``p5dump -s`` for deciding, without reading any data, whether a file (local, or a
+remote ``https://`` or ``s3://`` URL) will be slow to read remotely. It reports two things for chunked variables:
+
+* *fragmented metadata*: the chunk index (`b-tree`) of a variable lies beyond the start of the first chunk of data in the file, 
+  so reading the index needs many small requests scattered through the file.
+* *unit chunks*: a dimension (of size greater than one) with a chunk size of one, which gives very many chunks and a large chunk index.
+
+.. code-block:: console
+
+   $ p5check https://example.org/data/myfile.nc
+   File: https://example.org/data/myfile.nc
+     1 chunked variable(s), 0 other dataset(s) (not chunked, or empty)
+     /q: shape=(8640, 324, 432) chunks=(1, 324, 432) n_chunks=8640
+         fragmented metadata: b-tree range (895303, 3829225883) extends past the first chunk of data in the file
+         chunk size one in dimension(s) [0]
+   ...
+
+By default only the upper levels of each chunk index and its first and last leaf node are read, which is fast but only samples the chunk addresses; 
+use ``--full`` (``check_layout(source, full=True)``) to read every leaf node for an exact answer.
+Use ``-v`` to list all chunked variables, and ``--anon`` for anonymous access to ``s3://`` URLs. The same checks are available from 
+Python as ``pyfive.p5check.check_layout(source)``, which returns a report object. As with ``p5dump -s``, the usual remedy is to 
+copy the file with ``h5repack`` using consolidated metadata and larger chunks.
