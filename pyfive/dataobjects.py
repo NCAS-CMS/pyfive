@@ -238,28 +238,44 @@ class DataObjects(object):
         # assume we only have one of these
         if len(attr_info) > 1:
             raise NotImplementedError("Multiple Attribute Info Messages not supported")
+
         offset = attr_info[0]["offset_to_message"]
-        data = _unpack_struct_from(ATTR_INFO_MESSAGE, self.msg_data, offset)
-        if not data["flags"] & 1:
-            data = _unpack_struct_from(ATTR_INFO_MESSAGE_NO_MCI, self.msg_data, offset)
-        heap_address = data["fractal_heap_address"]
-        # I can't find any documentation on this, but at least some
-        # files seem to use this to indicate no attribute info.
+        buf = self.msg_data
+
+        # 1. Unpack Version (1B) and Flags (1B)
+        version, flags = struct.unpack_from("<BB", buf, offset)
+        curr_offset = offset + 2
+
+        # Bit 0: Maximum Creation Index present (2 bytes)
+        if flags & 1:
+            curr_offset += 2
+
+        # Fractal Heap Address (8B) and Name B-Tree Address (8B) are
+        # always present
+        heap_address, name_btree_address = struct.unpack_from("<QQ", buf, curr_offset)
+        curr_offset += 16
+
+        # Bit 1: Creation Order B-Tree Address present (8 bytes)
+        order_btree_address = None
+        if flags & 2:
+            order_btree_address = struct.unpack_from("<Q", buf, curr_offset)[0]
+
+        # Handle undefined fractal heap address (no attributes)
         if heap_address == UNDEFINED_ADDRESS:
             return {}
-        name_btree_address = data["name_btree_address"]
-        order_btree_address = data["creation_order_btree_address"]
+
         t0 = time()
         heap = FractalHeap(self.fh, heap_address)
         t1 = time() - t0
         logger.debug(
             f"Fractal heap {heap_address} loaded with {heap.nobjects} objects in {t1:.4f}s"
         )
-        ordered = order_btree_address is not None
-        if ordered & (data["flags"] & 2):
+
+        if (order_btree_address is not None) and (flags & 2):
             btree = BTreeV2AttrCreationOrder(self.fh, order_btree_address)
         else:
             btree = BTreeV2AttrNames(self.fh, name_btree_address)
+
         adict = dict()
         for record in btree.iter_records():
             data = heap.get_data(record["heapid"])
@@ -269,6 +285,7 @@ class DataObjects(object):
                 continue
             name, value = self._parse_attribute_msg(data, 0)
             adict[name] = value
+
         return adict
 
     def unpack_attribute(self, offset):

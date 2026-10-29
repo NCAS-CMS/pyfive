@@ -1,3 +1,10 @@
+Version 1.1.0
+-------------
+
+**2026-??-??**
+
+- Fixed a metadata reading bug (``struct.error``) when opening files created without optional attribute flags. Closes #294 by `Bryan Lawrence <https://github.com/davidhassell>`_ in https://github.com/NCAS-CMS/pyfive/pull/295
+
 Version 1.3.0
 -------------
 
