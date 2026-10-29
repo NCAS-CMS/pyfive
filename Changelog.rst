@@ -3,7 +3,7 @@ Version 1.1.0
 
 **2026-??-??**
 
-- Update ``DataObjects._get_attributes_from_attr_info`` to parse version and flag bits dynamically before reading addressess. Closes #294 by `Bryan Lawrence <https://github.com/davidhassell>`_ in https://github.com/NCAS-CMS/pyfive/pull/295
+- Update ``DataObjects._get_attributes_from_attr_info`` to parse version and flag bits dynamically before reading addressess. Closes #294 by `David Hassell <https://github.com/davidhassell>`_ in https://github.com/NCAS-CMS/pyfive/pull/295
 
 Version 1.3.0
 -------------
