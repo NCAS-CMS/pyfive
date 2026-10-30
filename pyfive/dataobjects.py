@@ -255,7 +255,7 @@ class DataObjects(object):
         heap_address, name_btree_address = struct.unpack_from("<QQ", buf, curr_offset)
         curr_offset += 16
 
-        # Bit 1: Creation Order B-Tree Address present (8 bytes)
+        # Bit 1: Creation Order B-Tree Address may be present (8 bytes)
         order_btree_address = None
         if flags & 2:
             order_btree_address = struct.unpack_from("<Q", buf, curr_offset)[0]
@@ -878,6 +878,11 @@ def determine_data_shape(buf, offset):
 # integers, unless otherwise noted in the description of a field. Additionally,
 # all metadata fields are stored in little-endian byte order.
 
+# Note that we have been uncovering issues where not all elements of the
+# message structure will be present, depending on the flags field in the message.
+# This means that when parsing these structures, one must often check the flags
+# before attempting to decode the subsequent fields.
+
 
 GLOBAL_HEAP_ID_SIZE = _structure_size(GLOBAL_HEAP_ID)
 
@@ -904,6 +909,7 @@ ATTR_MSG_HEADER_V3 = OrderedDict(
     )
 )
 ATTR_MSG_HEADER_V3_SIZE = _structure_size(ATTR_MSG_HEADER_V3)
+
 
 ATTR_INFO_MESSAGE = OrderedDict(
     (
