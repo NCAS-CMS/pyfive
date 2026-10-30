@@ -579,10 +579,10 @@ def get_vlen_string_data_contiguous(
 
 
 def get_vlen_string_data_from_chunk(
-    fh, data_offset, global_heaps, shape, dtype, decode_strings=False
+    fh, data_offset, global_heaps, shape, dtype, decode_strings=False, *, valid_shape
 ):
     """Return the data for a data chunk which is made up of variable
-    length string data.
+    length string data, excluding records outside the dataset extent.
 
     """
     # we need to import this from DatasetID, and that's imported from
@@ -590,11 +590,13 @@ def get_vlen_string_data_from_chunk(
     fh.seek(data_offset)
     count = prod(shape)
 
-    value = np.empty(count, dtype=object)
-    offset = 0
     buf = fh.read(16 * count)
-    for i in range(count):
-        gheap_id = _unpack_struct_from(GLOBAL_HEAP_ID, buf, offset + 4)
+    records = np.frombuffer(buf, dtype="V16").reshape(shape)
+    # Trim before decoding, retaining physical strides along padded dimensions.
+    records = records[tuple(slice(0, size) for size in valid_shape)]
+    value = np.empty(records.size, dtype=object)
+    for i, record in enumerate(records.flat):
+        gheap_id = _unpack_struct_from(GLOBAL_HEAP_ID, record, 4)
         gheap_address = gheap_id["collection_address"]
         if gheap_address not in global_heaps:
             gheap = GlobalHeap(fh, gheap_address)
@@ -602,7 +604,6 @@ def get_vlen_string_data_from_chunk(
 
         gheap = global_heaps[gheap_address]
         value[i] = gheap.objects[gheap_id["object_index"]]
-        offset += 16
 
     if decode_strings:
         value = _convert_string_objects(value, dtype.encoding.lower())

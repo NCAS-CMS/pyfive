@@ -1,5 +1,7 @@
 import h5py
+import h5netcdf
 import pyfive
+import pytest
 import netCDF4 as nc
 import io
 import numpy as np
@@ -286,6 +288,62 @@ def test_vlen_contiguous_chunked(tmp_path):
             (slice(0, 2), slice(0, 2)),
         ):
             assert np.array_equal(contiguous[index], chunked[index])
+
+
+@pytest.mark.parametrize("decode_strings", [False, True], ids=["bytes", "decoded"])
+@pytest.mark.parametrize(
+    "index",
+    [slice(None), slice(0, 2), slice(2, 3)],
+    ids=["full-dataset", "first-chunk", "partial-final-chunk"],
+)
+def test_vlen_string_partial_chunk_h5netcdf(tmp_path, index, decode_strings):
+    """Ignore unused string heap references outside the dataset extent."""
+    tfile = tmp_path / "partial_chunk.nc"
+    values = ["a", "b", "c"]
+    with h5netcdf.File(tfile, "w") as ncfile:
+        ncfile.dimensions = {"time": len(values)}
+        variable = ncfile.create_variable(
+            "yyyymmdd", ("time",), dtype=h5py.string_dtype(), chunks=(2,)
+        )
+        variable[:] = np.asarray(values, dtype=object)
+
+    with h5py.File(tfile, "r") as hfile:
+        dataset = hfile["yyyymmdd"]
+        assert dataset.shape == (3,)
+        assert dataset.chunks == (2,)
+        np.testing.assert_array_equal(dataset.asstr()[:], values)
+
+    expected = np.asarray(
+        values if decode_strings else [value.encode("utf-8") for value in values]
+    )
+    with pyfive.File(tfile, decode_strings=decode_strings) as hfile:
+        np.testing.assert_array_equal(hfile["yyyymmdd"][index], expected[index])
+
+
+@pytest.mark.parametrize("decode_strings", [False, True], ids=["bytes", "decoded"])
+@pytest.mark.parametrize("shape", [(2, 3), (3, 3)])
+def test_vlen_string_partial_multidimensional_chunk(tmp_path, shape, decode_strings):
+    """Preserve physical record strides when trimming edge chunks."""
+    tfile = tmp_path / "partial_multidimensional_chunk.h5"
+    values = np.asarray([f"string-{i}" for i in range(np.prod(shape))]).reshape(shape)
+    with h5py.File(tfile, "w") as hfile:
+        hfile.create_dataset(
+            "strings",
+            data=values.astype(object),
+            dtype=h5py.string_dtype(),
+            chunks=(2, 2),
+        )
+
+    expected = values if decode_strings else np.char.encode(values, "utf-8")
+    with pyfive.File(tfile, decode_strings=decode_strings) as hfile:
+        for index in (
+            Ellipsis,
+            (slice(None), slice(2, 3)),
+            (slice(1, None), slice(1, None)),
+            (slice(None, None, -1), slice(None, None, -1)),
+            (-1, -1),
+        ):
+            np.testing.assert_array_equal(hfile["strings"][index], expected[index])
 
 
 def test_issue228(tmp_path):

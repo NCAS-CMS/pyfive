@@ -1037,6 +1037,12 @@ class DatasetID(ChunkRead):
             index = self._index
             for chunk_coords, chunk_selection, out_selection in indexer:
                 chunk_coords = tuple(map(mul, chunk_coords, self.chunks))
+                valid_shape = tuple(
+                    min(chunk_size, size - start)
+                    for chunk_size, size, start in zip(
+                        chunk_shape, self.shape, chunk_coords
+                    )
+                )
                 chunk_data = get_vlen_string_data_from_chunk(
                     fh,
                     index[chunk_coords].byte_offset,
@@ -1044,8 +1050,9 @@ class DatasetID(ChunkRead):
                     chunk_shape,
                     self._ptype,
                     self._decode_strings,
+                    valid_shape=valid_shape,
                 )
-                chunk_data = chunk_data.reshape(chunk_shape)
+                chunk_data = chunk_data.reshape(valid_shape)
                 out[out_selection] = chunk_data[chunk_selection]
 
             if self.posix:
