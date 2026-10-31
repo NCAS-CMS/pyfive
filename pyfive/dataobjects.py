@@ -105,7 +105,7 @@ class DataObjects(object):
         """Parse a collection of version 1 Data Objects."""
         header = _unpack_struct_from_file(OBJECT_HEADER_V1, fh)
         assert header["version"] == 1
-        msg_data = fh.read(header["object_header_size"])
+        msg_data = bytearray(fh.read(header["object_header_size"]))
 
         offset = 0
         msgs = []
@@ -118,7 +118,7 @@ class DataObjects(object):
                 msg_data += fh.read(size)
             msgs.append(msg)
             offset += 8 + msg["size"]
-        return msgs, msg_data, header
+        return msgs, bytes(msg_data), header
 
     def _parse_v2_objects(self, fh):
         """Parse a collection of version 2 Data Objects."""
