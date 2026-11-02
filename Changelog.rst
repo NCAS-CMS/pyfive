@@ -3,6 +3,7 @@ Version 1.1.0
 
 **2026-??-??**
 
+- Fix variable-length string reads from partially occupied chunks by ignoring heap references outside the dataset extent. Closes #297 by `Bryan Lawrence <https://github.com/bnlawrence>`_
 - Update ``DataObjects._get_attributes_from_attr_info`` to parse version and flag bits dynamically before reading addressess. Closes #294 by `David Hassell <https://github.com/davidhassell>`_ in https://github.com/NCAS-CMS/pyfive/pull/295
 
 Version 1.3.0
