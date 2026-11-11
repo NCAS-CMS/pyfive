@@ -59,7 +59,7 @@ test = [
     "h5netcdf",
     "h5py",
     "moto",
-    "netCDF4",
+    "netCDF4>=1.7.5",
     "pre-commit",  # with ruff and mypy
     "pytest",
     "pytest-cov",
